@@ -60,10 +60,10 @@ ThemeForge 让你直接在浏览器里做 Chrome 主题：不用注册，没有�
 
 ## 安装生成的主题
 
-ZIP 里只有**一个**文件夹（比如 `rose-morning-theme/`），文件夹里也只有**一个**文件
+ZIP 里只有**一个**文件夹（比如 `rose-morning/`），文件夹里也只有**一个**文件
 `manifest.json`。
 
-1. 解压下载到的文件，得到一个文件夹，比如 `rose-morning-theme/`。
+1. 解压下载到的文件，得到一个文件夹，比如 `rose-morning/`。
 2. 在 Chrome 里打开 `chrome://extensions`。
 3. 打开右上角的**开发者模式**。
 4. 点**加载已解压的扩展程序**，选中刚才那个文件夹本身 —— 不是 ZIP，也不是它的上一级目录。
@@ -118,7 +118,7 @@ ThemeForge 是一个**网页应用**，不是 Chrome 扩展，不会往你的浏
 | **随机配色** | 生成的是*协调*的一整套（邻近色 + 强调色）并自动修正对比度，不是甩给你 14 个随机 RGB |
 | **撤销（Ctrl+Z）** | 每一步都能撤回。连续拖动取色会合并成一步，提示里还会写明撤回的是哪一步 |
 | **预览 manifest** | 下载前先看确切的 JSON，带「JSON 合法」实时校验，可一键复制 |
-| **拿来即用的产物** | ZIP 里是一个 `<slug>-theme/` 文件夹，文件夹里只有 `manifest.json` —— Chrome 从不显示主题的图标，所以不打包 `icon.png`（万一将来要用，渲染能力还留在 `utils/icon.js`） |
+| **拿来即用的产物** | ZIP 里是一个 `<slug>/` 文件夹，文件夹里只有 `manifest.json` —— Chrome 从不显示主题的图标，所以不打包 `icon.png`（万一将来要用，渲染能力还留在 `utils/icon.js`） |
 | **永远完整** | 每次下载都会写全 **24** 个 Chrome 颜色键（你选的 14 个，加上推导出来的 10 个：隐身窗口框架、非活动/隐身的标签状态、新标签页标题、工具栏文字），外加 6 个 HSL `tints`。没有开关。对纯色主题唯一有实际作用的那个 `theme.properties` 键 —— `ntp_logo_alternate` —— 也总会写上，由新标签页 Logo 控件决定 |
 | **新标签页 Logo** | 可选自适应（`1`）或原始（`0`），默认自适应：让 Chrome 根据你的 `ntp_background` 去推导字标，浅色和深色主题下都能看清 |
 | **两种颜色格式** | RGB 整数数组（Chrome 唯一认的格式），或给 Firefox 用的 `#RRGGBB` 字符串 —— 后者会明确标出来，因为 Chrome 会直接拒绝 |
@@ -136,9 +136,9 @@ ThemeForge 是一个**网页应用**，不是 Chrome 扩展，不会往你的浏
 ```
 UI 控件      ──▶  field id            ──▶  Chrome manifest 键    ──┐
 （如 "Frame"）     （如 "frame"）            （如 "frame"）           │
-                                                                  ├──▶  manifest.json  ──▶  <slug>-theme/  ──▶  ZIP
-derivedColors.js ──▶ 10 个额外键 + 6 个 tints ─────────────────────┤        （MV3 主题）        （只有
-                                                                  │                          manifest.json）
+                                                                  ├──▶  manifest.json  ──▶  <slug>/        ──▶  ZIP
+derivedColors.js ──▶ 10 个额外键 + 6 个 tints ─────────────────────┤        （MV3 主题）             （只有
+                                                                  │                         manifest.json）
 palette / image ──▶ solveTheme() ──▶ field id ─────────────────────┤
 manifest        ──▶ importThemeJson() ──▶ field id ────────────────┘
 ```
@@ -150,16 +150,16 @@ manifest        ──▶ importThemeJson() ──▶ field id ─────�
    从你的配色里*推导*出来，所以不可能和你选的颜色打架，6 个 HSL `tints` 也一并写出。这里没有
    复选框：省掉它们只会把这些状态交给 Chrome 的默认样式，成品看着明显差一截，却什么也没换来。
    manifest 里还会带上唯一有意义的那个显示属性 `ntp_logo_alternate` —— 见下文。
-4. **生成。** ThemeForge 先校验名称、描述和颜色，组装出 `manifest.json`，确认它能被解析，
-   然后包成一个 ZIP，里面是一个单独的 `<slug>-theme/` 文件夹。不画图标：Chrome 在哪儿都不
-   显示主题的 `icon.png`，所以下载包里只放 Chrome 真正会读的那一个文件。
+4. **生成。** ThemeForge 先校验名称、摘要和颜色，组装出 `manifest.json`，确认它能被解析，
+   然后包成一个 ZIP，里面是一个单独的 `<slug>/` 文件夹。不画图标：Chrome 在哪儿都不显示
+   主题的 `icon.png`，所以下载包里只放 Chrome 真正会读的那一个文件。
 
 ### 为什么压缩包里是一个文件夹，而不是散文件
 
 Chrome 的**加载已解压的扩展程序**要的是一个**目录**，不是压缩包。如果 ZIP 里把
 `manifest.json` 放在最外层，解压时它就会掉进你当时所在的目录 —— 通常是「下载」，
-而那一层是不能选的。所以所有东西都包进一个具名文件夹，解压出来的结果可以直接选中，
-这也和你手工做主题时的目录结构一致（`rose-morning-theme/`、`cotton-candy-dream-theme/`……）。
+而那一层是不能选的。所以所有东西都包进一个具名文件夹，解压出来的结果可以直接选中；
+文件夹名就是你给主题起的名字 —— 比如叫「Rose Morning」就会解压出 `rose-morning/`。
 
 包里只写两个东西。我们翻查过 21 个手写主题，它们带的其它文件 —— `README.md`、`LICENSE`、
 `.gitignore`、`scripts/*.py`、`theme.json`、商店素材、`Cached Theme.pak` —— 对渲染没有任何

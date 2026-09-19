@@ -64,10 +64,10 @@ Your draft is saved in your own browser as you type, so a reload does not lose i
 
 ## Installing a generated theme
 
-The ZIP contains **one** folder, e.g. `rose-morning-theme/`, and inside it
+The ZIP contains **one** folder, e.g. `rose-morning/`, and inside it
 **exactly one** file, `manifest.json`.
 
-1. Unzip the downloaded file. You get one folder, e.g. `rose-morning-theme/`.
+1. Unzip the downloaded file. You get one folder, e.g. `rose-morning/`.
 2. Open `chrome://extensions` in Chrome.
 3. Enable **Developer mode** (top right).
 4. Click **Load unpacked** and select that folder itself — not the ZIP, and not its
@@ -125,7 +125,7 @@ into your browser.
 | **Randomize** | Generates a *coordinated* palette (analogous + accent) with automatic contrast correction, not 14 random RGB values |
 | **Undo (Ctrl+Z)** | Every edit is undoable. A whole colour drag collapses into a single step, and the toast names what was undone |
 | **Preview Manifest** | Inspect the exact JSON before downloading, with a live "valid JSON" check and Copy JSON |
-| **Loadable package** | The ZIP wraps everything in one `<slug>-theme/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
+| **Loadable package** | The ZIP wraps everything in one `<slug>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
 | **Always complete** | Every download writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
 | **New Tab Page logo** | Adaptive (`1`) or Original (`0`). Adaptive is the default: it lets Chrome derive the wordmark from your `ntp_background`, so it reads correctly on light *and* dark themes |
 | **Two color formats** | RGB int arrays (the only format Chrome loads) or `#RRGGBB` strings for Firefox — the latter is flagged, because Chrome rejects it outright |
@@ -143,9 +143,9 @@ into your browser.
 ```
 UI control  ──▶  field id         ──▶  Chrome manifest key   ──┐
 (e.g. "Frame")   (e.g. "frame")        (e.g. "frame")          │
-                                                               ├──▶  manifest.json  ──▶  <slug>-theme/    ──▶  ZIP
+                                                               ├──▶  manifest.json  ──▶  <slug>/          ──▶  ZIP
 derivedColors.js ──▶ 10 extra keys + 6 tints ──────────────────┤        (MV3 theme)      (manifest.json
-                                                               │                              only)
+                                                               │                         only)
 palette / image ──▶ solveTheme() ──▶ field ids ────────────────┤
 manifest        ──▶ importThemeJson() ──▶ field ids ───────────┘
 ```
@@ -164,7 +164,7 @@ manifest        ──▶ importThemeJson() ──▶ field ids ─────�
    property that matters here, `ntp_logo_alternate` — see the note below.
 4. **Generate.** ThemeForge validates the name/description/colors, assembles
    `manifest.json`, proves the JSON parses, then wraps it in a single
-   `<slug>-theme/` folder inside a ZIP and hands it to the browser. No icon is
+   `<slug>/` folder inside a ZIP and hands it to the browser. No icon is
    drawn: Chrome never shows a theme's `icon.png` anywhere, so the download
    carries only the one file Chrome reads.
 
@@ -174,8 +174,8 @@ Chrome's **Load unpacked** takes a **directory**, not an archive. If a theme ZIP
 put `manifest.json` at its own root, extracting it would scatter the file into
 whatever folder the user happened to be in — usually Downloads, which is not a
 folder you can safely select. Wrapping everything in one named folder makes the
-extracted result directly selectable, and matches the layout of hand-built themes
-(`rose-morning-theme/`, `cotton-candy-dream-theme/`, …).
+extracted result directly selectable, and the folder is simply named after your
+theme — a theme called "Rose Morning" unpacks into `rose-morning/`.
 
 Only two files are written. An audit of 21 hand-built reference themes showed that
 the other things they carry — `README.md`, `LICENSE`, `.gitignore`, `scripts/*.py`,

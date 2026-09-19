@@ -269,8 +269,15 @@ export const THEME_VERSION = '1.0'
 export const ICON_FILENAME = 'icon.png'
 export const ICON_SIZE = 128
 
-/** Suffix appended to the theme slug to name the unpacked folder inside the ZIP. */
-export const THEME_FOLDER_SUFFIX = '-theme'
+/**
+ * Suffix appended to the theme slug to name the unpacked folder inside the ZIP.
+ *
+ * **Empty on purpose (2026-09-19).** The `-theme` suffix was dropped on request, so
+ * `Rose Morning` now unpacks into `rose-morning/` and downloads as `rose-morning.zip`.
+ * The knob is kept rather than inlined so this convention has exactly one home, and
+ * `verify.mjs` pins the empty value so the suffix cannot creep back in unnoticed.
+ */
+export const THEME_FOLDER_SUFFIX = ''
 
 /**
  * Colour serialisation modes accepted by a theme manifest.

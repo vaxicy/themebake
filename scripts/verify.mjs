@@ -356,7 +356,14 @@ const pkg = await buildThemePackage({
   icon: FAKE_PNG,
 })
 
-ok(`folder name carries the "${THEME_FOLDER_SUFFIX}" suffix`, pkg.folderName.endsWith(THEME_FOLDER_SUFFIX), pkg.folderName)
+// 2026-09-19: the "-theme" suffix was dropped, so the folder is now the plain slug
+// ("My Theme" -> "my-theme"). THEME_FOLDER_SUFFIX is pinned empty in the same
+// assertion so the suffix cannot creep back in without this test going red.
+ok(
+  'folder name is the plain slug, with no "-theme" suffix',
+  pkg.folderName === 'my-theme' && THEME_FOLDER_SUFFIX === '',
+  `${pkg.folderName} / suffix=${JSON.stringify(THEME_FOLDER_SUFFIX)}`,
+)
 ok('zip filename is the folder name plus .zip', pkg.zipName === `${pkg.folderName}.zip`, pkg.zipName)
 ok('package contains exactly 2 files', pkg.files.length === 2, pkg.files.map((f) => f.path).join(', '))
 ok('manifest.json is written first', pkg.files[0].path === MANIFEST_FILENAME)
@@ -407,7 +414,7 @@ ok('folder name never contains a path separator or angle bracket',
 ok('folder name never starts with a dot', !nasty.folderName.startsWith('.'), nasty.folderName)
 
 const folderSlug = toThemeFolderName('Rose Morning')
-ok('toThemeFolderName slugifies consistently', folderSlug === `rose-morning${THEME_FOLDER_SUFFIX}`, folderSlug)
+ok('toThemeFolderName slugifies consistently, appending nothing', folderSlug === 'rose-morning', folderSlug)
 
 // ---------------------------------------------------------------------------
 section('10. i18n dictionaries')

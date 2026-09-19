@@ -8,8 +8,8 @@
  * into — usually their Downloads folder, which they then cannot safely select.
  *
  * So every archive ThemeForge produces wraps its files in exactly one top-level
- * folder, `<slug>-theme/`, matching the layout of the hand-built themes this
- * feature replicates.
+ * folder, `<slug>/`. One folder is the whole point; the folder's name is just the
+ * theme name, lower-cased and sanitised.
  */
 
 import JSZip from 'jszip'

@@ -4,7 +4,7 @@
  * Turns the editor state into the exact file list Chrome expects to find in a
  * folder loaded via "Load unpacked":
  *
- *     <slug>-theme/
+ *     <slug>/
  *       manifest.json     <- the only file Chrome actually reads
  *
  * Nothing else is written by the app. The icon parameter is retained so the
@@ -31,14 +31,16 @@ import { toSlug } from './slug.js'
 import { MANIFEST_FILENAME } from './zip.js'
 
 /**
- * Folder name for the unpacked theme, e.g. `Rose Morning` -> `rose-morning-theme`.
+ * Folder name for the unpacked theme, e.g. `Rose Morning` -> `rose-morning`.
  *
  * `toSlug` already sanitises for every OS and guards Windows reserved names; the
- * extra lower-casing matches the convention every reference theme uses
- * (`rose-morning-theme`, `cotton-candy-dream-theme`) and, more practically,
- * avoids two themes that differ only in case colliding on a case-insensitive
- * filesystem — which is exactly where a user would extract them. Non-ASCII
- * characters are unaffected, so a CJK name still lower-cases to itself.
+ * extra lower-casing is practical, not cosmetic: it stops two themes that differ
+ * only in case from colliding on a case-insensitive filesystem — which is exactly
+ * where a user would extract them. Non-ASCII characters are unaffected, so a CJK
+ * name still lower-cases to itself.
+ *
+ * No suffix is appended. `THEME_FOLDER_SUFFIX` is the single knob for that and it
+ * is currently empty (the `-theme` suffix was dropped on 2026-09-19).
  *
  * @param {string} name
  * @returns {string}

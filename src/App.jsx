@@ -173,8 +173,9 @@ export default function App() {
 
   // The folder inside the ZIP is derived from the name, and the download itself is
   // named after that folder — so what a user sees in their Downloads list is
-  // exactly what they are about to unpack and select.
-  const folderName = useMemo(() => toThemeFolderName(name || 'chrome-theme'), [name])
+  // exactly what they are about to unpack and select. An empty or unusable name
+  // falls back inside `toThemeFolderName`, so there is no second fallback here.
+  const folderName = useMemo(() => toThemeFolderName(name), [name])
   const filename = useMemo(() => `${folderName}.zip`, [folderName])
 
   /** Re-checked on every colour change: the safety net under manual edits. */
