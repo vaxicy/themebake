@@ -21,8 +21,8 @@ export default {
   'header.undoTitle': 'Undo the last change (Ctrl+Z)',
   'header.reset': 'Reset',
   'header.github': 'GitHub',
-  'header.githubTitle': 'Repository link placeholder — replace GITHUB_URL in components/Header.jsx',
-  'header.githubAria': 'GitHub repository (placeholder link)',
+  'header.githubTitle': 'ThemeForge on GitHub',
+  'header.githubAria': 'ThemeForge repository on GitHub',
   'header.about': 'About',
   'header.storageUnavailable':
     'Local storage is unavailable in this browser — your edits will not be remembered after a reload.',
@@ -33,7 +33,7 @@ export default {
   'about.title': 'About ThemeForge',
   'about.description': 'Create custom Chrome themes directly in your browser.',
   'about.intro':
-    'ThemeForge is a free, no-account theme builder for Chrome. Pick your colours, watch the live preview, and download a ready-to-load theme ZIP in seconds.',
+    'ThemeForge is a no-account theme builder for Chrome. Pick your colours, watch the live preview, and download a ready-to-load theme ZIP in seconds.',
   'about.whatYouGet': 'What you get',
   'about.bullet1a': 'A theme folder containing ',
   'about.bullet1b': ' inside a named folder — ready for Load unpacked. Nothing else is written.',

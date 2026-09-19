@@ -667,4 +667,7 @@ generic browser UI geometry.
 
 ## License
 
-MIT
+Released under the **Non-Commercial License** (v1.0, 2026-09-19). Personal,
+educational and other non-commercial use — including reading and modifying the
+source — is permitted. Commercial use requires prior written permission from the
+author. The full terms, in English and 简体中文, are in [LICENSE](LICENSE).

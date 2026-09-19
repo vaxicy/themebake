@@ -94,10 +94,6 @@
   background-color: var(--danger-hover);
 }
 
-.is-placeholder {
-  opacity: 0.72;
-}
-
 .icon-button {
   display: grid;
   place-items: center;

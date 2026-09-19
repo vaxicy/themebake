@@ -1,9 +1,8 @@
 /**
- * App header: brand on the left, language / Reset / GitHub / About on the right.
+ * App header: brand on the left, language / Undo / Reset / GitHub / About on the right.
  *
- * The GitHub link is intentionally a placeholder — no repository exists yet —
- * so it is rendered as a disabled-looking control with a tooltip instead of a
- * dead link that 404s.
+ * The GitHub link points at the public repository, so it is an ordinary external
+ * link — there is no placeholder state left to explain.
  *
  * All copy comes from the dictionary, so the About modal switches language with
  * the rest of the UI without a reload.
@@ -15,7 +14,7 @@ import { GitHubIcon, InfoIcon, PaletteIcon, ResetIcon, UndoIcon } from './Icons.
 import { LanguageSwitcher } from './LanguageSwitcher.jsx'
 import { Modal } from './Modal.jsx'
 
-export const GITHUB_URL = 'https://github.com/'
+export const GITHUB_URL = 'https://github.com/vaxicy/themeforge'
 
 export function Header({ onReset, onUndo, canUndo = false, storageWarning }) {
   const { t } = useI18n()
@@ -61,7 +60,7 @@ export function Header({ onReset, onUndo, canUndo = false, storageWarning }) {
             </button>
 
             <a
-              className="button button--ghost button--sm is-placeholder"
+              className="button button--ghost button--sm"
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer noopener"
