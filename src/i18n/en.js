@@ -143,7 +143,7 @@ export default {
   'import.subtitle':
     'Paste colours, a palette link, a manifest, or drop an image — ThemeBake maps it onto Chrome roles.',
   'import.placeholder':
-    'Paste hex codes, an rgb() list, a Coolors / Adobe Color link, a manifest.json, or ThemeBake JSON…',
+    'Paste hex codes, an rgb() list, a Coolors / Adobe Color link, a manifest.json, or a theme JSON this tool exported…',
   'import.pickImage': 'Choose image',
   'import.imageHint': 'or paste a screenshot with {shortcut}',
   'import.shortcut': 'Ctrl+V',
@@ -211,6 +211,9 @@ export default {
   'export.generate': 'Generate Theme',
   'export.generating': 'Building ZIP…',
   'export.previewManifest': 'Preview Manifest',
+  'export.json': 'Export theme JSON',
+  'export.jsonTitle':
+    'Save this theme as a JSON file you can paste back into the Import panel — for backup or sharing.',
   'export.howtoSummary': 'How do I install the generated theme?',
   'export.howto1a': 'Unzip ',
   'export.howto1b': ' — you get a single folder, ',

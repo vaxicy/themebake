@@ -125,6 +125,7 @@ into your browser.
 | **Randomize** | Generates a *coordinated* palette (analogous + accent) with automatic contrast correction, not 14 random RGB values |
 | **Undo (Ctrl+Z)** | Every edit is undoable. A whole colour drag collapses into a single step, and the toast names what was undone |
 | **Preview Manifest** | Inspect the exact JSON before downloading, with a live "valid JSON" check and Copy JSON |
+| **Export theme JSON** | One click saves the theme (name, palette, colour format) as a JSON file. The Import panel reads it back, so a theme can be backed up or handed to someone else |
 | **Loadable package** | The ZIP wraps everything in one `<slug>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
 | **Always complete** | Every download writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
 | **New Tab Page logo** | Adaptive (`1`) or Original (`0`). Adaptive is the default: it lets Chrome derive the wordmark from your `ntp_background`, so it reads correctly on light *and* dark themes |
@@ -450,7 +451,7 @@ also parses the E2E harness with `node --check`, so an unbalanced template liter
 fails in a second instead of after a browser has launched. It exits non-zero on
 failure and needs no browser.
 
-### Browser E2E — 200 assertions, real Chrome
+### Browser E2E — 211 assertions, real Chrome
 
 `verify.mjs` proves the pure logic. A companion harness proves the assembled app,
 driving real Chrome over the DevTools Protocol with **zero extra dependencies**
@@ -464,7 +465,7 @@ npm run preview                    # serves ./dist
 node <harness>/e2e.mjs http://localhost:4173
 ```
 
-**200 assertions** across 23 suites: first render, live preview reactions, invalid
+**211 assertions** across 23 suites: first render, live preview reactions, invalid
 input recovery, presets, randomiser, the key overlay, the manifest modal, name
 validation, **the generated ZIP unpacked and inspected byte-for-byte (manifest.json
 and nothing else)**, storage

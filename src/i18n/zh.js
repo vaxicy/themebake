@@ -133,7 +133,7 @@ export default {
   'import.title': '导入',
   'import.subtitle': '粘贴颜色、色卡链接、manifest，或拖入图片 —— ThemeBake 会把它们对应到 Chrome 各处的界面配色。',
   'import.placeholder':
-    '粘贴十六进制色值、rgb() 列表、Coolors / Adobe Color 链接、manifest.json，或 ThemeBake JSON…',
+    '粘贴十六进制色值、rgb() 列表、Coolors / Adobe Color 链接、manifest.json，或本工具导出的主题 JSON…',
   'import.pickImage': '选择图片',
   'import.imageHint': '或按 {shortcut} 直接粘贴截图',
   'import.shortcut': 'Ctrl+V',
@@ -204,6 +204,8 @@ export default {
   'export.generate': '生成主题',
   'export.generating': '正在打包 ZIP…',
   'export.previewManifest': '预览 manifest',
+  'export.json': '导出主题 JSON',
+  'export.jsonTitle': '把当前主题存成一份 JSON 文件，可以直接贴回「导入」面板 —— 备份或分享用。',
   'export.howtoSummary': '生成的主题怎么安装？',
   'export.howto1a': '解压 ',
   'export.howto1b': '，会得到一个文件夹 ',

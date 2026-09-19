@@ -45,11 +45,12 @@ import { useI18n } from './i18n/index.jsx'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
 import { createHistory, record, undo } from './utils/history.js'
+import { exportThemeJson } from './utils/importTheme.js'
 import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
 import { buildThemePackage, toThemeFolderName } from './utils/package.js'
 import { INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
 import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/storage.js'
-import { createZip, downloadBlob } from './utils/zip.js'
+import { createZip, downloadBlob, downloadText } from './utils/zip.js'
 
 /**
  * ThemeBake always writes the complete theme.
@@ -446,6 +447,20 @@ export default function App() {
     setManifestOpen(true)
   }, [])
 
+  /**
+   * Save the theme in this app's own JSON shape rather than as a manifest: it
+   * carries the colour *format* choice as well as the palette, and it is exactly
+   * what the Import panel's "theme" branch reads back — so export -> import is
+   * lossless for the name, the palette and the format.
+   *
+   * The summary and the New Tab logo choice are NOT in it: those live in the
+   * manifest, which "Preview Manifest" already downloads. Adding them here would
+   * mean teaching `importThemeJson` to read two more fields.
+   */
+  const handleExportJson = useCallback(() => {
+    downloadText(exportThemeJson({ name, colors, colorFormat }), `${folderName}.json`)
+  }, [name, colors, colorFormat, folderName])
+
   const handleGenerate = useCallback(async () => {
     if (generating) return
 
@@ -571,6 +586,7 @@ export default function App() {
               onColorFormatChange={setColorFormat}
               onGenerate={handleGenerate}
               onPreviewManifest={handlePreviewManifest}
+              onExportJson={handleExportJson}
               busy={generating}
               // Read off the built manifest rather than recomputed, so the
               // subtitle can never claim a number the download does not contain.

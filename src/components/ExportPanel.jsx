@@ -26,6 +26,7 @@ export function ExportPanel({
   onColorFormatChange,
   onGenerate,
   onPreviewManifest,
+  onExportJson,
   busy,
   keyCount,
   tintCount,
@@ -99,6 +100,21 @@ export function ExportPanel({
         <button type="button" className="button button--outline button--lg" onClick={onPreviewManifest}>
           <CodeIcon size={17} />
           {t('export.previewManifest')}
+        </button>
+
+        {/*
+          The counterpart to the Import panel's "theme" branch. `exportThemeJson`
+          already existed, but nothing in the UI could reach it — so the paste hint
+          advertised a file no user could produce. This button makes it real.
+        */}
+        <button
+          type="button"
+          className="button button--outline button--lg"
+          onClick={onExportJson}
+          title={t('export.jsonTitle')}
+        >
+          <DownloadIcon size={17} />
+          {t('export.json')}
         </button>
       </div>
 
