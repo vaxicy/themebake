@@ -4,7 +4,7 @@
  * Every hand-built theme in the reference set ships a 128×128 `icon.png`
  * referenced by `icons.128`. Chrome does not require it for a colour-only theme,
  * but the Chrome Web Store does, and a theme without one shows a blank card in
- * `chrome://extensions`. ThemeForge therefore draws one from the theme's own
+ * `chrome://extensions`. ThemeBake therefore draws one from the theme's own
  * palette instead of asking the user to open an image editor.
  *
  * The drawing is deliberately flat — a miniature browser window in the theme's

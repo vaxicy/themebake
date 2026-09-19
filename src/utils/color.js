@@ -1,7 +1,7 @@
 /**
  * Colour utilities.
  *
- * Everything in ThemeForge is stored as a 6-digit uppercase hex string
+ * Everything in ThemeBake is stored as a 6-digit uppercase hex string
  * (`#RRGGBB`). Conversion to whatever Chrome wants happens only in
  * `utils/manifest.js`, so the UI layer never deals with manifest formats.
  */

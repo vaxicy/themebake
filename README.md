@@ -1,19 +1,19 @@
-# ThemeForge
+# ThemeBake
 
 **English** | [简体中文](README.zh-CN.md)
 
 **Build a custom Chrome theme in your browser — pick colours, preview them live, download a folder Chrome loads as-is.**
 
-**[Open ThemeForge →](https://themeforge-9g1.pages.dev)**
+**[Open ThemeBake →](https://themebake.pages.dev)**
 
-[![Live app](https://img.shields.io/badge/live-themeforge--9g1.pages.dev-6C5CE7)](https://themeforge-9g1.pages.dev)
+[![Live app](https://img.shields.io/badge/live-themebake.pages.dev-6C5CE7)](https://themebake.pages.dev)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Node 18+](https://img.shields.io/badge/Node-18%2B-339933?logo=node.js&logoColor=white)
 
-![ThemeForge: colour controls on the left, a live Chrome mockup and the contrast audit on the right](docs/screenshot.png)
+![ThemeBake: colour controls on the left, a live Chrome mockup and the contrast audit on the right](docs/screenshot.png)
 
-ThemeForge is a Chrome theme generator with no account, no backend and no build
+ThemeBake is a Chrome theme generator with no account, no backend and no build
 step. Pick your colors, preview the theme live in a browser mockup, and download a
 ZIP that unzips into a ready-to-load theme folder in seconds. Everything runs
 locally in the browser — there is no database and no login.
@@ -51,7 +51,7 @@ or 简体中文.
 
 ## Quick start
 
-1. Open **[themeforge-9g1.pages.dev](https://themeforge-9g1.pages.dev)**.
+1. Open **[themebake.pages.dev](https://themebake.pages.dev)**.
 2. Name the theme, then set colours by hand — or let the solver do it from one
    colour, a palette card, a link or an image (see
    [Three ways to start a theme](#three-ways-to-start-a-theme)).
@@ -80,20 +80,20 @@ colour-only theme does not need in order to be loaded locally.
 
 ---
 
-## What is ThemeForge
+## What is ThemeBake
 
 Chrome themes are just a folder with a `manifest.json` inside that maps a handful
 of named colors to browser UI regions. Writing that file by hand means memorising
 keys like `background_tab`, `toolbar_button_icon` and `ntp_link` — and getting the
 value format right.
 
-ThemeForge turns that into a point-and-click editor:
+ThemeBake turns that into a point-and-click editor:
 
 - Choose colors visually and watch a live Chrome mockup update instantly.
 - See exactly which manifest key each color maps to.
 - Download a ZIP that unzips into one folder Chrome will accept without edits.
 
-ThemeForge is a **web app**, not a Chrome extension. It does not install anything
+ThemeBake is a **web app**, not a Chrome extension. It does not install anything
 into your browser.
 
 ---
@@ -162,7 +162,7 @@ manifest        ──▶ importThemeJson() ──▶ field ids ─────�
    them just leaves those states to Chrome's own defaults, which is a visibly less
    finished result for no benefit. The manifest also carries the one display
    property that matters here, `ntp_logo_alternate` — see the note below.
-4. **Generate.** ThemeForge validates the name/description/colors, assembles
+4. **Generate.** ThemeBake validates the name/description/colors, assembles
    `manifest.json`, proves the JSON parses, then wraps it in a single
    `<slug>/` folder inside a ZIP and hands it to the browser. No icon is
    drawn: Chrome never shows a theme's `icon.png` anywhere, so the download
@@ -230,7 +230,7 @@ Running the solver over it would silently discard the author's own choices.
 | --- | --- | --- |
 | Hex / `rgb()` text | palette | solver |
 | Coolors / Adobe Color style link | palette | solver |
-| Chrome `manifest.json` or a ThemeForge export | theme | applied verbatim |
+| Chrome `manifest.json` or a ThemeBake export | theme | applied verbatim |
 | A bare colour map (`{"frame": "#fff"}`) | theme | applied verbatim, if ≥1 key is recognised |
 | Image (drag & drop, file picker, or `Ctrl+V`) | palette | solver |
 
@@ -293,7 +293,7 @@ of truth. Three safeguards keep the output honest:
    silently emit a key Chrome does not understand.
 2. **`CHROME_DEAD_COLOR_KEYS`** — an explicit deny-list of keys that *look* real,
    appear all over third-party themes, and are absent from that table. The
-   verifier proves ThemeForge never emits one, and the importer reports them
+   verifier proves ThemeBake never emits one, and the importer reports them
    instead of round-tripping junk.
 3. **Provenance comments** — the file records both authorities: the key-name table
    above, and `LoadColors` in
@@ -310,7 +310,7 @@ Nothing else. The consequences drive several design decisions:
 - **A string value aborts the whole manifest** with `kInvalidThemeColors`. A
   HEX-string manifest is therefore not "less compatible", it is *unloadable* in
   Chrome. The option is kept for Firefox and clearly flagged in the UI.
-- **Value ranges are never checked**, so `[999, -40, 300]` loads happily. ThemeForge
+- **Value ranges are never checked**, so `[999, -40, 300]` loads happily. ThemeBake
   clamps to 0-255 anyway.
 - **`theme.tints` is validated separately**: every entry must be a list of exactly
   3 doubles, again with no key-name check. The 6 valid keys are
@@ -319,7 +319,7 @@ Nothing else. The consequences drive several design decisions:
 - **`theme.properties` carries exactly one key: `ntp_logo_alternate`.** The other
   two keys Chrome reads are real but unreachable for a colour-only theme:
   `ntp_background_alignment` / `ntp_background_repeat` only take effect when the
-  theme ships a background image through `theme.images`, which ThemeForge
+  theme ships a background image through `theme.images`, which ThemeBake
   deliberately does not support. Without an image there is nothing to align.
 
   `ntp_logo_alternate` is worth writing, and it does **not** mean what it sounds
@@ -507,14 +507,14 @@ npm run build
 | Node version | 18+ |
 
 The output is a plain static bundle (`index.html` + hashed CSS/JS assets). There
-is **no server runtime** — ThemeForge does not use SSR, API routes, edge
+is **no server runtime** — ThemeBake does not use SSR, API routes, edge
 functions or any Node.js server.
 
 ---
 
 ## Cloudflare Pages deployment
 
-Live at **<https://themeforge-9g1.pages.dev>**.
+Live at **<https://themebake.pages.dev>**.
 
 ### Option A — Git integration
 
@@ -533,7 +533,7 @@ Live at **<https://themeforge-9g1.pages.dev>**.
 
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name themeforge
+npx wrangler pages deploy dist --project-name themebake
 ```
 
 That is all that is required. No `_redirects` rules are needed because the app has
@@ -544,7 +544,7 @@ no client-side router — every route is `/`.
 ## Project structure
 
 ```
-themeforge/
+themebake/
 ├── index.html                  # App shell, meta tags, inline SVG favicon
 ├── vite.config.js              # Vite config (static build target)
 ├── package.json
@@ -591,7 +591,7 @@ themeforge/
     │   ├── history.js          # Undo stack (coalescing, bounded)
     │   ├── icon.js             # 128×128 icon renderer (kept for reuse; not shipped by default)
     │   ├── package.js          # Assembles manifest.json into the theme folder
-    │   ├── importTheme.js      # manifest / ThemeForge / bare-map parsing
+    │   ├── importTheme.js      # manifest / ThemeBake / bare-map parsing
     │   ├── parseColors.js      # Hex + rgb() + palette-link text extraction
     │   ├── image.js            # Band detection + dominant-colour clustering
     │   ├── contrastAudit.js    # WCAG pair checks + bounded repair pass
@@ -646,7 +646,7 @@ and any backend SDK.
 
 ## Privacy
 
-**ThemeForge processes theme settings locally in your browser.**
+**ThemeBake processes theme settings locally in your browser.**
 **No account is required.**
 **Theme configurations are not uploaded to a server.**
 
@@ -655,7 +655,7 @@ Specifically:
 - All colour maths, palette solving, manifest generation, image analysis and ZIP
   packaging happen client-side.
 - Your draft is saved to your own browser's `localStorage` under
-  `themeforge:theme:v1`, and your language choice under `themeforge:lang:v1`. They
+  `themebake:theme:v1`, and your language choice under `themebake:lang:v1`. They
   never leave your device and they are not synced.
 - **Images never leave the page.** Extraction draws the image onto a local
   `<canvas>` and reads pixels back with `getImageData`. Nothing is uploaded.
@@ -670,7 +670,7 @@ You can inspect all of this in the source; the entire app is in `src/`.
 
 ## Disclaimer
 
-ThemeForge is an independent tool and is not affiliated with, endorsed by, or
+ThemeBake is an independent tool and is not affiliated with, endorsed by, or
 sponsored by Google. "Chrome" is a trademark of Google LLC. The browser mockup in
 the preview uses no Chrome or Google logos or trademarks — it reproduces only the
 generic browser UI geometry.

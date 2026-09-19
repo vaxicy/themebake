@@ -1,7 +1,7 @@
 /**
  * Inline SVG icon set.
  *
- * Hand-drawn for ThemeForge — deliberately NOT using Chrome/Google marks.
+ * Hand-drawn for ThemeBake — deliberately NOT using Chrome/Google marks.
  * All icons inherit `currentColor` and are `aria-hidden` by default; the
  * surrounding control supplies the accessible name.
  */

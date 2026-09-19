@@ -7,8 +7,8 @@
 
 export default {
   // ------------------------------------------------------------------ app-wide
-  'app.name': 'ThemeForge',
-  'app.skipToEditor': 'ThemeForge — 返回编辑器',
+  'app.name': 'ThemeBake',
+  'app.skipToEditor': 'ThemeBake — 返回编辑器',
   'app.primaryNav': '主导航',
   'app.close': '关闭',
 
@@ -17,17 +17,17 @@ export default {
   'header.undoTitle': '撤销上一步修改（Ctrl+Z）',
   'header.reset': '重置',
   'header.github': 'GitHub',
-  'header.githubTitle': 'ThemeForge 的 GitHub 仓库',
-  'header.githubAria': 'GitHub 上的 ThemeForge 仓库',
+  'header.githubTitle': 'ThemeBake 的 GitHub 仓库',
+  'header.githubAria': 'GitHub 上的 ThemeBake 仓库',
   'header.about': '关于',
   'header.storageUnavailable': '当前浏览器不可用本地存储 —— 刷新后你的修改不会被保留。',
   'header.storageWriteFailed': '草稿保存到本地存储失败。编辑仍然有效，但刷新后会丢失。',
 
   // --------------------------------------------------------------------- about
-  'about.title': '关于 ThemeForge',
+  'about.title': '关于 ThemeBake',
   'about.description': '直接在浏览器里制作 Chrome 主题。',
   'about.intro':
-    'ThemeForge 是一个无需登录的 Chrome 主题生成器。选好颜色、看实时预览，几秒内就能下载一个可直接加载的主题 ZIP。',
+    'ThemeBake 是一个无需登录的 Chrome 主题生成器。选好颜色、看实时预览，几秒内就能下载一个可直接加载的主题 ZIP。',
   'about.whatYouGet': '你会得到什么',
   'about.bullet1a': '一个主题文件夹，内含 ',
   'about.bullet1b': ' 放在一个命名文件夹里，可直接「加载已解压的扩展程序」，除此之外不写任何文件。',
@@ -36,14 +36,14 @@ export default {
   'about.bullet3b': ' → 打开开发者模式 → 加载已解压的扩展程序即可使用，也可以上传到 Chrome 应用商店。',
   'about.privacy': '隐私',
   'about.privacyBody':
-    'ThemeForge 全部在你的浏览器本地处理。不需要账号，主题配置和图片都不会上传到任何服务器。草稿只保存在本浏览器的本地存储里。',
+    'ThemeBake 全部在你的浏览器本地处理。不需要账号，主题配置和图片都不会上传到任何服务器。草稿只保存在本浏览器的本地存储里。',
   'about.scope': '能力范围',
   'about.scopeBody':
     '当前版本生成纯色主题，不写背景图片（theme.images）。每对文字颜色都经过内置对比度体检，产物体积也更小。',
 
   // -------------------------------------------------------------------- footer
   'footer.privacy':
-    'ThemeForge 全部在你的浏览器本地处理。不需要账号，你的主题配置也永远不会被上传到任何服务器。',
+    'ThemeBake 全部在你的浏览器本地处理。不需要账号，你的主题配置也永远不会被上传到任何服务器。',
 
   // -------------------------------------------------------- language switcher
   'lang.switcherAria': '界面语言',
@@ -112,7 +112,7 @@ export default {
 
   // ------------------------------------------------------------- smart palette
   'studio.title': '智能配色',
-  'studio.subtitle': '选一个颜色，ThemeForge 帮你推导出一整套经过对比度校验的主题。',
+  'studio.subtitle': '选一个颜色，ThemeBake 帮你推导出一整套经过对比度校验的主题。',
   'studio.seedLabel': '主色',
   'studio.seedHint': '它会成为窗口框架色，其余颜色都从它派生。',
   'studio.modeLegend': '明暗',
@@ -131,9 +131,9 @@ export default {
 
   // -------------------------------------------------------------------- import
   'import.title': '导入',
-  'import.subtitle': '粘贴颜色、色卡链接、manifest，或拖入图片 —— ThemeForge 会把它映射到 Chrome 角色上。',
+  'import.subtitle': '粘贴颜色、色卡链接、manifest，或拖入图片 —— ThemeBake 会把它映射到 Chrome 角色上。',
   'import.placeholder':
-    '粘贴十六进制色值、rgb() 列表、Coolors / Adobe Color 链接、manifest.json，或 ThemeForge JSON…',
+    '粘贴十六进制色值、rgb() 列表、Coolors / Adobe Color 链接、manifest.json，或 ThemeBake JSON…',
   'import.pickImage': '选择图片',
   'import.imageHint': '或按 {shortcut} 直接粘贴截图',
   'import.shortcut': 'Ctrl+V',
@@ -217,7 +217,7 @@ export default {
 
   // ------------------------------------------------------------------ manifest
   'manifest.title': 'manifest.json',
-  'manifest.description': '这就是 ThemeForge 会写进主题 ZIP 的内容，一字不差。',
+  'manifest.description': '这就是 ThemeBake 会写进主题 ZIP 的内容，一字不差。',
   'manifest.validJson': '合法 JSON',
   'manifest.invalidJson': 'JSON 非法',
   'manifest.parseFailed': '生成的 manifest 无法解析：{error}',
@@ -231,8 +231,8 @@ export default {
 
   // ------------------------------------------------------------------- confirm
   'confirm.reset.title': '要重置这个主题吗？',
-  'confirm.reset.description': '当前的颜色和主题名称会被替换成 ThemeForge 的默认主题。',
-  'confirm.reset.body': '只影响当前主题，不会上传任何内容，也不会改动 ThemeForge 之外的任何东西。',
+  'confirm.reset.description': '当前的颜色和主题名称会被替换成 ThemeBake 的默认主题。',
+  'confirm.reset.body': '只影响当前主题，不会上传任何内容，也不会改动 ThemeBake 之外的任何东西。',
   'confirm.reset.confirm': '确认重置',
   'confirm.cancel': '取消',
 
@@ -280,7 +280,7 @@ export default {
   // --------------------------------------------------------------------- crash
   'crash.title': '出了点问题',
   'crash.text':
-    'ThemeForge 遇到了意外错误。你保存的草稿还在这个浏览器里，刷新通常就能恢复。如果反复出现，可以清空本地数据。',
+    'ThemeBake 遇到了意外错误。你保存的草稿还在这个浏览器里，刷新通常就能恢复。如果反复出现，可以清空本地数据。',
   'crash.reload': '刷新',
   'crash.clear': '清空本地数据并刷新',
 }

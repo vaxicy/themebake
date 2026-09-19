@@ -17,7 +17,7 @@
  * `LoadColors` checks exactly three things per `theme.colors` entry: the value is
  * a list, its length is 3 or 4, and the first three items are ints. Key names are
  * never compared against any table, so an unknown key is silently ignored rather
- * than rejected — which is why ThemeForge's allow-list, not Chrome, has to be the
+ * than rejected — which is why ThemeBake's allow-list, not Chrome, has to be the
  * guard. A **string** value fails the very first check and aborts the whole
  * manifest with kInvalidThemeColors, so the `hex` format cannot target Chrome.
  * See COLOR_FORMATS[].chromeSafe in `data/themeFields.js`.
@@ -49,7 +49,7 @@ import { deriveExtendedColors, deriveTints } from './derivedColors.js'
  * The manifest `description` limit — 132 characters. This is the same string the
  * Chrome Web Store reads as the "package summary", so the cap is the store's too.
  * (The store's long description field is a separate, 16,000-character field that
- * ThemeForge does not write.)
+ * ThemeBake does not write.)
  */
 export const MAX_DESCRIPTION_LENGTH = 132
 
@@ -267,7 +267,7 @@ export function buildManifest({
   // which is precisely what a coloured New Tab Page needs. See `LOGO_STYLES`.
   //
   // The other two display properties stay out: both only take effect when the
-  // theme ships a background image, and ThemeForge is colour-only.
+  // theme ships a background image, and ThemeBake is colour-only.
   const properties = sanitizeProperties({ [LOGO_PROPERTY_KEY]: logoStyleValue(logoStyle) })
   if (Object.keys(properties).length) theme.properties = properties
 

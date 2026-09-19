@@ -14,7 +14,7 @@ import { GitHubIcon, InfoIcon, PaletteIcon, ResetIcon, UndoIcon } from './Icons.
 import { LanguageSwitcher } from './LanguageSwitcher.jsx'
 import { Modal } from './Modal.jsx'
 
-export const GITHUB_URL = 'https://github.com/vaxicy/themeforge'
+export const GITHUB_URL = 'https://github.com/vaxicy/themebake'
 
 export function Header({ onReset, onUndo, canUndo = false, storageWarning }) {
   const { t } = useI18n()

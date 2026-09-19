@@ -111,7 +111,7 @@ export const PRESETS = [
   {
     id: 'periwinkle-dream',
     name: 'Periwinkle Dream',
-    description: 'The ThemeForge house palette: cool lavender and plenty of air.',
+    description: 'The ThemeBake house palette: cool lavender and plenty of air.',
     colors: {
       frame: '#B1B2FF',
       frameInactive: '#C9CAF2',

@@ -9,8 +9,8 @@
  * every call site degrades to in-memory-only instead of crashing the app.
  */
 
-const STORAGE_KEY = 'themeforge:theme:v1'
-const PROBE_KEY = 'themeforge:probe'
+const STORAGE_KEY = 'themebake:theme:v1'
+const PROBE_KEY = 'themebake:probe'
 
 /** Cached result of the availability probe. `null` = not probed yet. */
 let availableCache = null
@@ -90,7 +90,7 @@ export function clearTheme() {
   }
 }
 
-const LANGUAGE_KEY = 'themeforge:lang:v1'
+const LANGUAGE_KEY = 'themebake:lang:v1'
 
 /**
  * Read the saved interface language.

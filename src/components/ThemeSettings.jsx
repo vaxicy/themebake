@@ -1,6 +1,6 @@
 /**
  * Left column: the theme name field, every Chrome colour setting grouped by where
- * the colour appears in the browser, and the one display property ThemeForge
+ * the colour appears in the browser, and the one display property ThemeBake
  * writes (the New Tab Page logo behaviour).
  *
  * The colour field list itself comes from `data/themeFields.js` — this component

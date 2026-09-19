@@ -1,9 +1,9 @@
 {
-  "name": "themeforge",
+  "name": "themebake",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "ThemeForge - build custom Chrome themes directly in your browser.",
+  "description": "ThemeBake - build custom Chrome themes directly in your browser.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

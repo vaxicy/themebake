@@ -25,9 +25,9 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Kept as a console error rather than a network report: ThemeForge has no
+    // Kept as a console error rather than a network report: ThemeBake has no
     // backend by design, so nothing is ever sent anywhere.
-    console.error('[ThemeForge] Unhandled error:', error, info)
+    console.error('[ThemeBake] Unhandled error:', error, info)
   }
 
   handleReset = () => {

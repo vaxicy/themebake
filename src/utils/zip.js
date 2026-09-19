@@ -7,7 +7,7 @@
  * scatter `manifest.json` and `icon.png` into whatever folder the user extracts
  * into — usually their Downloads folder, which they then cannot safely select.
  *
- * So every archive ThemeForge produces wraps its files in exactly one top-level
+ * So every archive ThemeBake produces wraps its files in exactly one top-level
  * folder, `<slug>/`. One folder is the whole point; the folder's name is just the
  * theme name, lower-cased and sanitised.
  */

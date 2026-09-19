@@ -58,7 +58,7 @@
  *                        real third-party themes (21 hand-built ones were
  *                        scanned: 17 of the 35 keys they use are these dead
  *                        ones). Writing them changes nothing.
- *  - `theme.images`      Out of scope: ThemeForge emits colour-only themes. The
+ *  - `theme.images`      Out of scope: ThemeBake emits colour-only themes. The
  *                        generated folder is manifest.json only — no background
  *                        images and, by default since the icon was dropped, no
  *                        icon.png either (Chrome never displays a theme icon;
@@ -69,7 +69,7 @@
  *  ---------------------------------------------------------------------------
  *  `background_tab`: third-party docs disagree on whether it colours the
  *  *active* tab or the *background* (inactive) tab. Chromium's own constant is
- *  COLOR_BACKGROUND_TAB and the key name is "background_tab", so ThemeForge
+ *  COLOR_BACKGROUND_TAB and the key name is "background_tab", so ThemeBake
  *  treats it as the inactive-tab colour. Chrome derives the active tab's own
  *  background from `frame`, which is why the UI exposes "Active Tab Text"
  *  (`tab_text`) rather than an invented "active tab background" key.
@@ -345,7 +345,7 @@ export const CHROME_COLOR_KEY_ALLOWLIST = new Set([
 /**
  * Key names that look plausible, appear in dozens of third-party themes, and are
  * nonetheless absent from `kOverwritableColorTable`. Kept here as an explicit
- * deny-list so the verifier can prove ThemeForge never emits one, and so the
+ * deny-list so the verifier can prove ThemeBake never emits one, and so the
  * importer can drop them and tell the user why instead of round-tripping junk.
  */
 export const CHROME_DEAD_COLOR_KEYS = new Set([
@@ -449,7 +449,7 @@ export const TINT_SOURCES = {
  * ONLY `ntp_logo_alternate` IS EVER WRITTEN — see `LOGO_STYLES` below, which is
  * the control that drives it. The other two stay declared-but-unused on purpose:
  * both only take effect when the theme ships a background *image* through
- * `theme.images`, and ThemeForge is colour-only.
+ * `theme.images`, and ThemeBake is colour-only.
  *
  * They are kept in the table anyway so `CHROME_PROPERTY_KEY_ALLOWLIST` stays a
  * verbatim copy of Chromium's list — that is what makes the "never write a
@@ -513,7 +513,7 @@ export const DEFAULT_NTP_PROPERTIES = {
 
 /**
  * The Google-logo control for the New Tab Page — the single `theme.properties`
- * key ThemeForge writes.
+ * key ThemeBake writes.
  *
  * `value` is the integer that goes into the manifest; `id` is what the editor
  * state holds. The UI never sees a bare Chrome number, so this table stays the

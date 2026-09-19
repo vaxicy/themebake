@@ -1,5 +1,5 @@
 /**
- * ThemeForge — application shell and single source of state.
+ * ThemeBake — application shell and single source of state.
  *
  * State shape:
  *   {
@@ -52,7 +52,7 @@ import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/stor
 import { createZip, downloadBlob } from './utils/zip.js'
 
 /**
- * ThemeForge always writes the complete theme.
+ * ThemeBake always writes the complete theme.
  *
  * This used to be a checkbox. It was removed because there is no user-facing
  * reason to ship the leaner manifest: the 10 extra keys and the 6 `tints` are

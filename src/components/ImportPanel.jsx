@@ -4,7 +4,7 @@
  * Accepted inputs, auto-detected (no mode switch to get wrong):
  *   1. Pasted hex / rgb() text                        -> palette  -> solver
  *   2. A Coolors / Adobe Color link (parsed as text)  -> palette  -> solver
- *   3. A Chrome manifest or a ThemeForge export       -> direct field mapping
+ *   3. A Chrome manifest or a ThemeBake export       -> direct field mapping
  *   4. An image: file picker, drag & drop, or Ctrl+V  -> palette  -> solver
  *
  * Two very different outcomes, deliberately:
@@ -40,7 +40,7 @@ function analyseText(value) {
     const result = importThemeJson(trimmed)
     if (!result.ok) return { kind: 'error', error: result.error }
     // NOTE: the spread must come first — `importThemeJson` returns its own `kind`
-    // describing the *shape* it found (manifest / themeforge / bare), which is
+    // describing the *shape* it found (manifest / themebake / bare), which is
     // kept as `sourceKind`. The UI-level discriminator below is always 'theme'.
     return { ...result, sourceKind: result.kind, kind: 'theme' }
   }

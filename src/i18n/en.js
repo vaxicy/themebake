@@ -11,8 +11,8 @@
 
 export default {
   // ------------------------------------------------------------------ app-wide
-  'app.name': 'ThemeForge',
-  'app.skipToEditor': 'ThemeForge — back to the editor',
+  'app.name': 'ThemeBake',
+  'app.skipToEditor': 'ThemeBake — back to the editor',
   'app.primaryNav': 'Primary',
   'app.close': 'Close',
 
@@ -21,8 +21,8 @@ export default {
   'header.undoTitle': 'Undo the last change (Ctrl+Z)',
   'header.reset': 'Reset',
   'header.github': 'GitHub',
-  'header.githubTitle': 'ThemeForge on GitHub',
-  'header.githubAria': 'ThemeForge repository on GitHub',
+  'header.githubTitle': 'ThemeBake on GitHub',
+  'header.githubAria': 'ThemeBake repository on GitHub',
   'header.about': 'About',
   'header.storageUnavailable':
     'Local storage is unavailable in this browser — your edits will not be remembered after a reload.',
@@ -30,10 +30,10 @@ export default {
     'Could not save your draft to local storage. Your edits still work, but will not survive a reload.',
 
   // --------------------------------------------------------------------- about
-  'about.title': 'About ThemeForge',
+  'about.title': 'About ThemeBake',
   'about.description': 'Create custom Chrome themes directly in your browser.',
   'about.intro':
-    'ThemeForge is a no-account theme builder for Chrome. Pick your colours, watch the live preview, and download a ready-to-load theme ZIP in seconds.',
+    'ThemeBake is a no-account theme builder for Chrome. Pick your colours, watch the live preview, and download a ready-to-load theme ZIP in seconds.',
   'about.whatYouGet': 'What you get',
   'about.bullet1a': 'A theme folder containing ',
   'about.bullet1b': ' inside a named folder — ready for Load unpacked. Nothing else is written.',
@@ -42,14 +42,14 @@ export default {
   'about.bullet3b': ' → Developer mode → Load unpacked, or upload it to the Chrome Web Store.',
   'about.privacy': 'Privacy',
   'about.privacyBody':
-    'ThemeForge processes theme settings locally in your browser. No account is required. Theme configurations and images are never uploaded to a server. Your draft is kept in this browser’s local storage only.',
+    'ThemeBake processes theme settings locally in your browser. No account is required. Theme configurations and images are never uploaded to a server. Your draft is kept in this browser’s local storage only.',
   'about.scope': 'Scope',
   'about.scopeBody':
     'This version generates colour-only themes and does not write background images (theme.images). Every text pair is checked by the built-in contrast audit, and the download stays small.',
 
   // -------------------------------------------------------------------- footer
   'footer.privacy':
-    'ThemeForge processes theme settings locally in your browser. No account is required, and your theme configurations are never uploaded to a server.',
+    'ThemeBake processes theme settings locally in your browser. No account is required, and your theme configurations are never uploaded to a server.',
 
   // -------------------------------------------------------- language switcher
   'lang.switcherAria': 'Interface language',
@@ -120,7 +120,7 @@ export default {
 
   // ------------------------------------------------------------- smart palette
   'studio.title': 'Smart palette',
-  'studio.subtitle': 'Pick one colour and ThemeForge derives a full, contrast-checked theme.',
+  'studio.subtitle': 'Pick one colour and ThemeBake derives a full, contrast-checked theme.',
   'studio.seedLabel': 'Main colour',
   'studio.seedHint': 'Becomes the window frame. Everything else is derived from it.',
   'studio.modeLegend': 'Brightness',
@@ -141,9 +141,9 @@ export default {
   // -------------------------------------------------------------------- import
   'import.title': 'Import',
   'import.subtitle':
-    'Paste colours, a palette link, a manifest, or drop an image — ThemeForge maps it onto Chrome roles.',
+    'Paste colours, a palette link, a manifest, or drop an image — ThemeBake maps it onto Chrome roles.',
   'import.placeholder':
-    'Paste hex codes, an rgb() list, a Coolors / Adobe Color link, a manifest.json, or ThemeForge JSON…',
+    'Paste hex codes, an rgb() list, a Coolors / Adobe Color link, a manifest.json, or ThemeBake JSON…',
   'import.pickImage': 'Choose image',
   'import.imageHint': 'or paste a screenshot with {shortcut}',
   'import.shortcut': 'Ctrl+V',
@@ -225,7 +225,7 @@ export default {
 
   // ------------------------------------------------------------------ manifest
   'manifest.title': 'manifest.json',
-  'manifest.description': 'This is exactly what ThemeForge writes into your theme ZIP.',
+  'manifest.description': 'This is exactly what ThemeBake writes into your theme ZIP.',
   'manifest.validJson': 'Valid JSON',
   'manifest.invalidJson': 'Invalid JSON',
   'manifest.parseFailed': 'The generated manifest could not be parsed: {error}',
@@ -240,9 +240,9 @@ export default {
   // ------------------------------------------------------------------- confirm
   'confirm.reset.title': 'Reset this theme?',
   'confirm.reset.description':
-    'Your current colours and theme name will be replaced with the default ThemeForge theme.',
+    'Your current colours and theme name will be replaced with the default ThemeBake theme.',
   'confirm.reset.body':
-    'This affects the current theme only. Nothing is uploaded anywhere, and nothing outside ThemeForge is changed.',
+    'This affects the current theme only. Nothing is uploaded anywhere, and nothing outside ThemeBake is changed.',
   'confirm.reset.confirm': 'Reset theme',
   'confirm.cancel': 'Cancel',
 
@@ -291,7 +291,7 @@ export default {
   // --------------------------------------------------------------------- crash
   'crash.title': 'Something went wrong',
   'crash.text':
-    'ThemeForge hit an unexpected error. Your saved draft is still in this browser; reloading usually fixes it. If it keeps happening, clear the saved data below.',
+    'ThemeBake hit an unexpected error. Your saved draft is still in this browser; reloading usually fixes it. If it keeps happening, clear the saved data below.',
   'crash.reload': 'Reload',
   'crash.clear': 'Clear saved data & reload',
 }

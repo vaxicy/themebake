@@ -1,19 +1,19 @@
-# ThemeForge
+# ThemeBake
 
 [English](README.md) | **简体中文**
 
 **在浏览器里做一套自己的 Chrome 主题 —— 挑好颜色、看实时预览，下载一个 Chrome 能直接加载的文件夹。**
 
-**[打开 ThemeForge →](https://themeforge-9g1.pages.dev)**
+**[打开 ThemeBake →](https://themebake.pages.dev)**
 
-[![线上应用](https://img.shields.io/badge/live-themeforge--9g1.pages.dev-6C5CE7)](https://themeforge-9g1.pages.dev)
+[![线上应用](https://img.shields.io/badge/live-themebake.pages.dev-6C5CE7)](https://themebake.pages.dev)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Node 18+](https://img.shields.io/badge/Node-18%2B-339933?logo=node.js&logoColor=white)
 
-![ThemeForge：左边是颜色控件，右边是实时 Chrome 预览和对比度体检](docs/screenshot.png)
+![ThemeBake：左边是颜色控件，右边是实时 Chrome 预览和对比度体检](docs/screenshot.png)
 
-ThemeForge 让你直接在浏览器里做 Chrome 主题：不用注册，没有后端，也不用安装任何东西。
+ThemeBake 让你直接在浏览器里做 Chrome 主题：不用注册，没有后端，也不用安装任何东西。
 挑好颜色、看着实时预览，几秒钟就能拿到一个解压即用的主题文件夹。所有计算都在你自己的
 浏览器里完成，不经过服务器，也没有数据库。
 
@@ -49,7 +49,7 @@ ThemeForge 让你直接在浏览器里做 Chrome 主题：不用注册，没有�
 
 ## 快速开始
 
-1. 打开 **[themeforge-9g1.pages.dev](https://themeforge-9g1.pages.dev)**。
+1. 打开 **[themebake.pages.dev](https://themebake.pages.dev)**。
 2. 给主题起个名字，然后自己调颜色；也可以让求解器代劳 —— 一个颜色、一张色卡、一条链接、
    一张图片都行（见[三种起手方式](#三种起手方式)）。
 3. 留意预览旁边的[对比度体检](#对比度体检)，标红的点一下就能修好。
@@ -75,19 +75,19 @@ ZIP 里只有**一个**文件夹（比如 `rose-morning/`），文件夹里也�
 
 ---
 
-## ThemeForge 是什么
+## ThemeBake 是什么
 
 Chrome 主题说到底就是一个文件夹，里面放一份 `manifest.json`，把若干个具名颜色对应到浏览器
 界面的各个区域。手写这份文件，意味着你得记住 `background_tab`、`toolbar_button_icon`、
 `ntp_link` 这些键名，还得把值的格式写对。
 
-ThemeForge 把它变成了点选式的编辑器：
+ThemeBake 把它变成了点选式的编辑器：
 
 - 可视化地挑颜色，Chrome 预览会立刻跟着变。
 - 每个颜色对应哪个 manifest 键名，一眼看得到。
 - 下载一个 ZIP，解压出来的文件夹 Chrome 原样就能用。
 
-ThemeForge 是一个**网页应用**，不是 Chrome 扩展，不会往你的浏览器里装东西。
+ThemeBake 是一个**网页应用**，不是 Chrome 扩展，不会往你的浏览器里装东西。
 
 ---
 
@@ -150,7 +150,7 @@ manifest        ──▶ importThemeJson() ──▶ field id ─────�
    从你的配色里*推导*出来，所以不可能和你选的颜色打架，6 个 HSL `tints` 也一并写出。这里没有
    复选框：省掉它们只会把这些状态交给 Chrome 的默认样式，成品看着明显差一截，却什么也没换来。
    manifest 里还会带上唯一有意义的那个显示属性 `ntp_logo_alternate` —— 见下文。
-4. **生成。** ThemeForge 先校验名称、摘要和颜色，组装出 `manifest.json`，确认它能被解析，
+4. **生成。** ThemeBake 先校验名称、摘要和颜色，组装出 `manifest.json`，确认它能被解析，
    然后包成一个 ZIP，里面是一个单独的 `<slug>/` 文件夹。不画图标：Chrome 在哪儿都不显示
    主题的 `icon.png`，所以下载包里只放 Chrome 真正会读的那一个文件。
 
@@ -205,7 +205,7 @@ Chrome 的**加载已解压的扩展程序**要的是一个**目录**，不是�
 | --- | --- | --- |
 | Hex / `rgb()` 文本 | 色卡 | 求解器 |
 | Coolors / Adobe Color 风格的链接 | 色卡 | 求解器 |
-| Chrome `manifest.json` 或 ThemeForge 导出的文件 | 主题 | 原样套用 |
+| Chrome `manifest.json` 或 ThemeBake 导出的文件 | 主题 | 原样套用 |
 | 裸色值表（`{"frame": "#fff"}`） | 主题 | 认出至少 1 个键就原样套用 |
 | 图片（拖放、选文件或 `Ctrl+V`） | 色卡 | 求解器 |
 
@@ -256,7 +256,7 @@ Chrome 的**加载已解压的扩展程序**要的是一个**目录**，不是�
    `kOverwritableColorTable` 的逐字拷贝，目前 **24 个键**。manifest 构建器拒绝写出任何不在
    白名单里的键，所以一次重构不可能悄悄写出 Chrome 不认识的键来。
 2. **`CHROME_DEAD_COLOR_KEYS`** —— 一份明确的黑名单，收集那些*看着像真的*、在第三方主题里
-   到处都是、却不在上面那张表里的键。验证脚本会证明 ThemeForge 永远不会写出它们，导入器则
+   到处都是、却不在上面那张表里的键。验证脚本会证明 ThemeBake 永远不会写出它们，导入器则
    会把它们报出来，而不是把垃圾原样带下去。
 3. **出处注释** —— 文件里记着两个权威来源：上面那张键名表，以及
    `chrome/common/extensions/manifest_handlers/theme_handler.cc` 里的 `LoadColors`。
@@ -271,13 +271,13 @@ Chrome 的**加载已解压的扩展程序**要的是一个**目录**，不是�
 - **值是字符串，整份 manifest 就废了**，报 `kInvalidThemeColors`。所以 HEX 字符串 manifest
   不是「兼容性差一点」，而是在 Chrome 里*根本装不上*。这个选项是留给 Firefox 的，界面上有
   明确提示。
-- **数值范围也从不检查**，所以 `[999, -40, 300]` 照样加载。ThemeForge 还是会把值收进 0-255。
+- **数值范围也从不检查**，所以 `[999, -40, 300]` 照样加载。ThemeBake 还是会把值收进 0-255。
 - **`theme.tints` 单独校验**：每一项必须是恰好 3 个 double 的列表，同样不查键名。合法的只有
   6 个键，来自 `kTintTable` —— `buttons`、`frame`、`frame_inactive`、`frame_incognito`、
   `frame_incognito_inactive`、`background_tab`。
 - **`theme.properties` 只写一个键：`ntp_logo_alternate`。** Chrome 还会读的另外两个键是真的，
   但纯色主题够不着：`ntp_background_alignment` / `ntp_background_repeat` 只有在主题通过
-  `theme.images` 带了背景图时才生效，而 ThemeForge 有意不做背景图。没有图，就没有东西可对齐。
+  `theme.images` 带了背景图时才生效，而 ThemeBake 有意不做背景图。没有图，就没有东西可对齐。
 
   `ntp_logo_alternate` 值得写，而它的含义**不是**字面上听起来的那个。`1` 是**自适应**：
   「按我的新标签页配色去推导字标」—— 背景深就用白色 logo，背景浅就用标准的深色字标。
@@ -430,13 +430,13 @@ npm run build
 | Node 版本 | 18+ |
 
 产物是一份纯静态包（`index.html` 加带 hash 的 CSS/JS）。这里**没有服务端运行时** ——
-ThemeForge 不用 SSR、不用 API 路由、不用边缘函数，也不需要任何 Node.js 服务。
+ThemeBake 不用 SSR、不用 API 路由、不用边缘函数，也不需要任何 Node.js 服务。
 
 ---
 
 ## Cloudflare Pages 部署
 
-线上地址：**<https://themeforge-9g1.pages.dev>**。
+线上地址：**<https://themebake.pages.dev>**。
 
 ### 方案 A —— 接 Git 仓库
 
@@ -454,7 +454,7 @@ ThemeForge 不用 SSR、不用 API 路由、不用边缘函数，也不需要任
 
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name themeforge
+npx wrangler pages deploy dist --project-name themebake
 ```
 
 就这些。不需要 `_redirects`，因为应用没有客户端路由 —— 所有路径都是 `/`。
@@ -464,7 +464,7 @@ npx wrangler pages deploy dist --project-name themeforge
 ## 项目结构
 
 ```
-themeforge/
+themebake/
 ├── index.html                  # 应用外壳、meta 标签、内联 SVG favicon
 ├── vite.config.js              # Vite 配置（静态构建目标）
 ├── package.json
@@ -511,7 +511,7 @@ themeforge/
     │   ├── history.js          # 撤销栈（合并、有上限）
     │   ├── icon.js             # 128×128 图标渲染（留着备用，默认不打包）
     │   ├── package.js          # 把 manifest.json 组装进主题文件夹
-    │   ├── importTheme.js      # manifest / ThemeForge / 裸色值表的解析
+    │   ├── importTheme.js      # manifest / ThemeBake / 裸色值表的解析
     │   ├── parseColors.js      # Hex + rgb() + 色卡链接的文本提取
     │   ├── image.js            # 色带检测 + 主色聚类
     │   ├── contrastAudit.js    # WCAG 配对检查 + 有上限的修复
@@ -564,15 +564,15 @@ themeforge/
 
 ## 隐私
 
-**ThemeForge 在你的浏览器本地处理主题设置。**
+**ThemeBake 在你的浏览器本地处理主题设置。**
 **不需要账号。**
 **主题配置不会上传到服务器。**
 
 具体来说：
 
 - 所有颜色计算、配色求解、manifest 生成、图片分析和 ZIP 打包都在客户端完成。
-- 草稿存在你自己浏览器的 `localStorage` 里（键名 `themeforge:theme:v1`），语言选择存在
-  `themeforge:lang:v1`。它们不会离开你的设备，也不会同步到任何地方。
+- 草稿存在你自己浏览器的 `localStorage` 里（键名 `themebake:theme:v1`），语言选择存在
+  `themebake:lang:v1`。它们不会离开你的设备，也不会同步到任何地方。
 - **图片不会离开页面。** 取色是把图片画到本地 `<canvas>` 上，再用 `getImageData` 读像素，
   全程没有上传。
 - **粘贴进来的取色链接不会被访问。** 颜色是从链接文本本身解析出来的 —— 这个面板不发任何
@@ -586,7 +586,7 @@ themeforge/
 
 ## 免责声明
 
-ThemeForge 是一个独立工具，与 Google 没有隶属关系，也未获得其认可或赞助。「Chrome」是
+ThemeBake 是一个独立工具，与 Google 没有隶属关系，也未获得其认可或赞助。「Chrome」是
 Google LLC 的商标。预览里的浏览器界面不使用任何 Chrome 或 Google 的 logo 或商标 ——
 它复现的只是通用的浏览器界面几何结构。
 

@@ -1,5 +1,5 @@
 /**
- * Compact hero. ThemeForge is a tool, not a landing page, so this stays to two
+ * Compact hero. ThemeBake is a tool, not a landing page, so this stays to two
  * lines and hands straight over to the editor.
  */
 

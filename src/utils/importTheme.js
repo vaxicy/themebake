@@ -3,7 +3,7 @@
  *
  * Four accepted shapes:
  *   1. Chrome theme manifest  `{ "theme": { "colors": { "frame": [177,178,255] } } }`
- *   2. ThemeForge export      `{ "colors": { "frame": "#B1B2FF" } }`
+ *   2. ThemeBake export      `{ "colors": { "frame": "#B1B2FF" } }`
  *   3. A bare colour map      `{ "frame": [177,178,255], "toolbar": "#EEF1FF" }`
  *      — accepted only when at least one key is a key we recognise, so arbitrary
  *      JSON is still rejected with "not a Chrome theme manifest" rather than
@@ -23,7 +23,7 @@
  *   - `unknownKeys` — neither of the above. Probably a typo.
  *
  * This is also the round-trip test for our own generator: a manifest produced by
- * ThemeForge must import back into an identical colour set — including the one
+ * ThemeBake must import back into an identical colour set — including the one
  * display property we write, `ntp_logo_alternate`, which is reported as a
  * `logoStyle` style id so the editor state stays free of raw Chrome integers.
  * `verify.mjs` asserts exactly that.
@@ -56,7 +56,7 @@ function toHex(value) {
 }
 
 /**
- * Chrome manifest key OR ThemeForge field id -> internal field id.
+ * Chrome manifest key OR ThemeBake field id -> internal field id.
  * @param {string} key
  * @returns {string|null}
  */
@@ -66,7 +66,7 @@ function resolveFieldId(key) {
 
 /**
  * @param {string} text
- * @returns {{ok: true, kind:'manifest'|'themeforge'|'bare', name:string|null,
+ * @returns {{ok: true, kind:'manifest'|'themebake'|'bare', name:string|null,
  *            colors:Record<string,string>, unknownKeys:string[], alphaDropped:boolean,
  *            logoStyle:string|null}
  *          | {ok: false, error: string}}
@@ -95,7 +95,7 @@ export function importThemeJson(text) {
     }
   } else if (parsed.colors && typeof parsed.colors === 'object' && !Array.isArray(parsed.colors)) {
     source = parsed.colors
-    kind = 'themeforge'
+    kind = 'themebake'
   } else {
     // Lenient: the object itself is the colour map. Require at least one
     // recognised key, otherwise this is just arbitrary JSON.
@@ -112,7 +112,7 @@ export function importThemeJson(text) {
   let alphaDropped = false
 
   for (const [rawKey, rawValue] of Object.entries(source)) {
-    // Prefer the Chrome manifest key mapping; fall back to a ThemeForge field id
+    // Prefer the Chrome manifest key mapping; fall back to a ThemeBake field id
     // so our own export format round-trips too.
     const fieldId = resolveFieldId(rawKey)
 
@@ -172,7 +172,7 @@ export function importThemeJson(text) {
 export function exportThemeJson({ name, colors, colorFormat }) {
   return JSON.stringify(
     {
-      __format: 'themeforge/theme',
+      __format: 'themebake/theme',
       name,
       colorFormat,
       colors,

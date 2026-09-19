@@ -173,7 +173,7 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
             ) : null}
 
             <div className="mockup__ntp-brand">
-              {/* Abstract ThemeForge mark: overlapping shapes in the theme's own
+              {/* Abstract ThemeBake mark: overlapping shapes in the theme's own
                   colours. No browser logos, no stock imagery. */}
               <span className="mockup__mark mockup__mark--a" style={{ backgroundColor: safe.frame }} />
               <span className="mockup__mark mockup__mark--b" style={{ backgroundColor: safe.ntpLink }} />

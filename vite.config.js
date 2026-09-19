@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// ThemeForge is a fully static, client-side app.
+// ThemeBake is a fully static, client-side app.
 // `npm run build` emits a plain static bundle into ./dist, which is what
 // Cloudflare Pages should be pointed at (build command: `npm run build`).
 export default defineConfig({

@@ -14,7 +14,7 @@ import './styles/preview.css'
 const container = document.getElementById('root')
 
 if (!container) {
-  throw new Error('ThemeForge could not find #root in index.html.')
+  throw new Error('ThemeBake could not find #root in index.html.')
 }
 
 // Provider order matters:

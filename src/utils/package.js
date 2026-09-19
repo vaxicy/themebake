@@ -59,7 +59,7 @@ export function toThemeFolderName(name) {
  * @param {'rgb'|'hex'} [options.colorFormat='rgb']
  * @param {string}  [options.version]
  * @param {boolean} [options.complete=false]  Defaults to `false` at this layer;
- *   ThemeForge's app always passes `true` (see `COMPLETE_THEME` in `App.jsx`).
+ *   ThemeBake's app always passes `true` (see `COMPLETE_THEME` in `App.jsx`).
  * @param {'adaptive'|'classic'} [options.logoStyle]  Forwarded to `buildManifest`
  *   as `theme.properties.ntp_logo_alternate`. Omitted means the manifest default.
  * @param {Blob|Uint8Array|ArrayBuffer|null} [options.icon=null]  A rendered

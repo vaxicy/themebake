@@ -1,5 +1,5 @@
 /**
- * ThemeForge self-check.
+ * ThemeBake self-check.
  *
  * Runs the pure logic (colour maths, manifest generation, filename safety, ZIP
  * packaging) outside the browser so regressions are caught without clicking
@@ -796,8 +796,8 @@ ok('no unknown keys for our own output', asManifest.unknownKeys.length === 0, as
 const asHexManifest = importThemeJson(hexResult.json)
 ok('hex manifests import too', asHexManifest.ok && eqColors(asHexManifest.colors, DEFAULT_COLORS))
 
-const forge = importThemeJson(exportThemeJson({ name: 'Round Trip', colors: DEFAULT_COLORS, colorFormat: 'rgb' }))
-ok('ThemeForge export imports back', forge.ok && eqColors(forge.colors, DEFAULT_COLORS))
+const exported = importThemeJson(exportThemeJson({ name: 'Round Trip', colors: DEFAULT_COLORS, colorFormat: 'rgb' }))
+ok('ThemeBake export imports back', exported.ok && eqColors(exported.colors, DEFAULT_COLORS))
 
 // The one display property we write has to survive the round-trip as well, or
 // "import your own export" would silently reset the New Tab logo behaviour.
@@ -1428,7 +1428,7 @@ section('18. E2E harness hygiene')
  * to discover. Parsing the harness here converts a mid-run detour into an
  * instant, localised failure.
  */
-const e2ePath = join(here, '..', '..', '.tf-e2e', 'e2e.mjs')
+const e2ePath = join(here, '..', '..', '.tb-e2e', 'e2e.mjs')
 ok('the E2E harness exists', existsSync(e2ePath), e2ePath)
 
 let harnessParses = false
