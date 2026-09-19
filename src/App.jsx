@@ -401,12 +401,23 @@ export default function App() {
    * solver over it would silently discard the user's own role choices.
    */
   const handleImportManifest = useCallback(
-    ({ colors: importedColors, name: importedName, logoStyle: importedLogoStyle, deadKeys }) => {
+    ({
+      colors: importedColors,
+      name: importedName,
+      description: importedDescription,
+      logoStyle: importedLogoStyle,
+      deadKeys,
+    }) => {
       pushHistory()
       setColors(buildColors(importedColors))
       if (importedName) {
         setName(importedName)
         setNameError('')
+      }
+      // Same rule as the logo below: only when the source actually carried one.
+      if (importedDescription) {
+        setDescription(importedDescription)
+        setDescriptionError('')
       }
       // Only when the source theme actually declared it: a theme without the key
       // must not silently reset a choice the user made here.
@@ -450,16 +461,16 @@ export default function App() {
   /**
    * Save the theme in this app's own JSON shape rather than as a manifest: it
    * carries the colour *format* choice as well as the palette, and it is exactly
-   * what the Import panel's "theme" branch reads back — so export -> import is
-   * lossless for the name, the palette and the format.
-   *
-   * The summary and the New Tab logo choice are NOT in it: those live in the
-   * manifest, which "Preview Manifest" already downloads. Adding them here would
-   * mean teaching `importThemeJson` to read two more fields.
+   * what the Import panel's "theme" branch reads back — so export -> import
+   * restores everything the editor owns: name, summary, logo choice, format and
+   * the 14 colours. Nothing is silently dropped.
    */
   const handleExportJson = useCallback(() => {
-    downloadText(exportThemeJson({ name, colors, colorFormat }), `${folderName}.json`)
-  }, [name, colors, colorFormat, folderName])
+    downloadText(
+      exportThemeJson({ name, description, colors, colorFormat, logoStyle }),
+      `${folderName}.json`,
+    )
+  }, [name, description, colors, colorFormat, logoStyle, folderName])
 
   const handleGenerate = useCallback(async () => {
     if (generating) return

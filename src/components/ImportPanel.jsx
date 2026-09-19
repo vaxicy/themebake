@@ -175,7 +175,18 @@ export function ImportPanel({ onApplyPalette, onApplyManifest }) {
 
   function handleApply() {
     if (analysis.kind === 'theme') {
-      onApplyManifest({ colors: analysis.colors, name: analysis.name, deadKeys: analysis.deadKeys })
+      // Forward every theme-level field the importer resolved, not just the
+      // colours. Listing them explicitly keeps the UI-level `kind` out of the
+      // payload — but omitting one is silent: `logoStyle` was missing here until
+      // 2026-09-20, so importing a theme that set `ntp_logo_alternate` left the
+      // editor on whatever logo choice it already had.
+      onApplyManifest({
+        colors: analysis.colors,
+        name: analysis.name,
+        description: analysis.description,
+        logoStyle: analysis.logoStyle,
+        deadKeys: analysis.deadKeys,
+      })
       reset()
       return
     }

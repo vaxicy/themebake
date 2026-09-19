@@ -28,6 +28,11 @@
  * `logoStyle` style id so the editor state stays free of raw Chrome integers.
  * `verify.mjs` asserts exactly that.
  *
+ * `description` is read from either shape (a manifest carries one, and so does our
+ * own export) and clamped to `MAX_DESCRIPTION_LENGTH`. Clamping rather than
+ * rejecting matters: an imported over-long summary would otherwise make "Generate"
+ * fail validation right after the user imported a file.
+ *
  * All errors are **i18n keys**, never sentences.
  */
 
@@ -36,10 +41,12 @@ import {
   EXTENDED_CHROME_KEYS,
   FIELD_ID_BY_CHROME_KEY,
   LOGO_PROPERTY_KEY,
+  LOGO_STYLE_IDS,
   THEME_FIELDS_BY_ID,
   logoStyleFromValue,
 } from '../data/themeFields.js'
 import { normalizeHex, rgbToHex } from './color.js'
+import { MAX_DESCRIPTION_LENGTH } from './manifest.js'
 
 /** Coerce one manifest colour value into `#RRGGBB`, or null. */
 function toHex(value) {
@@ -67,8 +74,8 @@ function resolveFieldId(key) {
 /**
  * @param {string} text
  * @returns {{ok: true, kind:'manifest'|'themebake'|'bare', name:string|null,
- *            colors:Record<string,string>, unknownKeys:string[], alphaDropped:boolean,
- *            logoStyle:string|null}
+ *            description:string|null, colors:Record<string,string>,
+ *            unknownKeys:string[], alphaDropped:boolean, logoStyle:string|null}
  *          | {ok: false, error: string}}
  */
 export function importThemeJson(text) {
@@ -148,33 +155,56 @@ export function importThemeJson(text) {
     return { ok: false, error: 'import.errorNoThemeColors' }
   }
 
+  // Read from either shape. Null means "the source never declared one", which the
+  // caller distinguishes from "declared as empty" — the same rule the logo
+  // property follows, so importing a palette cannot silently wipe a summary the
+  // user typed here.
+  const description =
+    typeof parsed.description === 'string' && parsed.description.trim()
+      ? parsed.description.trim().slice(0, MAX_DESCRIPTION_LENGTH)
+      : null
+
   return {
     ok: true,
     kind,
     name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : null,
+    description,
     colors,
     unknownKeys,
     deadKeys,
     derivedKeys,
     alphaDropped,
-    // The one display property we emit, read back as a style id. `null` when the
-    // theme does not set it — the caller keeps its current choice rather than
-    // resetting to the default, so importing a colour palette cannot silently
-    // undo a deliberate logo setting.
-    logoStyle: logoStyleFromValue(parsed?.theme?.properties?.[LOGO_PROPERTY_KEY]),
+    // The display property we emit, read back as a style id. Two shapes can
+    // declare it: a manifest's `theme.properties.ntp_logo_alternate` (an integer)
+    // or our own export's `logoStyle` (an editor style id, validated against the
+    // allow-list rather than trusted). `null` when neither does — the caller keeps
+    // its current choice rather than resetting, so importing a colour palette
+    // cannot silently undo a deliberate logo setting.
+    logoStyle:
+      logoStyleFromValue(parsed?.theme?.properties?.[LOGO_PROPERTY_KEY]) ??
+      (LOGO_STYLE_IDS.includes(parsed.logoStyle) ? parsed.logoStyle : null),
   }
 }
 
 /**
  * Serialise the current theme for sharing / backup.
- * Uses the same shape `importThemeJson` reads, so export -> import is lossless.
+ * Uses the same shape `importThemeJson` reads, so export -> import is lossless
+ * for everything the editor owns: name, summary, colour format, logo choice and
+ * the 14 colours.
+ *
+ * `description` and `logoStyle` are omitted when they are empty/absent, so a
+ * caller that only has a palette (the `verify.mjs` round-trip fixture) still
+ * writes a file with just name + format + colours, and an importer treats the
+ * missing key as "not declared" rather than "clear it".
  */
-export function exportThemeJson({ name, colors, colorFormat }) {
+export function exportThemeJson({ name, description, colors, colorFormat, logoStyle }) {
   return JSON.stringify(
     {
       __format: 'themebake/theme',
       name,
+      ...(typeof description === 'string' && description.trim() ? { description } : {}),
       colorFormat,
+      ...(logoStyle ? { logoStyle } : {}),
       colors,
     },
     null,
