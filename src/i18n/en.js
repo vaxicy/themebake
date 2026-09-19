@@ -67,9 +67,10 @@ export default {
   'settings.name.label': 'Theme Name',
   'settings.name.placeholder': 'My Theme',
   'settings.name.hint': 'Used as the theme’s display name, and as the folder name inside the ZIP.',
-  'settings.description.label': 'Description',
+  'settings.description.label': 'Summary',
   'settings.description.placeholder': 'A calm rose theme for long reading sessions.',
-  'settings.description.hint': 'Optional. Max {max} characters. Shown on the theme card.',
+  'settings.description.hint':
+    'Optional. Up to {max} characters. Written into manifest.json as description — the Chrome Web Store shows it as the package summary, under the title on the detail page and in search results. Chrome does not display it for a locally loaded theme.',
   'settings.group.browserChrome': 'Browser chrome',
   'settings.group.addressBar': 'Address bar',
   'settings.group.bookmarks': 'Bookmarks',
@@ -265,7 +266,7 @@ export default {
   // ------------------------------------------------------------------ validate
   'validate.nameRequired': 'Theme name is required.',
   'validate.nameTooLong': 'Theme name must be 45 characters or fewer.',
-  'validate.descriptionTooLong': 'Description must be {max} characters or fewer.',
+  'validate.descriptionTooLong': 'The summary must be {max} characters or fewer.',
   'validate.invalidColors': 'These colours are not valid hex values: {fields}.',
   'validate.noColors': 'At least one valid colour is required.',
 

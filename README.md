@@ -380,6 +380,13 @@ Other notable decisions:
 - **`background_tab` is treated as the inactive-tab color.** Third-party docs
   disagree on this; the assumption and its reasoning are documented inline so it
   can be re-verified against a Chrome build.
+- **The store's title and summary come from the manifest.** After you upload, the
+  dashboard's "package title" and "package summary" are read from `name` and
+  `description` — so the editor's **Summary** field is literally where the store
+  summary comes from, and 132 characters is its cap. The store's long description
+  (up to 16,000 characters) is a separate field you fill in on the dashboard.
+  Chrome itself does not show a theme's `description`: themes never appear in
+  `chrome://extensions`, and Settings → Appearance lists only the name.
 
 ---
 

@@ -45,7 +45,12 @@ import {
 import { hexToRgbArray, normalizeHex } from './color.js'
 import { deriveExtendedColors, deriveTints } from './derivedColors.js'
 
-/** Chrome's own Web Store limit for a theme/extension description. */
+/**
+ * The manifest `description` limit — 132 characters. This is the same string the
+ * Chrome Web Store reads as the "package summary", so the cap is the store's too.
+ * (The store's long description field is a separate, 16,000-character field that
+ * ThemeForge does not write.)
+ */
 export const MAX_DESCRIPTION_LENGTH = 132
 
 /**

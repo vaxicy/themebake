@@ -60,9 +60,10 @@ export default {
   'settings.name.label': '主题名称',
   'settings.name.placeholder': '我的主题',
   'settings.name.hint': '用作主题的显示名称，也是 ZIP 里那个文件夹的名字。',
-  'settings.description.label': '描述',
+  'settings.description.label': '摘要',
   'settings.description.placeholder': '一个安静的玫瑰色主题，适合长时间阅读。',
-  'settings.description.hint': '可选，最多 {max} 个字符，会显示在主题卡片上。',
+  'settings.description.hint':
+    '可选，最多 {max} 个字符。会写进 manifest.json 的 description —— 上传商店后就是「软件包中的摘要」，显示在详情页和搜索结果里标题下方。本地加载时 Chrome 不显示它。',
   'settings.group.browserChrome': '浏览器外观',
   'settings.group.addressBar': '地址栏',
   'settings.group.bookmarks': '书签栏',
@@ -257,7 +258,7 @@ export default {
   'validate.nameTooLong': '主题名称不能超过 45 个字符。',
   'validate.invalidColors': '以下颜色不是合法的十六进制值：{fields}。',
   'validate.noColors': '至少需要一个有效的颜色。',
-  'validate.descriptionTooLong': '描述最多 {max} 个字符。',
+  'validate.descriptionTooLong': '摘要最多 {max} 个字符。',
 
   // ------------------------------------------------------------------ warnings
   // 由 manifest.js 在不得不丢弃字段时发出。正常使用下不会触发（编辑器无法产出非法值），
