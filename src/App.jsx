@@ -1,0 +1,608 @@
+/**
+ * ThemeForge — application shell and single source of state.
+ *
+ * State shape:
+ *   {
+ *     name, description, colors: { [fieldId]: '#RRGGBB' }, colorFormat,
+ *     activePresetId,
+ *     seed, smartMode, smartIntensity,   // smart-palette studio options
+ *   }
+ *
+ * Everything else is derived:
+ *   - `manifestResult` is rebuilt whenever the state changes, so the preview
+ *     modal and the download always agree with what is on screen.
+ *   - `filename` / `folderName` are derived from the name with full filename
+ *     sanitisation; the archive wraps its files in that single folder so that
+ *     unzipping yields something `Load unpacked` accepts directly.
+ *   - `auditIssues` is recomputed from `colors`, which is why hand-editing a
+ *     colour can surface a contrast problem the solver had already prevented.
+ *
+ * Persistent storage holds only this draft plus the interface language
+ * (`utils/storage.js`). Nothing is ever uploaded.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ConfirmDialog } from './components/ConfirmDialog.jsx'
+import { ExportPanel } from './components/ExportPanel.jsx'
+import { Header } from './components/Header.jsx'
+import { Hero } from './components/Hero.jsx'
+import { ImportPanel } from './components/ImportPanel.jsx'
+import { ManifestModal } from './components/ManifestModal.jsx'
+import { PaletteStudio } from './components/PaletteStudio.jsx'
+import { PresetsPanel } from './components/PresetsPanel.jsx'
+import { PreviewPanel } from './components/ChromeMockup.jsx'
+import { ThemeSettings } from './components/ThemeSettings.jsx'
+import { useToast } from './components/Toast.jsx'
+import {
+  DEFAULT_COLORS,
+  DEFAULT_THEME_NAME,
+  PRESETS_BY_ID,
+  buildColors,
+  generateRandomColors,
+} from './data/presets.js'
+import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS } from './data/themeFields.js'
+import { useI18n } from './i18n/index.jsx'
+import { normalizeHex } from './utils/color.js'
+import { auditContrast, repairContrast } from './utils/contrastAudit.js'
+import { createHistory, record, undo } from './utils/history.js'
+import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
+import { buildThemePackage, toThemeFolderName } from './utils/package.js'
+import { INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
+import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/storage.js'
+import { createZip, downloadBlob } from './utils/zip.js'
+
+/**
+ * ThemeForge always writes the complete theme.
+ *
+ * This used to be a checkbox. It was removed because there is no user-facing
+ * reason to ship the leaner manifest: the 10 extra keys and the 6 `tints` are
+ * *derived* from the palette the user already tuned, so they can never
+ * contradict it, and a theme that omits them leaves those Chrome states to
+ * Chrome's own defaults — a visibly less finished result for zero benefit.
+ *
+ * The builder keeps `complete` as an option (the primitive can still emit the
+ * 14-key manifest, and `verify.mjs` exercises both paths), but the product
+ * decision lives here, at the app boundary, and is applied identically to the
+ * live "Preview Manifest" output and to the downloaded ZIP — if they diverged,
+ * the preview would be lying.
+ *
+ * `theme.properties` is still deliberately NOT written; see the note in
+ * `utils/manifest.js`.
+ */
+const COMPLETE_THEME = true
+
+/** Read the persisted draft exactly once, at module scope of the first render. */
+function readInitialState() {
+  const result = loadTheme()
+  if (!result.ok || !result.value) {
+    return { state: null, warning: result.ok ? null : result.error }
+  }
+  const saved = result.value
+  const colors = buildColors(saved.colors)
+
+  return {
+    state: {
+      name: typeof saved.name === 'string' ? saved.name : DEFAULT_THEME_NAME,
+      description: typeof saved.description === 'string' ? saved.description : '',
+      colors,
+      colorFormat: saved.colorFormat === 'hex' ? 'hex' : 'rgb',
+      activePresetId: typeof saved.activePresetId === 'string' ? saved.activePresetId : null,
+      // Validated against the style ids rather than trusted: a draft written by a
+      // future build (or a hand-edited one) must not reach `buildManifest` with a
+      // value it does not understand.
+      logoStyle: LOGO_STYLE_IDS.includes(saved.logoStyle) ? saved.logoStyle : DEFAULT_LOGO_STYLE,
+      // No `complete`: a draft saved by an older build may still carry the flag,
+      // and it is now meaningless — the output is always complete.
+      // The studio seed starts from whatever the frame currently is, so the panel
+      // is coherent with the saved theme instead of resetting to a foreign colour.
+      seed: normalizeHex(saved.seed) ?? colors.frame,
+      smartMode: SOLVER_MODES.includes(saved.smartMode) ? saved.smartMode : 'auto',
+      smartIntensity: INTENSITIES.includes(saved.smartIntensity) ? saved.smartIntensity : 'balanced',
+    },
+    warning: null,
+  }
+}
+
+const INITIAL = readInitialState()
+
+/** Validate a string against an allow-list, falling back to `fallback`. */
+function pick(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback
+}
+
+export default function App() {
+  const toast = useToast()
+  const { t } = useI18n()
+
+  const [name, setName] = useState(INITIAL.state?.name ?? DEFAULT_THEME_NAME)
+  const [description, setDescription] = useState(INITIAL.state?.description ?? '')
+  const [colors, setColors] = useState(INITIAL.state?.colors ?? { ...DEFAULT_COLORS })
+  const [colorFormat, setColorFormat] = useState(INITIAL.state?.colorFormat ?? 'rgb')
+  const [activePresetId, setActivePresetId] = useState(INITIAL.state?.activePresetId ?? null)
+  // New Tab Page logo behaviour. Unlike `colorFormat` (an encoding choice), this
+  // changes what the theme actually does, so it is part of the draft, part of the
+  // undo snapshot, and reset by Reset.
+  const [logoStyle, setLogoStyle] = useState(INITIAL.state?.logoStyle ?? DEFAULT_LOGO_STYLE)
+
+  // ------------------------------------------------------- smart palette studio
+  const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_COLORS.frame)
+  const [smartMode, setSmartMode] = useState(INITIAL.state?.smartMode ?? 'auto')
+  const [smartIntensity, setSmartIntensity] = useState(INITIAL.state?.smartIntensity ?? 'balanced')
+
+  const [nameError, setNameError] = useState('')
+  const [descriptionError, setDescriptionError] = useState('')
+  const [showKeys, setShowKeys] = useState(false)
+  const [manifestOpen, setManifestOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [generating, setGenerating] = useState(false)
+
+  // The stored/derived value is an i18n key; it is translated at render time so it
+  // follows a language switch like every other string.
+  const [storageWarningKey, setStorageWarningKey] = useState(() =>
+    storageAvailable() ? INITIAL.warning : 'header.storageUnavailable',
+  )
+
+  // Warn once, not on every render, and never block editing.
+  const warnedRef = useRef(false)
+
+  // ---------------------------------------------------------------------------
+  // Undo
+  // ---------------------------------------------------------------------------
+  // The stack itself lives in a ref: it is never rendered, so re-rendering the
+  // whole app on every colour pixel would be waste. `undoDepth` is the only part
+  // that needs to be reactive, and only to enable/disable the header button.
+  const historyRef = useRef(null)
+  if (historyRef.current === null) historyRef.current = createHistory()
+  const [undoDepth, setUndoDepth] = useState(0)
+
+  // ---------------------------------------------------------------------------
+  // Derived values
+  // ---------------------------------------------------------------------------
+  const manifestResult = useMemo(
+    () =>
+      buildManifest({
+        name,
+        description,
+        colors,
+        colorFormat,
+        complete: COMPLETE_THEME,
+        logoStyle,
+      }),
+    [name, description, colors, colorFormat, logoStyle],
+  )
+
+  // The folder inside the ZIP is derived from the name, and the download itself is
+  // named after that folder — so what a user sees in their Downloads list is
+  // exactly what they are about to unpack and select.
+  const folderName = useMemo(() => toThemeFolderName(name || 'chrome-theme'), [name])
+  const filename = useMemo(() => `${folderName}.zip`, [folderName])
+
+  /** Re-checked on every colour change: the safety net under manual edits. */
+  const auditIssues = useMemo(() => auditContrast(colors), [colors])
+
+  const storageWarning = storageWarningKey ? t(storageWarningKey) : null
+
+  // ---------------------------------------------------------------------------
+  // Persistence — debounced so typing in a hex field does not hammer storage
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const result = saveTheme({
+        name,
+        description,
+        colors,
+        colorFormat,
+        activePresetId,
+        logoStyle,
+        seed,
+        smartMode,
+        smartIntensity,
+      })
+      if (!result.ok && !warnedRef.current) {
+        warnedRef.current = true
+        setStorageWarningKey(result.error)
+      }
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [
+    name,
+    description,
+    colors,
+    colorFormat,
+    activePresetId,
+    logoStyle,
+    seed,
+    smartMode,
+    smartIntensity,
+  ])
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+  /** The slice of state one undo step restores. */
+  const snapshotDraft = useCallback(
+    () => ({ colors, activePresetId, seed, logoStyle }),
+    [colors, activePresetId, seed, logoStyle],
+  )
+
+  /**
+   * Record the current draft so the mutation about to run can be undone.
+   * @param {string|null} field field id for coalescing, or null for a discrete
+   *   action (preset, randomise, reset, import) that must stay its own step.
+   */
+  const pushHistory = useCallback(
+    (field = null) => {
+      record(historyRef.current, snapshotDraft(), field)
+      setUndoDepth(historyRef.current.past.length)
+    },
+    [snapshotDraft],
+  )
+
+  const handleUndo = useCallback(() => {
+    const snapshot = undo(historyRef.current)
+    setUndoDepth(historyRef.current.past.length)
+    if (!snapshot) return false
+
+    setColors(snapshot.colors)
+    setActivePresetId(snapshot.activePresetId)
+    setSeed(snapshot.seed)
+    setLogoStyle(snapshot.logoStyle ?? DEFAULT_LOGO_STYLE)
+    toast.info(t('toast.undone'))
+    return true
+  }, [toast, t])
+
+  // Ctrl/Cmd+Z. Deliberately skipped inside text fields so the browser's own
+  // undo keeps working while typing a theme name or a hex value.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key.toLowerCase() !== 'z') return
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+
+      const target = event.target
+      const tag = target?.tagName
+      const isTextField =
+        tag === 'TEXTAREA' ||
+        target?.isContentEditable === true ||
+        (tag === 'INPUT' && !['color', 'range', 'checkbox', 'radio'].includes(target.type))
+      if (isTextField) return
+
+      // Only swallow the keystroke when something was actually undone; otherwise
+      // the user keeps a working browser shortcut.
+      if (handleUndo()) event.preventDefault()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleUndo])
+
+  const handleColorChange = useCallback(
+    (fieldId, next) => {
+      pushHistory(fieldId)
+      setColors((current) => ({ ...current, [fieldId]: next }))
+      // Any manual edit means the theme is no longer the untouched preset.
+      setActivePresetId((current) => (current ? null : current))
+    },
+    [pushHistory],
+  )
+
+  /**
+   * Discrete, not coalescing: a logo switch is one deliberate action, so it gets
+   * its own undo step rather than merging with a nearby colour drag. The guard
+   * keeps a no-op click from pushing a dead step onto the stack — and, more
+   * importantly, the history write stays outside the state updater, which React
+   * is allowed to invoke twice.
+   */
+  const handleLogoStyleChange = useCallback(
+    (next) => {
+      const resolved = pick(next, LOGO_STYLE_IDS, DEFAULT_LOGO_STYLE)
+      if (resolved === logoStyle) return
+      pushHistory()
+      setLogoStyle(resolved)
+    },
+    [logoStyle, pushHistory],
+  )
+
+  const handleNameChange = useCallback(
+    (value) => {
+      setName(value)
+      if (nameError) setNameError('')
+    },
+    [nameError],
+  )
+
+  const handleDescriptionChange = useCallback(
+    (value) => {
+      setDescription(value)
+      if (descriptionError) setDescriptionError('')
+    },
+    [descriptionError],
+  )
+
+  const handleInvalidColor = useCallback(
+    (label) => {
+      toast.error(t('colorField.invalidToast', { label }))
+    },
+    [toast, t],
+  )
+
+  const handleApplyPreset = useCallback(
+    (presetId) => {
+      const preset = PRESETS_BY_ID[presetId]
+      if (!preset) return
+      pushHistory()
+      setColors(buildColors(preset.colors))
+      setActivePresetId(preset.id)
+      toast.success(t('toast.presetApplied', { name: t(`preset.${preset.id}.name`) }))
+    },
+    [pushHistory, toast, t],
+  )
+
+  const handleRandomize = useCallback(() => {
+    pushHistory()
+    setColors(buildColors(generateRandomColors()))
+    setActivePresetId(null)
+    toast.success(t('toast.randomApplied'))
+  }, [pushHistory, toast, t])
+
+  const handleResetConfirmed = useCallback(() => {
+    pushHistory()
+    setColors({ ...DEFAULT_COLORS })
+    setName(DEFAULT_THEME_NAME)
+    setDescription('')
+    setActivePresetId('periwinkle-dream')
+    setSeed(DEFAULT_COLORS.frame)
+    setLogoStyle(DEFAULT_LOGO_STYLE)
+    setNameError('')
+    setDescriptionError('')
+    clearTheme()
+    setResetOpen(false)
+    toast.info(t('toast.themeReset'))
+  }, [pushHistory, toast, t])
+
+  /**
+   * Shared "run the solver and adopt the result" step, used by both the studio
+   * button and the palette importer so they can never drift apart.
+   * @returns {ReturnType<typeof solveTheme> | null} null when there was nothing to solve
+   */
+  const applySolvedTheme = useCallback(
+    (seeds) => {
+      const result = solveTheme({ seeds, mode: smartMode, intensity: smartIntensity })
+      if (!result.ok) {
+        toast.error(t('import.errorNoColors'))
+        return null
+      }
+      // Only recorded once the solve succeeded, so a failed solve does not leave
+      // a no-op step on the undo stack.
+      pushHistory()
+      setColors(buildColors(result.colors))
+      setActivePresetId(null)
+      return result
+    },
+    [pushHistory, smartMode, smartIntensity, toast, t],
+  )
+
+  const handleStudioGenerate = useCallback(() => {
+    const result = applySolvedTheme([seed])
+    if (result) toast.success(t('toast.smartApplied'))
+  }, [applySolvedTheme, seed, toast, t])
+
+  const handleImportPalette = useCallback(
+    (seeds) => {
+      const result = applySolvedTheme(seeds)
+      if (result) toast.success(t('toast.paletteApplied', { count: result.seedCount }))
+    },
+    [applySolvedTheme, toast, t],
+  )
+
+  /**
+   * A manifest already names its roles, so it is applied verbatim — running the
+   * solver over it would silently discard the user's own role choices.
+   */
+  const handleImportManifest = useCallback(
+    ({ colors: importedColors, name: importedName, logoStyle: importedLogoStyle, deadKeys }) => {
+      pushHistory()
+      setColors(buildColors(importedColors))
+      if (importedName) {
+        setName(importedName)
+        setNameError('')
+      }
+      // Only when the source theme actually declared it: a theme without the key
+      // must not silently reset a choice the user made here.
+      if (importedLogoStyle) setLogoStyle(importedLogoStyle)
+      setActivePresetId(null)
+
+      // A third-party theme often carries keys Chrome silently ignores. Reporting
+      // them is the only way the user finds out why "that colour" never showed up.
+      if (Array.isArray(deadKeys) && deadKeys.length) {
+        toast.info(
+          t('import.deadKeys', {
+            count: deadKeys.length,
+            keys: deadKeys.slice(0, 4).join(', '),
+          }),
+          7000,
+        )
+        return
+      }
+
+      toast.success(t('toast.paletteApplied', { count: Object.keys(importedColors).length }))
+    },
+    [pushHistory, toast, t],
+  )
+
+  const handleFixContrast = useCallback(() => {
+    const { colors: repaired, changed } = repairContrast(colors)
+    if (changed > 0) {
+      pushHistory()
+      setColors(buildColors(repaired))
+      setActivePresetId(null)
+      toast.success(t('audit.fixed', { count: changed }))
+      return
+    }
+    toast.error(t('audit.fixFailed'))
+  }, [colors, pushHistory, toast, t])
+
+  const handlePreviewManifest = useCallback(() => {
+    setManifestOpen(true)
+  }, [])
+
+  const handleGenerate = useCallback(async () => {
+    if (generating) return
+
+    // 1. Validate the user's input.
+    const errors = validateThemeInput({ name, colors, description })
+    if (errors.length) {
+      // Field-level errors get an inline message *and* a toast. The toast is the
+      // one guarantee that the failure is announced even when the offending field
+      // is scrolled out of view — and it keeps the app off `alert()` entirely.
+      const nameIssue = errors.find((issue) => issue.field === 'name')
+      const descriptionIssue = errors.find((issue) => issue.field === 'description')
+      setNameError(nameIssue ? t(nameIssue.key, nameIssue.vars) : '')
+      setDescriptionError(descriptionIssue ? t(descriptionIssue.key, descriptionIssue.vars) : '')
+      errors.forEach((issue) => toast.error(t(issue.key, issue.vars)))
+      return
+    }
+
+    setGenerating(true)
+    try {
+      // 2. Assemble manifest.json and prove the JSON parses. No icon is drawn:
+      //    Chrome never displays a theme's icon.png anywhere, so shipping one is
+      //    3 KB of dead weight in every download (and none of the reference
+      //    themes kept one at the folder root either). The rendering capability
+      //    stays in utils/icon.js if it is ever wanted again.
+      const pkg = await buildThemePackage({
+        name,
+        description,
+        colors,
+        colorFormat,
+        complete: COMPLETE_THEME,
+        logoStyle,
+      })
+
+      const parsed = parseManifest(pkg.json)
+      if (!parsed.ok) {
+        throw new Error(`Generated manifest is not valid JSON: ${parsed.error}`)
+      }
+      if (!pkg.usedChromeKeys.length) {
+        throw new Error('No valid colours were available to generate a theme.')
+      }
+      pkg.warnings.forEach((warning) => toast.error(t(warning.key, warning.vars)))
+
+      // 4. Package it into a ZIP whose sole top-level entry is the theme folder.
+      const blob = await createZip({ files: pkg.files, folder: pkg.folderName })
+
+      // 5. Hand it to the browser.
+      downloadBlob(blob, pkg.zipName)
+
+      toast.success(t('toast.themeGenerated'))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error.'
+      toast.error(t('toast.zipFailed', { error: message }), 6000)
+    } finally {
+      setGenerating(false)
+    }
+  }, [generating, name, description, colors, colorFormat, logoStyle, toast, t])
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+  return (
+    <div className="app">
+      <Header
+        onReset={() => setResetOpen(true)}
+        onUndo={handleUndo}
+        canUndo={undoDepth > 0}
+        storageWarning={storageWarning}
+      />
+
+      <main className="app__main" id="editor">
+        <Hero />
+
+        <div className="workspace">
+          <div className="workspace__left">
+            <ThemeSettings
+              name={name}
+              description={description}
+              colors={colors}
+              logoStyle={logoStyle}
+              nameError={nameError}
+              descriptionError={descriptionError}
+              onNameChange={handleNameChange}
+              onDescriptionChange={handleDescriptionChange}
+              onColorChange={handleColorChange}
+              onLogoStyleChange={handleLogoStyleChange}
+              onInvalidColor={handleInvalidColor}
+            />
+
+            <PaletteStudio
+              seed={seed}
+              mode={smartMode}
+              intensity={smartIntensity}
+              onSeedChange={setSeed}
+              onModeChange={(next) => setSmartMode(pick(next, SOLVER_MODES, 'auto'))}
+              onIntensityChange={(next) => setSmartIntensity(pick(next, INTENSITIES, 'balanced'))}
+              onGenerate={handleStudioGenerate}
+              onInvalidSeed={handleInvalidColor}
+            />
+
+            <ImportPanel
+              onApplyPalette={handleImportPalette}
+              onApplyManifest={handleImportManifest}
+            />
+
+            <PresetsPanel
+              activePresetId={activePresetId}
+              onApplyPreset={handleApplyPreset}
+              onRandomize={handleRandomize}
+            />
+          </div>
+
+          <div className="workspace__right">
+            <PreviewPanel
+              colors={colors}
+              showKeys={showKeys}
+              onToggleKeys={() => setShowKeys((value) => !value)}
+              auditIssues={auditIssues}
+              onFixContrast={handleFixContrast}
+              logoStyle={logoStyle}
+            />
+            <ExportPanel
+              colorFormat={colorFormat}
+              onColorFormatChange={setColorFormat}
+              onGenerate={handleGenerate}
+              onPreviewManifest={handlePreviewManifest}
+              busy={generating}
+              // Read off the built manifest rather than recomputed, so the
+              // subtitle can never claim a number the download does not contain.
+              keyCount={manifestResult.usedChromeKeys.length}
+              tintCount={manifestResult.usedTintKeys.length}
+              filename={filename}
+              folderName={folderName}
+            />
+          </div>
+        </div>
+      </main>
+
+      <footer className="site-footer">
+        <p>{t('footer.privacy')}</p>
+      </footer>
+
+      <ManifestModal
+        open={manifestOpen}
+        onClose={() => setManifestOpen(false)}
+        manifestJson={manifestResult.json}
+        manifest={manifestResult.manifest}
+        filename={filename}
+      />
+
+      <ConfirmDialog
+        open={resetOpen}
+        title={t('confirm.reset.title')}
+        description={t('confirm.reset.description')}
+        confirmLabel={t('confirm.reset.confirm')}
+        destructive
+        onConfirm={handleResetConfirmed}
+        onCancel={() => setResetOpen(false)}
+      />
+    </div>
+  )
+}

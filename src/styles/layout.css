@@ -1,0 +1,204 @@
+/* ============================================================================
+   layout.css — app shell, header, hero, two-column workspace, footer
+   Desktop-first: settings on the left, live preview on the right.
+   ========================================================================= */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------------------------------- Header --------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+}
+
+.site-header__inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  height: var(--header-height);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-md);
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  border-radius: var(--radius-sm);
+  padding: 4px 6px 4px 4px;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.brand:hover {
+  background-color: var(--surface-hover);
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background-color: var(--accent);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-xs);
+}
+
+.brand__name {
+  color: var(--text-primary);
+}
+
+.site-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.site-header__banner {
+  padding: 8px 24px;
+  background-color: #fdf6e8;
+  border-top: 1px solid #f0e2c4;
+  color: var(--warning);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* --------------------------------- Main ---------------------------------- */
+.app__main {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 34px 24px 64px;
+}
+
+/* --------------------------------- Hero ---------------------------------- */
+.hero {
+  margin-bottom: 26px;
+}
+
+.hero__title {
+  font-size: var(--text-2xl);
+  font-weight: 680;
+  letter-spacing: -0.022em;
+  line-height: 1.16;
+  color: var(--text-primary);
+}
+
+.hero__subtitle {
+  margin-top: 9px;
+  max-width: 620px;
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ------------------------------- Workspace -------------------------------- */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 4fr) minmax(440px, 6fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.workspace__left,
+.workspace__right {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+/* The preview column follows the scroll on tall desktops so the mockup stays
+   visible while editing colours — the whole point of a live preview. */
+@media (min-width: 1100px) {
+  .workspace__right {
+    position: sticky;
+    top: calc(var(--header-height) + 22px);
+  }
+}
+
+/* ------------------------------- Footer ---------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  padding: 26px 24px 34px;
+  text-align: center;
+}
+
+.site-footer p {
+  max-width: 760px;
+  margin: 0 auto;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+/* ------------------------------ Responsive -------------------------------- */
+
+/* Tablet: stack the columns, preview first so changes are still visible. */
+@media (max-width: 1099px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace__right {
+    order: -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .app__main {
+    padding: 24px 16px 48px;
+  }
+
+  .site-header__inner {
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .brand__name {
+    display: none;
+  }
+
+  .hero__title {
+    font-size: 25px;
+  }
+
+  .hero__subtitle {
+    font-size: var(--text-base);
+  }
+
+  .site-footer {
+    padding: 22px 16px 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Icons only. The language switch plus three labelled nav buttons exceed a
+     390px viewport, and `.site-header__inner` has a fixed height so the nav
+     cannot wrap onto a second row — collapsing the labels keeps the header on
+     one line instead of pushing the page into horizontal scroll. Every label is
+     mirrored by an `aria-label` on its button, so nothing loses its name. */
+  .site-header__nav .button__label {
+    display: none;
+  }
+
+  .site-header__nav .button {
+    padding: 8px 10px;
+  }
+}

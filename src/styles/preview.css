@@ -1,0 +1,596 @@
+/* ============================================================================
+   preview.css — the live Chrome browser mockup + its panel chrome
+   All colours arrive as inline styles from React (they come from the theme
+   state). This file owns geometry, typography and layering only.
+   ========================================================================= */
+
+.preview-panel {
+  padding: 20px;
+}
+
+.preview-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.preview-panel__title {
+  font-size: var(--text-md);
+  font-weight: 640;
+  letter-spacing: -0.012em;
+}
+
+.preview-panel__subtitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 380px;
+}
+
+.preview-panel__dot {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  border-radius: 50%;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+.preview-panel__warnings {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid #f0e2c4;
+  border-radius: var(--radius-sm);
+  background-color: #fdf6e8;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--warning);
+}
+
+/* ------------------------------- Mockup shell ----------------------------- */
+.mockup {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #eff0f4 0%, #e8e9ef 100%);
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+}
+
+.mockup__window {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-window);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* -------------------------------- Tab strip ------------------------------- */
+.mockup__strip {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 46px;
+  padding: 0 10px;
+}
+
+.mockup__tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mockup__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 0;
+  max-width: 132px;
+  padding: 0 10px;
+  border-radius: 9px 9px 0 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  flex: 0 1 auto;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.mockup__tab.is-active {
+  height: 36px;
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.16) inset;
+}
+
+.mockup__tab-favicon {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.mockup__tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.mockup__tab-close {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+
+.mockup__newtab {
+  padding: 0 8px 6px;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.72;
+  flex: 0 0 auto;
+}
+
+.mockup__window-controls {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.mockup__window-control {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
+}
+
+/* --------------------------------- Toolbar -------------------------------- */
+.mockup__toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 12px;
+}
+
+.mockup__nav {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 0 0 auto;
+}
+
+.mockup__omnibox {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  box-shadow: var(--shadow-xs);
+}
+
+.mockup__omnibox-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.72;
+  min-width: 0;
+}
+
+.mockup__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.mockup__avatar {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ------------------------------- Bookmark bar ----------------------------- */
+.mockup__bookmarks {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  height: 30px;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+.mockup__bookmark {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mockup__bookmark-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+/* ------------------------------- Page content ----------------------------- */
+.mockup__content {
+  padding: 0;
+}
+
+.mockup__ntp {
+  position: relative;
+  min-height: 306px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 26px 22px 30px;
+  text-align: center;
+}
+
+/* Abstract ThemeForge mark — overlapping shapes, no browser logos. */
+.mockup__ntp-brand {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+}
+
+.mockup__mark {
+  position: absolute;
+  display: block;
+}
+
+.mockup__mark--a {
+  width: 34px;
+  height: 34px;
+  left: 0;
+  top: 7px;
+  border-radius: 50%;
+}
+
+.mockup__mark--b {
+  width: 29px;
+  height: 29px;
+  left: 24px;
+  top: 0;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.mockup__mark--c {
+  width: 22px;
+  height: 22px;
+  left: 19px;
+  top: 31px;
+  border-radius: 7px;
+  opacity: 0.62;
+}
+
+.mockup__ntp-title {
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.mockup__ntp-subtitle {
+  font-size: 11.5px;
+  margin-top: -4px;
+}
+
+.mockup__ntp-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(330px, 78%);
+  height: 34px;
+  margin-top: 9px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mockup__shortcuts {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mockup__shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 56px;
+}
+
+.mockup__shortcut-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.mockup__shortcut-label {
+  font-size: 10.5px;
+  font-weight: 560;
+}
+
+/* --------------------------- Manifest key overlay ------------------------- */
+/* Rendered only when "Show keys" is on. Teaches the UI-name -> manifest-key
+   mapping directly on top of the region it controls. */
+.key-badge {
+  position: absolute;
+  z-index: 5;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  background-color: rgba(22, 22, 38, 0.78);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.key-badge--top-left {
+  top: 4px;
+  left: 4px;
+}
+
+.key-badge--top-right {
+  top: 4px;
+  right: 4px;
+}
+
+.key-badge--bottom-left {
+  bottom: 4px;
+  left: 4px;
+}
+
+.key-badge--bottom-right {
+  bottom: 4px;
+  right: 4px;
+}
+
+.key-badge--right {
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+}
+
+/* ------------------------------ Responsive -------------------------------- */
+@media (max-width: 1099px) {
+  .mockup__ntp {
+    min-height: 268px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mockup {
+    padding: 9px;
+  }
+
+  .mockup__strip {
+    height: 42px;
+    padding: 0 7px;
+  }
+
+  .mockup__tab {
+    max-width: 92px;
+    padding: 0 8px;
+    font-size: 10.5px;
+  }
+
+  .mockup__toolbar {
+    height: 44px;
+    padding: 0 9px;
+    gap: 8px;
+  }
+
+  .mockup__nav {
+    gap: 10px;
+  }
+
+  .mockup__toolbar-right {
+    gap: 9px;
+  }
+
+  .mockup__bookmarks {
+    gap: 11px;
+    font-size: 10.5px;
+  }
+
+  .mockup__ntp {
+    min-height: 232px;
+    padding: 20px 14px 24px;
+  }
+
+  .mockup__ntp-brand {
+    width: 46px;
+    height: 46px;
+  }
+
+  .mockup__mark--a {
+    width: 28px;
+    height: 28px;
+  }
+
+  .mockup__mark--b {
+    width: 24px;
+    height: 24px;
+    left: 20px;
+  }
+
+  .mockup__mark--c {
+    width: 18px;
+    height: 18px;
+    left: 16px;
+    top: 26px;
+  }
+
+  .mockup__ntp-title {
+    font-size: 15px;
+  }
+
+  .mockup__shortcut {
+    width: 46px;
+  }
+
+  .mockup__shortcut-tile {
+    width: 30px;
+    height: 30px;
+  }
+
+  .preview-panel {
+    padding: 16px;
+  }
+}
+
+/* ------------------------------ Contrast audit ----------------------------- */
+/* Sits directly under the mockup. BOTH states render — a green "all clear" is
+   information, not the absence of a warning, and it is how a user confirms that
+   a hand-edited colour is still legible. */
+.audit {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  font-size: var(--text-sm);
+}
+
+.audit--ok {
+  border-color: var(--success-border);
+  background-color: var(--success-soft);
+}
+
+.audit--warn {
+  border-color: #efe0c2;
+  background-color: #fdf8ed;
+}
+
+.audit__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.audit__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.audit--ok .audit__icon {
+  background-color: rgba(20, 133, 90, 0.13);
+  color: var(--success);
+}
+
+.audit--warn .audit__icon {
+  background-color: rgba(154, 100, 22, 0.15);
+  color: var(--warning);
+}
+
+.audit__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.audit--ok .audit__title {
+  color: var(--success);
+}
+
+.audit--warn .audit__title {
+  color: var(--warning);
+  font-weight: 620;
+}
+
+.audit__fix {
+  flex: 0 0 auto;
+}
+
+.audit__badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  color: var(--success);
+  font-size: var(--text-xs);
+  font-weight: 620;
+}
+
+/* The failing pairs, stated as "fg on bg: ratio". Bullet is a shape as well as a
+   colour so the list does not rely on hue alone. */
+.audit__list {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(154, 100, 22, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.audit__list li {
+  position: relative;
+  padding-left: 15px;
+}
+
+.audit__list li::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--warning);
+}

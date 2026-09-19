@@ -1,0 +1,20 @@
+node_modules
+dist
+dist-ssr
+.vite
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Local tooling / scratch output — never published
+.wrangler
+.e2e-out.txt
