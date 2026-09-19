@@ -20,8 +20,8 @@ export default {
   'header.githubTitle': 'ThemeBake 的 GitHub 仓库',
   'header.githubAria': 'GitHub 上的 ThemeBake 仓库',
   'header.about': '关于',
-  'header.storageUnavailable': '当前浏览器不可用本地存储 —— 刷新后你的修改不会被保留。',
-  'header.storageWriteFailed': '草稿保存到本地存储失败。编辑仍然有效，但刷新后会丢失。',
+  'header.storageUnavailable': '当前浏览器无法使用本地存储 —— 刷新后这次的修改不会保留。',
+  'header.storageWriteFailed': '草稿没能存进本地存储。你的修改依然有效，但刷新后会丢失。',
 
   // --------------------------------------------------------------------- about
   'about.title': '关于 ThemeBake',
@@ -30,8 +30,8 @@ export default {
     'ThemeBake 是一个无需登录的 Chrome 主题生成器。选好颜色、看实时预览，几秒内就能下载一个可直接加载的主题 ZIP。',
   'about.whatYouGet': '你会得到什么',
   'about.bullet1a': '一个主题文件夹，内含 ',
-  'about.bullet1b': ' 放在一个命名文件夹里，可直接「加载已解压的扩展程序」，除此之外不写任何文件。',
-  'about.bullet2': '兼容 Manifest V3，颜色映射到真实的 Chrome 主题键名。',
+  'about.bullet1b': '，放在一个以主题名命名的文件夹里，可以直接「加载已解压的扩展程序」——除此之外不会生成任何文件。',
+  'about.bullet2': '兼容 Manifest V3，每种颜色都写进 Chrome 真正使用的主题键。',
   'about.bullet3a': '通过 ',
   'about.bullet3b': ' → 打开开发者模式 → 加载已解压的扩展程序即可使用，也可以上传到 Chrome 应用商店。',
   'about.privacy': '隐私',
@@ -39,11 +39,11 @@ export default {
     'ThemeBake 全部在你的浏览器本地处理。不需要账号，主题配置和图片都不会上传到任何服务器。草稿只保存在本浏览器的本地存储里。',
   'about.scope': '能力范围',
   'about.scopeBody':
-    '当前版本生成纯色主题，不写背景图片（theme.images）。每对文字颜色都经过内置对比度体检，产物体积也更小。',
+    '当前版本只生成纯色主题，不写背景图片（theme.images）。所有文字配色都会跑一遍内置的对比度检查，导出的文件也因此更小。',
 
   // -------------------------------------------------------------------- footer
   'footer.privacy':
-    'ThemeBake 全部在你的浏览器本地处理。不需要账号，你的主题配置也永远不会被上传到任何服务器。',
+    'ThemeBake 的所有处理都在你的浏览器里完成。不需要账号，你的主题配置也不会被上传到任何服务器。',
 
   // -------------------------------------------------------- language switcher
   'lang.switcherAria': '界面语言',
@@ -56,14 +56,14 @@ export default {
 
   // ---------------------------------------------------------------- settings
   'settings.title': '主题设置',
-  'settings.subtitle': '下面每个颜色都对应一个真实的 Chrome 主题键名 —— 点「预览 manifest」可查看。',
+  'settings.subtitle': '下面每种颜色都对应一个 Chrome 真实使用的主题键名 —— 点「预览 manifest」即可查看。',
   'settings.name.label': '主题名称',
   'settings.name.placeholder': '我的主题',
   'settings.name.hint': '用作主题的显示名称，也是 ZIP 里那个文件夹的名字。',
   'settings.description.label': '摘要',
   'settings.description.placeholder': '一个安静的玫瑰色主题，适合长时间阅读。',
   'settings.description.hint':
-    '可选，最多 {max} 个字符。会写进 manifest.json 的 description —— 上传商店后就是「软件包中的摘要」，显示在详情页和搜索结果里标题下方。本地加载时 Chrome 不显示它。',
+    '可选，最多 {max} 个字符。它会写进 manifest.json 的 description —— 上传商店后就是「软件包中的摘要」，显示在详情页和搜索结果的标题下方。本地加载主题时 Chrome 不会显示它。',
   'settings.group.browserChrome': '浏览器外观',
   'settings.group.addressBar': '地址栏',
   'settings.group.bookmarks': '书签栏',
@@ -72,27 +72,27 @@ export default {
   'settings.logo.adaptive': '自适应',
   'settings.logo.classic': '原始彩色',
   'settings.logo.hint':
-    '「自适应」由 Chrome 根据新标签页的背景色推导 logo：深色背景显示白色 logo，浅色背景显示标准 logo。「原始彩色」要求使用未被修改的 logo，但只有在其它新标签页设置都没有改动时 Chrome 才会保留它。',
+    '自适应（默认）：logo 跟随新标签页的背景色 —— 深色背景用白色 logo，浅色背景用标准深色 logo。原始彩色：使用 Google 原本的彩色 logo。',
 
   // ------------------------------------------------------- theme field labels
   'field.frame.label': '窗口框架',
   'field.frame.hint': '窗口边框与标签栏。Chrome 也会用这个颜色推导活动标签的背景。',
-  'field.frameInactive.label': '窗口框架（失焦时）',
-  'field.frameInactive.hint': '浏览器窗口失去焦点时使用。',
+  'field.frameInactive.label': '窗口框架（非活动窗口）',
+  'field.frameInactive.hint': '浏览器窗口不在最前面时使用。',
   'field.toolbar.label': '工具栏',
   'field.toolbar.hint': '包含地址栏、扩展图标与头像的那一条。',
   'field.backgroundTab.label': '标签背景',
-  'field.backgroundTab.hint': '非活动（后台）标签的背景色。',
+  'field.backgroundTab.hint': '未选中的（后台）标签页背景色。',
   'field.tabText.label': '活动标签文字',
   'field.tabText.hint': '当前选中的那个标签的文字颜色。',
   'field.tabBackgroundText.label': '非活动标签文字',
-  'field.tabBackgroundText.hint': '未选中的标签的文字颜色。',
+  'field.tabBackgroundText.hint': '未选中标签的文字颜色。',
   'field.toolbarButtonIcon.label': '工具栏图标颜色',
   'field.toolbarButtonIcon.hint': '前进、后退、刷新以及扩展图标。',
   'field.buttonBackground.label': '窗口按钮背景',
   'field.buttonBackground.hint': '最小化 / 最大化 / 关闭按钮的背景。',
   'field.omniboxBackground.label': '地址栏背景',
-  'field.omniboxBackground.hint': '那个圆角的搜索 / URL 输入框。',
+  'field.omniboxBackground.hint': '圆角的搜索 / 网址输入框。',
   'field.omniboxText.label': '地址栏文字',
   'field.omniboxText.hint': '在地址栏里输入的文字颜色。',
   'field.bookmarkText.label': '书签文字',
@@ -101,20 +101,20 @@ export default {
   'field.ntpBackground.hint': '新建标签页的整页背景色。',
   'field.ntpText.label': '新标签页文字',
   'field.ntpText.hint': '新标签页上的标题与正文颜色。',
-  'field.ntpLink.label': '新标签页链接色',
+  'field.ntpLink.label': '新标签页链接',
   'field.ntpLink.hint': '新标签页上的链接与快捷方式标签颜色。',
 
   // --------------------------------------------------------------- colour field
   'colorField.pickerAria': '{label} 取色器',
   'colorField.hexAria': '{label} 十六进制值',
-  'colorField.invalid': '请输入类似 #B1B2FF 的十六进制颜色，当前保留上一个有效值。',
+  'colorField.invalid': '请输入类似 #B1B2FF 的十六进制颜色值，已保留上一个有效值。',
   'colorField.invalidToast': '颜色值无效。{label} 已保留上一个有效颜色。',
 
   // ------------------------------------------------------------- smart palette
   'studio.title': '智能配色',
   'studio.subtitle': '选一个颜色，ThemeBake 帮你推导出一整套经过对比度校验的主题。',
   'studio.seedLabel': '主色',
-  'studio.seedHint': '它会成为窗口框架色，其余颜色都从它派生。',
+  'studio.seedHint': '它会成为窗口框架色，其余颜色都由它推导出来。',
   'studio.modeLegend': '明暗',
   'studio.mode.auto': '自动',
   'studio.mode.light': '浅色',
@@ -125,13 +125,13 @@ export default {
   'studio.intensity.bold': '鲜明',
   'studio.generate': '生成主题',
   'studio.resultLegend': '推导结果',
-  'studio.noteNeutral': '检测到中性色 —— 生成灰阶主题，而不是硬造一个色相。',
-  'studio.noteFrameAdjusted': '已把「{hex}」调整成适合做窗口框架的明度，色相仍然主导整套配色。',
-  'studio.noteSeedsUsed': '色卡中的 {total} 个颜色有 {used} 个被直接使用。',
+  'studio.noteNeutral': '检测到中性色 —— 会生成灰阶主题，不会硬套一个色相。',
+  'studio.noteFrameAdjusted': '已把「{hex}」调成适合做窗口框架的明度，它的色相仍然主导整套配色。',
+  'studio.noteSeedsUsed': '色卡里的 {total} 个颜色中，有 {used} 个被直接采用。',
 
   // -------------------------------------------------------------------- import
   'import.title': '导入',
-  'import.subtitle': '粘贴颜色、色卡链接、manifest，或拖入图片 —— ThemeBake 会把它映射到 Chrome 角色上。',
+  'import.subtitle': '粘贴颜色、色卡链接、manifest，或拖入图片 —— ThemeBake 会把它们对应到 Chrome 各处的界面配色。',
   'import.placeholder':
     '粘贴十六进制色值、rgb() 列表、Coolors / Adobe Color 链接、manifest.json，或 ThemeBake JSON…',
   'import.pickImage': '选择图片',
@@ -141,14 +141,14 @@ export default {
   'import.example': '试试示例色卡',
   'import.removeSwatch': '移除 {hex}',
   'import.detected': '识别到 {count} 个颜色',
-  'import.sourceBands': '检测为扁平色卡 —— 已按原顺序还原精确原色。',
-  'import.sourceClusters': '检测为照片 —— 已通过聚类提取画面主色。',
-  'import.sourceUrl': '已从链接中读出配色。全程没有任何网络请求 —— 链接只是当文本解析。',
+  'import.sourceBands': '检测到扁平色卡 —— 已按原顺序还原出准确颜色。',
+  'import.sourceClusters': '检测到照片 —— 已提取出画面中出现最多的几种颜色。',
+  'import.sourceUrl': '已从链接里读出配色，全程没有发起任何网络请求 —— 链接只是当作普通文本解析。',
   'import.apply': '应用到主题',
   'import.clear': '清空',
   'import.analyzing': '分析中…',
   'import.foundManifest': '识别到 Chrome 主题 manifest（名称：「{name}」）。',
-  'import.foundTheme': '识别到一份主题定义 —— 已把 {count} 个颜色映射到 Chrome 角色上。',
+  'import.foundTheme': '识别到一份主题定义 —— 已把 {count} 个颜色对应到 Chrome 的界面配色上。',
   'import.errorEmpty': '没有可导入的内容 —— 请先粘贴颜色或选择图片。',
   'import.errorNoColors': '没有从输入里识别出任何颜色。',
   'import.errorBadFile': '不支持这种文件类型。请使用图片、.json 或 .txt 文件。',
@@ -157,7 +157,7 @@ export default {
   'import.errorBadJson': '看起来是 JSON，但不是 Chrome 主题 manifest。',
   'import.errorNoThemeColors': '该 manifest 里没有 theme.colors。',
   'import.deadKeys':
-    '已忽略 {count} 个 Chrome 不支持的键名：{keys}。它们能被 manifest 解析器接受，但完全不参与渲染。',
+    '已忽略 {count} 个 Chrome 不支持的键名：{keys}。manifest 解析器会接受它们，但 Chrome 渲染时完全不会用到。',
 
   // ------------------------------------------------------------------ presets
   'presets.title': '预设',
@@ -193,13 +193,13 @@ export default {
 
   // ------------------------------------------------------------------- export
   'export.title': '生成',
-  'export.subtitle': '写入全部 {keys} 个 Chrome 颜色键 + {tints} 条 tints，将下载为 {filename}。',
+  'export.subtitle': '写入全部 {keys} 个 Chrome 颜色键与 {tints} 项 tints，下载为 {filename}。',
   'export.formatLegend': 'manifest 颜色格式',
   'export.formatHint': 'Chrome 只认 RGB 数组，HEX 字符串只适用于 Firefox。',
   'export.format.rgb': 'RGB 数组',
   'export.format.hex': 'HEX 字符串',
   'export.formatHexWarn':
-    '只要有一个颜色值是字符串，Chrome 就会整包拒绝这个 manifest，主题无法加载。想在 Chrome 里用请换成 RGB 数组。',
+    '只要有任意一个颜色值是字符串，Chrome 就会拒绝整个 manifest，主题装不上。想在 Chrome 里使用，请换成 RGB 数组。',
   'export.packageNote': 'ZIP 里只有一个文件夹 {folder}/，内含 manifest.json。',
   'export.generate': '生成主题',
   'export.generating': '正在打包 ZIP…',
@@ -210,10 +210,10 @@ export default {
   'export.howto1c': '。',
   'export.howto2': '打开 chrome://extensions 并开启「开发者模式」。',
   'export.howto3':
-    '点击「加载已解压的扩展程序」，直接选中那个文件夹本身——要选的是装着 manifest.json 的文件夹，不是 ZIP，也不是它的上一级。',
+    '点击「加载已解压的扩展程序」，直接选中那个文件夹本身 —— 要选的是装着 manifest.json 的文件夹，不是 ZIP 文件，也不是它的上一层目录。',
   'export.howto4': '如果想发布，把文件夹重新打包成 ZIP，上传到 Chrome 应用商店开发者后台即可。',
   'export.howto5':
-    '新标签页还是白底？「自定义 Chrome」里的背景设置优先级高于主题。打开新标签页 → 右下角「自定义 Chrome」→ 背景 → 恢复默认即可；重新安装主题也会重新应用主题的颜色。',
+    '新标签页还是白底？「自定义 Chrome」里的背景设置会盖过主题。打开新标签页 → 右下角「自定义 Chrome」→ 背景 → 恢复默认即可；另外，重新安装主题也会重新应用主题的背景色。',
 
   // ------------------------------------------------------------------ manifest
   'manifest.title': 'manifest.json',
@@ -247,7 +247,7 @@ export default {
   'toast.presetApplied': '已应用预设「{name}」。',
   'toast.randomApplied': '已生成一套新的随机主题。',
   'toast.smartApplied': '已根据你的颜色生成一整套主题。',
-  'toast.paletteApplied': '已应用 {count} 色色卡。',
+  'toast.paletteApplied': '已应用 {count} 个颜色的色卡。',
   'toast.imageExtracted': '已从图片中提取 {count} 个颜色。',
   'toast.zipFailed': 'ZIP 生成失败：{error}',
   'toast.noValidColors': '没有可用颜色，无法生成主题。',
@@ -266,14 +266,14 @@ export default {
   'warn.droppedInvalid': '已丢弃「{field}」（{chromeKey}）：「{value}」不是合法的十六进制颜色。',
   'warn.skippedKey': '已跳过未知的 Chrome 主题键名「{chromeKey}」（字段「{field}」）。',
   'warn.hexNotChromeLoadable':
-    'HEX 字符串格式：Chrome 会拒绝颜色值为字符串的 manifest。想在 Chrome 安装请用 RGB 数组。',
+    'HEX 字符串格式：颜色值是字符串时 Chrome 会拒绝整个 manifest，装不上。要在 Chrome 里使用请换成 RGB 数组。',
 
   // -------------------------------------------------------------------- audit
   'audit.title': '对比度检查',
   'audit.ok': '所有文字配色的对比度都合格。',
   'audit.issues': '有 {count} 处对比度需要留意：',
   'audit.autoFix': '一键修复对比度',
-  'audit.fixed': '已为可读性调整 {count} 个颜色。',
+  'audit.fixed': '已调整 {count} 个颜色，让文字更易读。',
   'audit.fixFailed': '对比度无法自动改善。',
   'audit.pair': '{fg} 在 {bg} 上：{ratio}:1（建议 {min}:1）。',
 

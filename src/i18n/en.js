@@ -79,7 +79,7 @@ export default {
   'settings.logo.adaptive': 'Adaptive',
   'settings.logo.classic': 'Original',
   'settings.logo.hint':
-    'Adaptive lets Chrome derive the logo from your New Tab background — white over dark colours, the standard wordmark over light ones. Original always asks for the unmodified logo, which Chrome only leaves alone when the New Tab Page is otherwise untouched.',
+    'Adaptive (default) — the logo follows your New Tab background: white over dark backgrounds, the standard dark logo over light ones. Original — Google’s unmodified colour logo.',
 
   // ------------------------------------------------------- theme field labels
   'field.frame.label': 'Frame',
