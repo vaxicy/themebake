@@ -1,5 +1,7 @@
 # ThemeForge
 
+**English** | [简体中文](README.zh-CN.md)
+
 **Build a custom Chrome theme in your browser — pick colours, preview them live, download a folder Chrome loads as-is.**
 
 **[Open ThemeForge →](https://themeforge-9g1.pages.dev)**
@@ -539,6 +541,9 @@ themeforge/
 ├── index.html                  # App shell, meta tags, inline SVG favicon
 ├── vite.config.js              # Vite config (static build target)
 ├── package.json
+├── README.md                   # This file (English)
+├── README.zh-CN.md             # 简体中文 README
+├── LICENSE                     # Non-Commercial License v1.0 (bilingual)
 ├── docs/
 │   └── screenshot.png          # README screenshot
 ├── scripts/
