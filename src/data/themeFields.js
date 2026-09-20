@@ -263,7 +263,7 @@ export const FIELD_IDS = THEME_FIELDS.map((f) => f.id)
 
 /** Manifest format constants. */
 export const MANIFEST_VERSION = 3
-export const THEME_VERSION = '1.0'
+export const THEME_VERSION = '1.0.0'
 
 /** Filename used for the generated icon, and the key that references it. */
 export const ICON_FILENAME = 'icon.png'
