@@ -66,6 +66,7 @@ import {
   describeManifestColors,
   toThemeFolderName,
 } from '../src/utils/package.js'
+import { suggestThemeName } from '../src/utils/nameFromColors.js'
 import {
   EXTENDED_DERIVATIONS,
   deriveExtendedColors,
@@ -1482,6 +1483,37 @@ ok('the E2E harness parses as ESM (no unbalanced template literal)', harnessPars
 const harnessSource = existsSync(e2ePath) ? readFileSync(e2ePath, 'utf8') : ''
 ok('the harness injects the page helpers', harnessSource.includes('${HELPERS}'))
 ok('the harness loads JSZip for archive inspection', harnessSource.includes("require('jszip')"))
+
+// ---------------------------------------------------------------------------
+section('19. Colour-matched theme/folder naming')
+// ---------------------------------------------------------------------------
+// The auto-name follows one convention: two Title-Case words + a literal
+// "Theme" suffix (three words), and a lower-case, dash-separated folder that
+// ends in "-theme" because the theme name already does.
+const named = suggestThemeName(DEFAULT_COLORS)
+ok('name is three words ending in "Theme"',
+  named.name.split(' ').length === 3 && named.name.endsWith(' Theme'), named.name)
+ok('folder is the lower-case, dash twin with a -theme tail',
+  named.folder === named.name.toLowerCase().replace(/ /g, '-'), named.folder)
+ok('folder ends in "-theme"', named.folder.endsWith('-theme'), named.folder)
+
+// Deterministic: the same palette always yields the same name (no RNG inside).
+const namedAgain = suggestThemeName(DEFAULT_COLORS)
+ok('naming is deterministic for a given palette', named.name === namedAgain.name, `${named.name} vs ${namedAgain.name}`)
+
+// Covers the full hue wheel so every bucket is exercised at least once.
+const hueSamples = {}
+for (let h = 0; h < 360; h += 15) {
+  const sample = suggestThemeName({ frame: hslToHex({ h, s: 60, l: 60 }) })
+  hueSamples[sample.name] = (hueSamples[sample.name] ?? 0) + 1
+  if (!/^[A-Z][a-z]+ [A-Z][a-z]+ Theme$/.test(sample.name)) {
+    ok('every generated name matches the Title-Case convention', false, sample.name)
+    break
+  }
+}
+ok('every hue sample matches the "Word Word Theme" shape', true, `${Object.keys(hueSamples).length} distinct names`)
+ok('distinct hues produce a spread of names (not one label)',
+  Object.keys(hueSamples).length > 8, `${Object.keys(hueSamples).length} distinct`)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

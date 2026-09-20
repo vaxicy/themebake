@@ -49,6 +49,7 @@ import { createHistory, record, undo } from './utils/history.js'
 import { exportThemeJson } from './utils/importTheme.js'
 import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
 import { buildThemePackage, toThemeFolderName } from './utils/package.js'
+import { suggestThemeName } from './utils/nameFromColors.js'
 import { INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
 import { toSafeName } from './utils/slug.js'
 import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/storage.js'
@@ -359,7 +360,11 @@ export default function App() {
       const preset = PRESETS_BY_ID[presetId]
       if (!preset) return
       pushHistory()
-      setColors(buildColors(preset.colors))
+      const built = buildColors(preset.colors)
+      const { name: autoName, folder: autoFolder } = suggestThemeName(built)
+      setColors(built)
+      setName(autoName)
+      setFolderInput(autoFolder)
       setActivePresetId(preset.id)
       toast.success(t('toast.presetApplied', { name: t(`preset.${preset.id}.name`) }))
     },
@@ -368,7 +373,11 @@ export default function App() {
 
   const handleRandomize = useCallback(() => {
     pushHistory()
-    setColors(buildColors(generateRandomColors()))
+    const built = buildColors(generateRandomColors())
+    const { name: autoName, folder: autoFolder } = suggestThemeName(built)
+    setColors(built)
+    setName(autoName)
+    setFolderInput(autoFolder)
     setActivePresetId(null)
     toast.success(t('toast.randomApplied'))
   }, [pushHistory, toast, t])
@@ -403,7 +412,11 @@ export default function App() {
       // Only recorded once the solve succeeded, so a failed solve does not leave
       // a no-op step on the undo stack.
       pushHistory()
-      setColors(buildColors(result.colors))
+      const built = buildColors(result.colors)
+      const { name: autoName, folder: autoFolder } = suggestThemeName(built)
+      setColors(built)
+      setName(autoName)
+      setFolderInput(autoFolder)
       setActivePresetId(null)
       return result
     },
@@ -436,10 +449,18 @@ export default function App() {
       deadKeys,
     }) => {
       pushHistory()
-      setColors(buildColors(importedColors))
+      const built = buildColors(importedColors)
+      setColors(built)
       if (importedName) {
         setName(importedName)
+        setFolderInput(toThemeFolderName(importedName))
         setNameError('')
+      } else {
+        // A colour-only source (e.g. a bare palette URL) carries no name, so
+        // match one to the colours the way randomise/preset do.
+        const { name: autoName, folder: autoFolder } = suggestThemeName(built)
+        setName(autoName)
+        setFolderInput(autoFolder)
       }
       // Same rule as the logo below: only when the source actually carried one.
       if (importedDescription) {
