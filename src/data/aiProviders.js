@@ -22,16 +22,35 @@ export const AI_PROVIDERS = [
     defaultModel: 'Qwen/Qwen2.5-7B-Instruct',
   },
   {
-    id: 'openrouter',
-    label: 'OpenRouter',
-    baseURL: 'https://openrouter.ai/api/v1',
-    defaultModel: 'openai/gpt-4o-mini',
-  },
-  {
     id: 'deepseek',
     label: 'DeepSeek',
     baseURL: 'https://api.deepseek.com/v1',
     defaultModel: 'deepseek-chat',
+  },
+  {
+    // Openai's own host refuses browser cross-origin requests, so this preset
+    // only works once the URL is pointed at a proxy. `needsProxy` drives the
+    // warning in the panel — it is not a guess, it is why the field exists.
+    id: 'openai',
+    label: 'OpenAI',
+    baseURL: 'https://api.openai.com/v1',
+    defaultModel: 'gpt-4o-mini',
+    needsProxy: true,
+  },
+  {
+    // Google ships an OpenAI-compatible layer, so Gemini needs no special client.
+    // The base URL already ends in `/openai`; the standard `/chat/completions`
+    // suffix is appended by `requestThemeNames`.
+    id: 'gemini',
+    label: 'Gemini · Google',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    defaultModel: 'gemini-2.5-flash',
+  },
+  {
+    id: 'openrouter',
+    label: 'OpenRouter',
+    baseURL: 'https://openrouter.ai/api/v1',
+    defaultModel: 'openai/gpt-4o-mini',
   },
   {
     id: 'moonshot',

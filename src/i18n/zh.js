@@ -145,7 +145,10 @@ export default {
   'ai.statusNoKey': '未填密钥',
   'ai.provider': '服务商',
   'ai.baseURL': '接口地址',
-  'ai.baseURLHint': '任何兼容 OpenAI 的地址都可以。OpenAI 官方域名不允许网页直连，需要填你自己的代理地址。',
+  'ai.baseURLHint':
+    '任何兼容 OpenAI 的地址都可以 —— 硅基流动、DeepSeek、Gemini、OpenRouter 都开箱即用。末尾的 /chat/completions 会自动补上。',
+  'ai.corsWarning':
+    'OpenAI 官方域名不允许网页直连，这个预设只有走你自己的代理才可用。请把上面的地址换成你的代理地址。',
   'ai.model': '模型',
   'ai.modelHint': '填服务商要求的完整模型名。',
   'ai.apiKey': 'API Key',

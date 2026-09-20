@@ -155,7 +155,9 @@ export default {
   'ai.provider': 'Provider',
   'ai.baseURL': 'Endpoint',
   'ai.baseURLHint':
-    'Any OpenAI-compatible base URL. OpenAI’s own api.openai.com blocks browser requests, so it needs your own proxy here.',
+    'Any OpenAI-compatible base URL — SiliconFlow, DeepSeek, Gemini and OpenRouter all work as-is. The standard /chat/completions path is added for you.',
+  'ai.corsWarning':
+    'api.openai.com refuses browser requests, so this preset only works through a proxy you control. Replace the URL above with your own proxy address.',
   'ai.model': 'Model',
   'ai.modelHint': 'The exact model id the provider expects.',
   'ai.apiKey': 'API key',

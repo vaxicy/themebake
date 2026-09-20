@@ -70,6 +70,8 @@ import { suggestThemeName } from '../src/utils/nameFromColors.js'
 import {
   DEFAULT_AI_CONFIG,
   AI_LANGUAGES,
+  AI_PROVIDERS,
+  AI_PROVIDER_IDS,
   AI_STYLES,
   AI_TEMPERATURE,
 } from '../src/data/aiProviders.js'
@@ -1649,6 +1651,23 @@ ok('names default to English', DEFAULT_AI_CONFIG.language === 'en', DEFAULT_AI_C
 ok('there is no "follow the interface" language option', !AI_LANGUAGES.includes('auto'), AI_LANGUAGES.join(','))
 ok('a stored "auto" language is coerced to English',
   sanitizeAiConfig({ language: 'auto' }).language === 'en', sanitizeAiConfig({ language: 'auto' }).language)
+
+// The provider table is hand-written, so a duplicate id or a missing base URL
+// would only show up as a broken dropdown at runtime.
+for (const id of ['siliconflow', 'deepseek', 'openai', 'gemini']) {
+  ok(`the provider table offers ${id}`, AI_PROVIDER_IDS.includes(id), AI_PROVIDER_IDS.join(','))
+}
+ok('provider ids are unique', new Set(AI_PROVIDER_IDS).size === AI_PROVIDER_IDS.length, AI_PROVIDER_IDS.join(','))
+ok('every provider carries a base URL and a starter model',
+  AI_PROVIDERS.every((p) => p.id === 'custom' || (p.baseURL && p.defaultModel)),
+  AI_PROVIDERS.filter((p) => p.id !== 'custom' && !(p.baseURL && p.defaultModel)).map((p) => p.id).join(','))
+// Gemini is reachable only because Google ships an OpenAI-compatible layer; the
+// `/openai` suffix is what makes the shared `/chat/completions` call work.
+ok('the Gemini preset targets the OpenAI-compatible endpoint',
+  (AI_PROVIDERS.find((p) => p.id === 'gemini')?.baseURL ?? '').endsWith('/openai'),
+  AI_PROVIDERS.find((p) => p.id === 'gemini')?.baseURL)
+ok('the OpenAI preset is flagged as needing a proxy',
+  AI_PROVIDERS.find((p) => p.id === 'openai')?.needsProxy === true)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

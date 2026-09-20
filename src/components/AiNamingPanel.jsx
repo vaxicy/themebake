@@ -41,6 +41,12 @@ export function AiNamingPanel({
   const { t } = useI18n()
   const hasKey = Boolean(config.apiKey)
 
+  // A preset that blocks browser requests warns until the URL is actually
+  // changed — so the message disappears the moment a proxy is filled in, rather
+  // than nagging someone who already solved it.
+  const needsProxy =
+    Boolean(AI_PROVIDER_BY_ID[config.providerId]?.needsProxy) && /api\.openai\.com/.test(config.baseURL)
+
   const handleProvider = (providerId) => {
     const preset = AI_PROVIDER_BY_ID[providerId]
     onChange({
@@ -137,6 +143,7 @@ export function AiNamingPanel({
               onChange={(event) => onChange({ baseURL: event.target.value })}
             />
             <p className="field__hint">{t('ai.baseURLHint')}</p>
+            {needsProxy ? <p className="ai__warn">{t('ai.corsWarning')}</p> : null}
           </div>
 
           <div className="field field--compact">

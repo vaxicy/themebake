@@ -1259,6 +1259,19 @@
   padding: 0;
 }
 
+/* A preset the browser genuinely cannot reach (CORS) — a real blocker, so it is
+   styled as a warning rather than a hint. */
+.ai__warn {
+  margin: 7px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-soft);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--danger);
+}
+
 .ai__note {
   margin: 0;
   padding: 9px 11px;
