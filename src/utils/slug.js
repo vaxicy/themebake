@@ -10,6 +10,11 @@
  *   - guard against Windows reserved device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
  *   - enforce a length cap that leaves room for the ".zip" suffix
  *   - always fall back to a usable name
+ *
+ * Two flavours live here. `toSafeFilename` / `toSlug` are for names **we** derive
+ * from free text, so they lower-case and dashify. `toSafeName` is for names the
+ * **user** typed, and keeps their case and spaces — only what a filesystem
+ * genuinely rejects is touched.
  */
 
 const ILLEGAL_CHARS = /[\\/:*?"<>|\u0000-\u001F\u007F]/g
@@ -46,4 +51,40 @@ export function toSafeFilename(name, extension = 'zip') {
 /** Slug used for the ZIP-internal file name and for display in the Toaster. */
 export function toSlug(name) {
   return toSafeFilename(name).replace(/\.zip$/, '')
+}
+
+/**
+ * Separators Windows/macOS/Linux reject, collapsed into a single dash so that
+ * "a/b" reads as "a-b" instead of silently gluing the two words together.
+ */
+const ILLEGAL_RUN = /[\\/:*?"<>|\u0000-\u001F\u007F]+/g
+
+/**
+ * Sanitise a name the user typed **without changing how it reads**.
+ *
+ * A folder name is not derived from anything — the user typed it — so
+ * "Blush Matcha Theme" has to stay exactly that. Only what a filesystem genuinely
+ * rejects is removed:
+ *   - characters Windows/macOS/Linux refuse (a run of them becomes one dash)
+ *   - leading/trailing dots, spaces and dashes (Windows cannot create the first
+ *     two, a leading dot hides the entry on unix, and stripping the dashes is what
+ *     stops a name of nothing but illegal characters from surviving as "-")
+ *   - Windows reserved device names (CON, PRN, …)
+ *
+ * Case, interior spaces and underscores are preserved. Returns `''` when nothing
+ * usable is left, so the caller can pick its own fallback.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function toSafeName(name) {
+  let base = String(name ?? '')
+    .replace(ILLEGAL_RUN, '-')
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+    .slice(0, MAX_BASE_LENGTH)
+    .replace(/[.\s-]+$/g, '')
+
+  if (!base) return ''
+  if (WINDOWS_RESERVED.test(base)) base = `${base}-theme`
+  return base
 }

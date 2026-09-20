@@ -64,7 +64,7 @@ export default {
   'settings.folder.label': '文件夹名',
   'settings.folder.placeholder': 'blush-matcha-theme',
   'settings.folder.hint':
-    '下载下来的文件夹名与 ZIP 文件名。留空则沿用主题名。会自动转成小写，空格换成 -。',
+    '下载下来的文件夹名与 ZIP 文件名。填什么就是什么，只去掉文件系统不接受的字符。留空则用主题名派生。',
   'settings.description.label': '摘要',
   'settings.description.placeholder': '一个安静的玫瑰色主题，适合长时间阅读。',
   'settings.description.hint':

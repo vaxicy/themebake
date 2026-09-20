@@ -71,7 +71,7 @@ export default {
   'settings.folder.label': 'Folder name',
   'settings.folder.placeholder': 'blush-matcha-theme',
   'settings.folder.hint':
-    'The folder inside the download, and the file name of the ZIP. Leave it empty to reuse the theme name. Lower-cased, with spaces turned into dashes.',
+    'The folder inside the download, and the file name of the ZIP. Used exactly as typed — only characters a filesystem rejects are stripped. Leave it empty to derive one from the theme name.',
   'settings.description.label': 'Summary',
   'settings.description.placeholder': 'A calm rose theme for long reading sessions.',
   'settings.description.hint':

@@ -129,7 +129,7 @@ into your browser.
 | **Undo (Ctrl+Z)** | Every edit is undoable. A whole colour drag collapses into a single step, and the toast names what was undone |
 | **Preview Manifest** | Inspect the exact JSON before downloading, with a live "valid JSON" check and Copy JSON |
 | **Export theme JSON** | One click saves the whole theme — name, summary, logo choice, colour format and palette — as a JSON file. The Import panel reads it back, so a theme can be backed up or handed to someone else with nothing dropped |
-| **Theme name and folder name are separate** | The name Chrome displays is free text (`Blush Matcha Theme`); the folder and file name is its own field in kebab case (`blush-matcha-theme`). Neither is derived from the other, and an empty folder field falls back to a slug of the theme name |
+| **Theme name and folder name are separate** | The name Chrome displays is free text (`Blush Matcha Theme`); the folder and file name is its own field, used **exactly as typed** — capitals and spaces included, with only the characters a filesystem rejects removed. Neither is derived from the other, and an empty folder field derives one from the theme name |
 | **Folder output** | On desktop Chrome/Edge, Generate writes `<folder>/manifest.json` straight into a directory you pick, so nothing needs unzipping before **Load unpacked**. ZIP stays: it works everywhere, and it is the only form the Chrome Web Store accepts |
 | **Loadable package** | Either output wraps everything in one `<folder>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
 | **Always complete** | Every export writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
@@ -183,10 +183,11 @@ folder you can safely select. Wrapping everything in one named folder makes the
 result directly selectable — and the **Folder** output skips the archive entirely,
 writing that folder where you ask for it.
 
-The folder name is its own field, not a slug of the theme name: the two follow
-different conventions, because the name Chrome displays is free text ("Blush Matcha
-Theme") while the folder has to survive a filesystem ("blush-matcha-theme").
-Leaving the folder field empty is the only case that falls back to the theme name.
+The folder name is its own field, not a slug of the theme name, and it is used
+exactly as typed — "Blush Matcha Theme" stays "Blush Matcha Theme". Only the
+characters a filesystem genuinely rejects are stripped, and a Windows device name
+like `CON` still gets a suffix. Leaving the field empty is the one case that derives
+a name, a slug of the theme name.
 
 Only two files are written. An audit of 21 hand-built reference themes showed that
 the other things they carry — `README.md`, `LICENSE`, `.gitignore`, `scripts/*.py`,
@@ -439,7 +440,7 @@ landed in the orange-olive mud band at low saturation.
 
 ## Verification
 
-### `npm run verify` — 297 assertions, no browser
+### `npm run verify` — 304 assertions, no browser
 
 `scripts/verify.mjs` runs in pure Node and covers colour parsing, field-map
 integrity (including that the 14 editable fields plus the 10 derived ones cover
@@ -461,7 +462,7 @@ also parses the E2E harness with `node --check`, so an unbalanced template liter
 fails in a second instead of after a browser has launched. It exits non-zero on
 failure and needs no browser.
 
-### Browser E2E — 231 assertions, real Chrome
+### Browser E2E — 233 assertions, real Chrome
 
 `verify.mjs` proves the pure logic. A companion harness proves the assembled app,
 driving real Chrome over the DevTools Protocol with **zero extra dependencies**
@@ -475,7 +476,7 @@ npm run preview                    # serves ./dist
 node <harness>/e2e.mjs http://localhost:4173
 ```
 
-**231 assertions** across 24 suites: first render, live preview reactions, invalid
+**233 assertions** across 24 suites: first render, live preview reactions, invalid
 input recovery, presets, randomiser, the key overlay, the manifest modal, name
 validation, **the generated ZIP unpacked and inspected byte-for-byte (manifest.json
 and nothing else)**, storage

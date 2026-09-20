@@ -27,7 +27,7 @@
 
 import { ICON_FILENAME, THEME_FOLDER_SUFFIX } from '../data/themeFields.js'
 import { buildManifest } from './manifest.js'
-import { toSlug } from './slug.js'
+import { toSafeName, toSlug } from './slug.js'
 import { MANIFEST_FILENAME } from './zip.js'
 
 /**
@@ -110,10 +110,11 @@ export async function buildThemePackage({
   if (icon) files.push({ path: ICON_FILENAME, data: icon })
 
   // The caller may own the folder name (the editor keeps it separate from the
-  // theme name); when it does not, derive one so the older call sites keep working.
-  const folderName = toThemeFolderName(
-    typeof explicitFolderName === 'string' && explicitFolderName.trim() ? explicitFolderName : name,
-  )
+  // theme name). A caller-provided one is used as typed — only what a filesystem
+  // rejects is stripped — while a derived one is slugified, because that one came
+  // from free text rather than from the user's own folder-name field.
+  const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
+  const folderName = typedFolderName || toThemeFolderName(name)
 
   return {
     ...built,

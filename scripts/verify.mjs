@@ -59,7 +59,7 @@ import {
   parseHex,
   relativeLuminance,
 } from '../src/utils/color.js'
-import { toSafeFilename } from '../src/utils/slug.js'
+import { toSafeFilename, toSafeName } from '../src/utils/slug.js'
 import { createZip, MANIFEST_FILENAME } from '../src/utils/zip.js'
 import {
   buildThemePackage,
@@ -430,6 +430,28 @@ ok('the zip name follows the explicit folder name',
   explicitFolder.zipName === 'velvet-ribbon-theme.zip', explicitFolder.zipName)
 ok('the manifest keeps the theme name verbatim, unslugified',
   explicitFolder.manifest.name === 'Velvet Ribbon Theme', explicitFolder.manifest.name)
+
+// A folder name is typed by the user, not derived, so it keeps its own reading:
+// capitals and spaces must survive. Only what a filesystem rejects is removed.
+ok('toSafeName keeps case and spaces untouched',
+  toSafeName('Blush Matcha Theme') === 'Blush Matcha Theme', toSafeName('Blush Matcha Theme'))
+ok('toSafeName trims the ends', toSafeName('  velvet-ribbon-theme  ') === 'velvet-ribbon-theme',
+  JSON.stringify(toSafeName('  velvet-ribbon-theme  ')))
+ok('toSafeName turns illegal characters into one dash',
+  toSafeName('a/b:c*d') === 'a-b-c-d', toSafeName('a/b:c*d'))
+ok('toSafeName strips a leading dot and a trailing dot',
+  toSafeName('.hidden.') === 'hidden', toSafeName('.hidden.'))
+ok('toSafeName still guards Windows device names', toSafeName('CON') === 'CON-theme', toSafeName('CON'))
+ok('toSafeName returns empty rather than inventing a name', toSafeName('///') === '', JSON.stringify(toSafeName('///')))
+
+const spacedFolder = await buildThemePackage({
+  name: 'Blush Matcha Theme',
+  folderName: 'Blush Matcha Theme',
+  colors: DEFAULT_COLORS,
+})
+ok('a typed folder name reaches the package verbatim',
+  spacedFolder.folderName === 'Blush Matcha Theme' && spacedFolder.zipName === 'Blush Matcha Theme.zip',
+  `${spacedFolder.folderName} / ${spacedFolder.zipName}`)
 
 // ---------------------------------------------------------------------------
 section('10. i18n dictionaries')

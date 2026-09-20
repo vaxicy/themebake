@@ -50,6 +50,7 @@ import { exportThemeJson } from './utils/importTheme.js'
 import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
 import { buildThemePackage, toThemeFolderName } from './utils/package.js'
 import { INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
+import { toSafeName } from './utils/slug.js'
 import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/storage.js'
 import { createZip, downloadBlob, downloadText } from './utils/zip.js'
 
@@ -193,13 +194,12 @@ export default function App() {
   // named after that folder — so what a user sees in their Downloads list is
   // exactly what they are about to unpack and select. An empty or unusable name
   // falls back inside `toThemeFolderName`, so there is no second fallback here.
-  // Empty falls back to a slug of the theme name so the export panel is never
-  // blank, but nothing is ever written back into the input — the field stays
-  // exactly what the user typed.
-  const folderName = useMemo(
-    () => toThemeFolderName(folderInput.trim() ? folderInput : name),
-    [folderInput, name],
-  )
+  // Used exactly as typed — case and spaces included — because this is the user's
+  // own name for the folder, not a slug of the theme name. Only what a filesystem
+  // rejects is stripped. An empty field is the one case that derives a name (a slug
+  // of the theme name) so the export panel is never blank, and nothing is ever
+  // written back into the input either way.
+  const folderName = useMemo(() => toSafeName(folderInput) || toThemeFolderName(name), [folderInput, name])
   const filename = useMemo(() => `${folderName}.zip`, [folderName])
 
   /** Re-checked on every colour change: the safety net under manual edits. */
