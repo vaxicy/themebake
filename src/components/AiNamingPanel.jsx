@@ -1,7 +1,9 @@
 /**
- * AI naming panel — the button that invents a theme name *and* its folder name.
+ * AI naming controls — embedded directly under the theme name / folder name
+ * fields, so the generated result sits next to the two inputs it fills instead
+ * of in a separate panel further down the page.
  *
- * The panel owns no logic: it renders the AI settings (provider / endpoint /
+ * The component owns no logic: it renders the AI settings (provider / endpoint /
  * model / key / creativity), a button that asks for names, and the returned
  * candidates as clickable chips. Applying a chip writes **both** the theme name
  * and the folder name, which is the whole point — the two fields are generated
@@ -49,14 +51,11 @@ export function AiNamingPanel({
   }
 
   return (
-    <section className="panel ai-panel" aria-labelledby="ai-heading">
-      <div className="panel__header">
-        <div>
-          <h2 className="panel__title" id="ai-heading">
-            {t('ai.title')}
-          </h2>
-          <p className="panel__subtitle">{t('ai.subtitle')}</p>
-        </div>
+    <section className="ai" aria-labelledby="ai-heading">
+      <div className="ai__head">
+        <h3 className="ai__label" id="ai-heading">
+          {t('ai.title')}
+        </h3>
         <span className={`status-chip ${hasKey ? 'status-chip--ok' : 'status-chip--error'}`}>
           {hasKey ? t('ai.statusReady') : t('ai.statusNoKey')}
         </span>
@@ -64,7 +63,7 @@ export function AiNamingPanel({
 
       <button
         type="button"
-        className="button button--primary ai__generate"
+        className="button button--soft ai__generate"
         onClick={onSuggest}
         disabled={busy}
         aria-busy={busy ? true : undefined}

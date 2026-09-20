@@ -497,6 +497,9 @@ const retiredKeys = [
   'export.complete',
   'export.completeLabel',
   'export.completeHint',
+  // The AI naming language picker lost its "follow the interface" option — a
+  // Chinese UI produced pinyin folder names, which is never what anyone wants.
+  'ai.lang.auto',
 ]
 const survivingKeys = retiredKeys.filter(
   (k) => Object.prototype.hasOwnProperty.call(en, k) || Object.prototype.hasOwnProperty.call(zh, k),
@@ -1637,7 +1640,15 @@ ok('an unknown provider falls back to the default',
 ok('temperature is clamped into its range',
   cleaned.temperature <= AI_TEMPERATURE.max && cleaned.temperature >= AI_TEMPERATURE.min, String(cleaned.temperature))
 ok('an invalid candidate count falls back', cleaned.candidates === DEFAULT_AI_CONFIG.candidates, String(cleaned.candidates))
-ok('invalid style and language fall back', cleaned.style === 'auto' && cleaned.language === 'auto', `${cleaned.style}/${cleaned.language}`)
+ok('invalid style and language fall back',
+  cleaned.style === DEFAULT_AI_CONFIG.style && cleaned.language === DEFAULT_AI_CONFIG.language,
+  `${cleaned.style}/${cleaned.language}`)
+// The names must default to English: a Chinese UI used to send the model down a
+// Chinese branch that produced pinyin folder names like `huo-ba-yue-ya-theme`.
+ok('names default to English', DEFAULT_AI_CONFIG.language === 'en', DEFAULT_AI_CONFIG.language)
+ok('there is no "follow the interface" language option', !AI_LANGUAGES.includes('auto'), AI_LANGUAGES.join(','))
+ok('a stored "auto" language is coerced to English',
+  sanitizeAiConfig({ language: 'auto' }).language === 'en', sanitizeAiConfig({ language: 'auto' }).language)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

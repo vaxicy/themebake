@@ -36,6 +36,7 @@ export function ThemeSettings({
   logoStyle,
   nameError,
   descriptionError,
+  aiPanel,
   onNameChange,
   onFolderChange,
   onDescriptionChange,
@@ -115,6 +116,14 @@ export function ThemeSettings({
           {t('settings.folder.hint')}
         </p>
       </div>
+
+      {/*
+        The AI naming controls arrive as a slot rather than being imported here:
+        they own their own state, and keeping the composition in `App` means this
+        component stays a pure layout for the fields it declares. It sits directly
+        under the two name fields because it fills exactly those two.
+      */}
+      {aiPanel}
 
       <div className="field">
         <label className="field__label" htmlFor="theme-description">

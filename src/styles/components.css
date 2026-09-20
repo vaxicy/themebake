@@ -1114,8 +1114,23 @@
 }
 
 /* ------------------------------- AI naming -------------------------------- */
-.ai-panel .panel__header {
-  margin-bottom: 14px;
+/* Embedded inside the settings panel, directly under the two name fields. */
+.ai {
+  margin-bottom: 18px;
+}
+
+.ai__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ai__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .ai__generate {
@@ -1123,7 +1138,7 @@
 }
 
 .ai__candidates {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .ai__candidates-legend {
@@ -1183,9 +1198,9 @@
 }
 
 .ai__settings {
-  margin-top: 16px;
+  margin-top: 14px;
   border-top: 1px solid var(--border-subtle);
-  padding-top: 12px;
+  padding-top: 11px;
 }
 
 .ai__settings-summary {

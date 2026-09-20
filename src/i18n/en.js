@@ -176,7 +176,6 @@ export default {
   'ai.style.retro': 'Retro',
   'ai.style.dreamy': 'Dreamy',
   'ai.language': 'Name language',
-  'ai.lang.auto': 'Follow interface',
   'ai.lang.en': 'English',
   'ai.lang.zh': 'Chinese',
   'ai.privacyNote':

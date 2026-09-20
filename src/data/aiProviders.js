@@ -61,8 +61,13 @@ export const AI_PROVIDER_BY_ID = Object.fromEntries(AI_PROVIDERS.map((p) => [p.i
 /** Creative directions the prompt can steer towards. */
 export const AI_STYLES = ['auto', 'elegant', 'minimal', 'cute', 'tech', 'nature', 'retro', 'dreamy']
 
-/** `auto` follows the interface language; the others force one. */
-export const AI_LANGUAGES = ['auto', 'en', 'zh']
+/**
+ * Language the *names* come back in. There is deliberately no `auto`/"follow the
+ * interface" option: a Chinese UI produced pinyin slugs like
+ * `huo-ba-yue-ya-theme`, which is never what someone wants in a filename, and
+ * "English UI, English names" is the only pairing that surprises nobody.
+ */
+export const AI_LANGUAGES = ['en', 'zh']
 
 export const AI_CANDIDATE_COUNTS = [3, 4, 5, 6]
 
@@ -82,5 +87,5 @@ export const DEFAULT_AI_CONFIG = {
   temperature: 1,
   candidates: 5,
   style: 'auto',
-  language: 'auto',
+  language: 'en',
 }

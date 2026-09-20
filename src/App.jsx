@@ -128,7 +128,7 @@ function pick(value, allowed, fallback) {
 
 export default function App() {
   const toast = useToast()
-  const { t, lang } = useI18n()
+  const { t } = useI18n()
 
   const [name, setName] = useState(INITIAL.state?.name ?? DEFAULT_THEME_NAME)
   const [description, setDescription] = useState(INITIAL.state?.description ?? '')
@@ -549,7 +549,7 @@ export default function App() {
       const names = await requestThemeNames(aiConfig, {
         palette: describePalette(colors),
         style: aiConfig.style,
-        language: aiConfig.language === 'auto' ? lang : aiConfig.language,
+        language: aiConfig.language,
         candidates: aiConfig.candidates,
         exclude: aiAppliedName
           ? [aiAppliedName, ...aiSeenRef.current]
@@ -563,7 +563,7 @@ export default function App() {
     } finally {
       setAiBusy(false)
     }
-  }, [aiConfig, aiAppliedName, colors, lang, handleApplyAiCandidate, toast, t])
+  }, [aiConfig, aiAppliedName, colors, handleApplyAiCandidate, toast, t])
 
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
@@ -691,22 +691,23 @@ export default function App() {
               logoStyle={logoStyle}
               nameError={nameError}
               descriptionError={descriptionError}
+              aiPanel={
+                <AiNamingPanel
+                  config={aiConfig}
+                  onChange={handleAiConfigChange}
+                  onSuggest={handleAiSuggest}
+                  onApply={handleApplyAiCandidate}
+                  busy={aiBusy}
+                  candidates={aiCandidates}
+                  appliedName={aiAppliedName}
+                />
+              }
               onNameChange={handleNameChange}
               onFolderChange={setFolderInput}
               onDescriptionChange={handleDescriptionChange}
               onColorChange={handleColorChange}
               onLogoStyleChange={handleLogoStyleChange}
               onInvalidColor={handleInvalidColor}
-            />
-
-            <AiNamingPanel
-              config={aiConfig}
-              onChange={handleAiConfigChange}
-              onSuggest={handleAiSuggest}
-              onApply={handleApplyAiCandidate}
-              busy={aiBusy}
-              candidates={aiCandidates}
-              appliedName={aiAppliedName}
             />
 
             <PaletteStudio
