@@ -537,6 +537,25 @@ export const LOGO_STYLE_IDS = LOGO_STYLES.map((style) => style.id)
 /** Applied when nothing is stored, and when a stored value is unrecognised. */
 export const DEFAULT_LOGO_STYLE = 'adaptive'
 
+/**
+ * How the finished theme is delivered.
+ *
+ * `folder` writes the theme folder straight into a directory the user picks, so
+ * "Load unpacked" needs no unzipping first — but it relies on the File System
+ * Access API, which exists only in desktop Chrome/Edge. `zip` works everywhere
+ * and is the only form the Chrome Web Store accepts, so it stays the default and
+ * is never removed.
+ *
+ * @type {{id: string, labelKey: string}[]}
+ */
+export const OUTPUT_MODES = [
+  { id: 'zip', labelKey: 'export.output.zip' },
+  { id: 'folder', labelKey: 'export.output.folder' },
+]
+
+/** Valid `outputMode` values, in render order. */
+export const OUTPUT_MODE_IDS = OUTPUT_MODES.map((mode) => mode.id)
+
 /** The manifest key this whole table exists to feed. */
 export const LOGO_PROPERTY_KEY = 'ntp_logo_alternate'
 

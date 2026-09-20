@@ -58,16 +58,19 @@ or 简体中文.
 3. Watch the [contrast audit](#contrast-audit) next to the preview; fix anything
    it flags with one click.
 4. Choose the output format (**RGB array** for Chrome) and press **Generate**.
-5. Unzip the download and load it — steps below.
+5. Save it — **ZIP** downloads an archive, **Folder** (desktop Chrome/Edge) writes the theme folder
+   straight to a directory you pick — then load it: steps below.
 
 Your draft is saved in your own browser as you type, so a reload does not lose it.
 
 ## Installing a generated theme
 
-The ZIP contains **one** folder, e.g. `rose-morning/`, and inside it
+Either output gives you **one** folder, e.g. `rose-morning/`, and inside it
 **exactly one** file, `manifest.json`.
 
-1. Unzip the downloaded file. You get one folder, e.g. `rose-morning/`.
+1. Get the folder:
+   - **Folder** output: it is already on disk, in the directory you picked.
+   - **ZIP** output: unzip the download — you get one folder, e.g. `rose-morning/`.
 2. Open `chrome://extensions` in Chrome.
 3. Enable **Developer mode** (top right).
 4. Click **Load unpacked** and select that folder itself — not the ZIP, and not its
@@ -126,8 +129,10 @@ into your browser.
 | **Undo (Ctrl+Z)** | Every edit is undoable. A whole colour drag collapses into a single step, and the toast names what was undone |
 | **Preview Manifest** | Inspect the exact JSON before downloading, with a live "valid JSON" check and Copy JSON |
 | **Export theme JSON** | One click saves the whole theme — name, summary, logo choice, colour format and palette — as a JSON file. The Import panel reads it back, so a theme can be backed up or handed to someone else with nothing dropped |
-| **Loadable package** | The ZIP wraps everything in one `<slug>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
-| **Always complete** | Every download writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
+| **Theme name and folder name are separate** | The name Chrome displays is free text (`Blush Matcha Theme`); the folder and file name is its own field in kebab case (`blush-matcha-theme`). Neither is derived from the other, and an empty folder field falls back to a slug of the theme name |
+| **Folder output** | On desktop Chrome/Edge, Generate writes `<folder>/manifest.json` straight into a directory you pick, so nothing needs unzipping before **Load unpacked**. ZIP stays: it works everywhere, and it is the only form the Chrome Web Store accepts |
+| **Loadable package** | Either output wraps everything in one `<folder>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
+| **Always complete** | Every export writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
 | **New Tab Page logo** | Adaptive (`1`) or Original (`0`). Adaptive is the default: it lets Chrome derive the wordmark from your `ntp_background`, so it reads correctly on light *and* dark themes |
 | **Two color formats** | RGB int arrays (the only format Chrome loads) or `#RRGGBB` strings for Firefox — the latter is flagged, because Chrome rejects it outright |
 | **English / 简体中文** | Full interface translation, auto-detected from the browser and persisted |
@@ -165,9 +170,9 @@ manifest        ──▶ importThemeJson() ──▶ field ids ─────�
    property that matters here, `ntp_logo_alternate` — see the note below.
 4. **Generate.** ThemeBake validates the name/description/colors, assembles
    `manifest.json`, proves the JSON parses, then wraps it in a single
-   `<slug>/` folder inside a ZIP and hands it to the browser. No icon is
-   drawn: Chrome never shows a theme's `icon.png` anywhere, so the download
-   carries only the one file Chrome reads.
+   `<folder>/` folder and hands it over — as a ZIP, or written straight into a
+   directory you pick. No icon is drawn: Chrome never shows a theme's `icon.png`
+   anywhere, so the output carries only the one file Chrome reads.
 
 ### Why the archive contains a folder, not loose files
 
@@ -175,8 +180,13 @@ Chrome's **Load unpacked** takes a **directory**, not an archive. If a theme ZIP
 put `manifest.json` at its own root, extracting it would scatter the file into
 whatever folder the user happened to be in — usually Downloads, which is not a
 folder you can safely select. Wrapping everything in one named folder makes the
-extracted result directly selectable, and the folder is simply named after your
-theme — a theme called "Rose Morning" unpacks into `rose-morning/`.
+result directly selectable — and the **Folder** output skips the archive entirely,
+writing that folder where you ask for it.
+
+The folder name is its own field, not a slug of the theme name: the two follow
+different conventions, because the name Chrome displays is free text ("Blush Matcha
+Theme") while the folder has to survive a filesystem ("blush-matcha-theme").
+Leaving the folder field empty is the only case that falls back to the theme name.
 
 Only two files are written. An audit of 21 hand-built reference themes showed that
 the other things they carry — `README.md`, `LICENSE`, `.gitignore`, `scripts/*.py`,
@@ -429,7 +439,7 @@ landed in the orange-olive mud band at low saturation.
 
 ## Verification
 
-### `npm run verify` — 294 assertions, no browser
+### `npm run verify` — 297 assertions, no browser
 
 `scripts/verify.mjs` runs in pure Node and covers colour parsing, field-map
 integrity (including that the 14 editable fields plus the 10 derived ones cover
@@ -451,7 +461,7 @@ also parses the E2E harness with `node --check`, so an unbalanced template liter
 fails in a second instead of after a browser has launched. It exits non-zero on
 failure and needs no browser.
 
-### Browser E2E — 215 assertions, real Chrome
+### Browser E2E — 231 assertions, real Chrome
 
 `verify.mjs` proves the pure logic. A companion harness proves the assembled app,
 driving real Chrome over the DevTools Protocol with **zero extra dependencies**
@@ -465,7 +475,7 @@ npm run preview                    # serves ./dist
 node <harness>/e2e.mjs http://localhost:4173
 ```
 
-**215 assertions** across 23 suites: first render, live preview reactions, invalid
+**231 assertions** across 24 suites: first render, live preview reactions, invalid
 input recovery, presets, randomiser, the key overlay, the manifest modal, name
 validation, **the generated ZIP unpacked and inspected byte-for-byte (manifest.json
 and nothing else)**, storage
@@ -598,6 +608,7 @@ themebake/
     │   ├── contrastAudit.js    # WCAG pair checks + bounded repair pass
     │   ├── manifest.js         # Manifest building + validation (incl. tints)
     │   ├── zip.js              # JSZip packaging (one top-level folder) + download
+    │   ├── fsFolder.js         # File System Access API: write the folder directly
     │   ├── storage.js          # localStorage (draft + language) with checks
     │   └── slug.js             # Safe ZIP filenames
     └── styles/

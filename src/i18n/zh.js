@@ -59,7 +59,12 @@ export default {
   'settings.subtitle': '下面每种颜色都对应一个 Chrome 真实使用的主题键名 —— 点「预览 manifest」即可查看。',
   'settings.name.label': '主题名称',
   'settings.name.placeholder': '我的主题',
-  'settings.name.hint': '用作主题的显示名称，也是 ZIP 里那个文件夹的名字。',
+  'settings.name.hint':
+    '会写进 manifest.json 的 name，也就是 Chrome 里显示的主题名，按你输入的原样保留。下面的文件夹名是独立的一项。',
+  'settings.folder.label': '文件夹名',
+  'settings.folder.placeholder': 'blush-matcha-theme',
+  'settings.folder.hint':
+    '下载下来的文件夹名与 ZIP 文件名。留空则沿用主题名。会自动转成小写，空格换成 -。',
   'settings.description.label': '摘要',
   'settings.description.placeholder': '一个安静的玫瑰色主题，适合长时间阅读。',
   'settings.description.hint':
@@ -194,13 +199,21 @@ export default {
   // ------------------------------------------------------------------- export
   'export.title': '生成',
   'export.subtitle': '写入全部 {keys} 个 Chrome 颜色键与 {tints} 项 tints，下载为 {filename}。',
+  'export.subtitleFolder': '写入全部 {keys} 个 Chrome 颜色键与 {tints} 项 tints，输出到 {folder}/。',
   'export.formatLegend': 'manifest 颜色格式',
   'export.formatHint': 'Chrome 只认 RGB 数组，HEX 字符串只适用于 Firefox。',
   'export.format.rgb': 'RGB 数组',
   'export.format.hex': 'HEX 字符串',
   'export.formatHexWarn':
     '只要有任意一个颜色值是字符串，Chrome 就会拒绝整个 manifest，主题装不上。想在 Chrome 里使用，请换成 RGB 数组。',
+  'export.outputLegend': '输出方式',
+  'export.output.zip': 'ZIP',
+  'export.output.folder': '文件夹',
+  'export.outputHint':
+    '「文件夹」把主题直接写进你选的一个目录，不用解压就能「加载已解压的扩展程序」；「ZIP」则下载一个压缩包。',
+  'export.folderUnsupported': '当前浏览器不支持直接写文件夹（需要桌面版 Chrome 或 Edge），请用 ZIP。',
   'export.packageNote': 'ZIP 里只有一个文件夹 {folder}/，内含 manifest.json。',
+  'export.packageNoteFolder': '会在你选的位置创建文件夹 {folder}/，里面只有 manifest.json。',
   'export.generate': '生成主题',
   'export.generating': '正在打包 ZIP…',
   'export.previewManifest': '预览 manifest',
@@ -210,6 +223,7 @@ export default {
   'export.howto1a': '解压 ',
   'export.howto1b': '，会得到一个文件夹 ',
   'export.howto1c': '。',
+  'export.howto1Folder': '打开你刚才选的目录 —— {folder}/ 已经在那里了，不用解压。',
   'export.howto2': '打开 chrome://extensions 并开启「开发者模式」。',
   'export.howto3':
     '点击「加载已解压的扩展程序」，直接选中那个文件夹本身 —— 要选的是装着 manifest.json 的文件夹，不是 ZIP 文件，也不是它的上一层目录。',
@@ -252,6 +266,8 @@ export default {
   'toast.paletteApplied': '已应用 {count} 个颜色的色卡。',
   'toast.imageExtracted': '已从图片中提取 {count} 个颜色。',
   'toast.zipFailed': 'ZIP 生成失败：{error}',
+  'toast.folderFailed': '写入文件夹失败：{error}',
+  'toast.folderWritten': '已把 {folder}/ 写入 {root}。',
   'toast.noValidColors': '没有可用颜色，无法生成主题。',
   'toast.dismiss': '关闭通知：{message}',
 

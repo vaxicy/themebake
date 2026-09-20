@@ -538,6 +538,16 @@
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
+/* Options the browser cannot honour (e.g. writing a folder in Firefox). */
+.segmented__option.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.segmented__option.is-disabled:hover {
+  border-color: var(--border-default);
+}
+
 .segmented__label {
   font-size: var(--text-base);
   font-weight: 600;

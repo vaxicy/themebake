@@ -1,6 +1,10 @@
 /**
- * Export panel: colour format and the single "Generate Theme" action that
- * produces a loadable unpacked theme.
+ * Export panel: colour format, output target, and the single "Generate Theme"
+ * action that produces a loadable unpacked theme.
+ *
+ * "Generate" delivers either a ZIP or — where the File System Access API exists —
+ * the theme folder itself, written straight into a directory the user picks. Both
+ * paths build the same package; only the hand-off differs.
  *
  * The generated ZIP wraps everything in one top-level folder so that unzipping
  * yields exactly what `chrome://extensions` → "Load unpacked" wants: a directory
@@ -17,13 +21,16 @@
  * `utils/manifest.js` for the full reasoning.
  */
 
-import { COLOR_FORMATS } from '../data/themeFields.js'
+import { COLOR_FORMATS, OUTPUT_MODES } from '../data/themeFields.js'
 import { useI18n } from '../i18n/index.jsx'
 import { CodeIcon, DownloadIcon } from './Icons.jsx'
 
 export function ExportPanel({
   colorFormat,
   onColorFormatChange,
+  outputMode,
+  onOutputModeChange,
+  folderOutputSupported,
   onGenerate,
   onPreviewManifest,
   onExportJson,
@@ -44,7 +51,9 @@ export function ExportPanel({
             {t('export.title')}
           </h2>
           <p className="panel__subtitle">
-            {t('export.subtitle', { keys: keyCount, tints: tintCount, filename })}
+            {outputMode === 'folder'
+              ? t('export.subtitleFolder', { keys: keyCount, tints: tintCount, folder: folderName })
+              : t('export.subtitle', { keys: keyCount, tints: tintCount, filename })}
           </p>
         </div>
       </div>
@@ -83,7 +92,45 @@ export function ExportPanel({
         </p>
       ) : null}
 
-      <p className="export-panel__note">{t('export.packageNote', { folder: folderName })}</p>
+      {/*
+        Where the finished theme goes. "Folder" skips the ZIP entirely, but only
+        desktop Chrome/Edge can write a directory — so the option is disabled with
+        the reason in the hint where the API is missing. ZIP is never removed: it
+        works everywhere and is the only form the Chrome Web Store accepts.
+      */}
+      <fieldset className="format-picker">
+        <legend className="format-picker__legend">{t('export.outputLegend')}</legend>
+        <div className="segmented" role="radiogroup" aria-label={t('export.outputLegend')}>
+          {OUTPUT_MODES.map((mode) => {
+            const disabled = mode.id === 'folder' && !folderOutputSupported
+            return (
+              <label
+                key={mode.id}
+                className={`segmented__option${outputMode === mode.id ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="output-mode"
+                  value={mode.id}
+                  checked={outputMode === mode.id}
+                  disabled={disabled}
+                  onChange={() => onOutputModeChange(mode.id)}
+                />
+                <span className="segmented__label">{t(mode.labelKey)}</span>
+              </label>
+            )
+          })}
+        </div>
+        <p className="format-picker__hint">
+          {folderOutputSupported ? t('export.outputHint') : t('export.folderUnsupported')}
+        </p>
+      </fieldset>
+
+      <p className="export-panel__note">
+        {outputMode === 'folder'
+          ? t('export.packageNoteFolder', { folder: folderName })
+          : t('export.packageNote', { folder: folderName })}
+      </p>
 
       <div className="export-panel__actions">
         <button
@@ -122,11 +169,17 @@ export function ExportPanel({
         <summary className="howto__summary">{t('export.howtoSummary')}</summary>
         <ol className="howto__list">
           <li>
-            {t('export.howto1a')}
-            <code className="inline-code">{filename}</code>
-            {t('export.howto1b')}
-            <code className="inline-code">{folderName}/</code>
-            {t('export.howto1c')}
+            {outputMode === 'folder' ? (
+              t('export.howto1Folder', { folder: folderName })
+            ) : (
+              <>
+                {t('export.howto1a')}
+                <code className="inline-code">{filename}</code>
+                {t('export.howto1b')}
+                <code className="inline-code">{folderName}/</code>
+                {t('export.howto1c')}
+              </>
+            )}
           </li>
           <li>{t('export.howto2')}</li>
           <li>{t('export.howto3')}</li>

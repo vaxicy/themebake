@@ -53,7 +53,11 @@ export function toThemeFolderName(name) {
  * Build the package.
  *
  * @param {object}  options
- * @param {string}  options.name
+ * @param {string}  options.name  Written into the manifest verbatim. This is the
+ *   name Chrome shows, and it is deliberately no longer the folder name too.
+ * @param {string}  [options.folderName]  Folder inside the archive, and the base of
+ *   the download name. Falls back to a slug of `name` when the caller has none, so
+ *   the editor can keep the two independent while older call sites still work.
  * @param {string}  [options.description]
  * @param {Record<string,string>} options.colors
  * @param {'rgb'|'hex'} [options.colorFormat='rgb']
@@ -81,6 +85,7 @@ export function toThemeFolderName(name) {
  */
 export async function buildThemePackage({
   name,
+  folderName: explicitFolderName,
   description = '',
   colors,
   colorFormat = 'rgb',
@@ -104,7 +109,11 @@ export async function buildThemePackage({
   const files = [{ path: MANIFEST_FILENAME, data: built.json }]
   if (icon) files.push({ path: ICON_FILENAME, data: icon })
 
-  const folderName = toThemeFolderName(name)
+  // The caller may own the folder name (the editor keeps it separate from the
+  // theme name); when it does not, derive one so the older call sites keep working.
+  const folderName = toThemeFolderName(
+    typeof explicitFolderName === 'string' && explicitFolderName.trim() ? explicitFolderName : name,
+  )
 
   return {
     ...built,

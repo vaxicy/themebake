@@ -33,6 +33,7 @@ import {
   LOGO_STYLES,
   LOGO_STYLE_IDS,
   MANIFEST_VERSION,
+  OUTPUT_MODES,
   THEME_FIELDS,
   THEME_FOLDER_SUFFIX,
   TINT_KEYS,
@@ -416,6 +417,20 @@ ok('folder name never starts with a dot', !nasty.folderName.startsWith('.'), nas
 const folderSlug = toThemeFolderName('Rose Morning')
 ok('toThemeFolderName slugifies consistently, appending nothing', folderSlug === 'rose-morning', folderSlug)
 
+// The editor now owns the folder name, so the builder must honour one handed in.
+// Without this the two fields would silently collapse back into one.
+const explicitFolder = await buildThemePackage({
+  name: 'Velvet Ribbon Theme',
+  folderName: 'velvet-ribbon-theme',
+  colors: DEFAULT_COLORS,
+})
+ok('an explicit folderName wins over the theme name',
+  explicitFolder.folderName === 'velvet-ribbon-theme', explicitFolder.folderName)
+ok('the zip name follows the explicit folder name',
+  explicitFolder.zipName === 'velvet-ribbon-theme.zip', explicitFolder.zipName)
+ok('the manifest keeps the theme name verbatim, unslugified',
+  explicitFolder.manifest.name === 'Velvet Ribbon Theme', explicitFolder.manifest.name)
+
 // ---------------------------------------------------------------------------
 section('10. i18n dictionaries')
 // ---------------------------------------------------------------------------
@@ -478,6 +493,7 @@ for (const format of COLOR_FORMATS) {
   requiredKeys.add(format.labelKey)
   if (format.noteKey) requiredKeys.add(format.noteKey)
 }
+for (const mode of OUTPUT_MODES) requiredKeys.add(mode.labelKey)
 for (const m of SOLVER_MODES) requiredKeys.add(`studio.mode.${m}`)
 for (const i of INTENSITIES) requiredKeys.add(`studio.intensity.${i}`)
 for (const code of LANGUAGES) requiredKeys.add(`lang.${code}`)

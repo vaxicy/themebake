@@ -40,10 +40,11 @@ import {
   buildColors,
   generateRandomColors,
 } from './data/presets.js'
-import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS } from './data/themeFields.js'
+import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS, OUTPUT_MODE_IDS } from './data/themeFields.js'
 import { useI18n } from './i18n/index.jsx'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
+import { canWriteFolder, writeThemeFolder } from './utils/fsFolder.js'
 import { createHistory, record, undo } from './utils/history.js'
 import { exportThemeJson } from './utils/importTheme.js'
 import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
@@ -85,6 +86,11 @@ function readInitialState() {
     state: {
       name: typeof saved.name === 'string' ? saved.name : DEFAULT_THEME_NAME,
       description: typeof saved.description === 'string' ? saved.description : '',
+      // Its own field, persisted as typed. A draft saved by an older build has
+      // none, and an empty field falls back to a slug of the theme name — exactly
+      // what that draft's single name field used to produce.
+      folderInput: typeof saved.folderInput === 'string' ? saved.folderInput : '',
+      outputMode: OUTPUT_MODE_IDS.includes(saved.outputMode) ? saved.outputMode : 'zip',
       colors,
       colorFormat: saved.colorFormat === 'hex' ? 'hex' : 'rgb',
       activePresetId: typeof saved.activePresetId === 'string' ? saved.activePresetId : null,
@@ -119,6 +125,17 @@ export default function App() {
   const [description, setDescription] = useState(INITIAL.state?.description ?? '')
   const [colors, setColors] = useState(INITIAL.state?.colors ?? { ...DEFAULT_COLORS })
   const [colorFormat, setColorFormat] = useState(INITIAL.state?.colorFormat ?? 'rgb')
+  // The folder name is deliberately NOT derived from the theme name: they follow
+  // different conventions ("Blush Matcha Theme" vs "blush-matcha-theme") and users
+  // keep both at once. Typing in one field never rewrites the other.
+  const [folderInput, setFolderInput] = useState(INITIAL.state?.folderInput ?? '')
+  // Where the finished theme goes. Remembered like `colorFormat`, but never
+  // restored into a browser that cannot actually write a folder.
+  const [outputMode, setOutputMode] = useState(() => {
+    const saved = INITIAL.state?.outputMode
+    if (!OUTPUT_MODE_IDS.includes(saved)) return 'zip'
+    return saved === 'folder' && !canWriteFolder() ? 'zip' : saved
+  })
   const [activePresetId, setActivePresetId] = useState(INITIAL.state?.activePresetId ?? null)
   // New Tab Page logo behaviour. Unlike `colorFormat` (an encoding choice), this
   // changes what the theme actually does, so it is part of the draft, part of the
@@ -176,7 +193,13 @@ export default function App() {
   // named after that folder — so what a user sees in their Downloads list is
   // exactly what they are about to unpack and select. An empty or unusable name
   // falls back inside `toThemeFolderName`, so there is no second fallback here.
-  const folderName = useMemo(() => toThemeFolderName(name), [name])
+  // Empty falls back to a slug of the theme name so the export panel is never
+  // blank, but nothing is ever written back into the input — the field stays
+  // exactly what the user typed.
+  const folderName = useMemo(
+    () => toThemeFolderName(folderInput.trim() ? folderInput : name),
+    [folderInput, name],
+  )
   const filename = useMemo(() => `${folderName}.zip`, [folderName])
 
   /** Re-checked on every colour change: the safety net under manual edits. */
@@ -194,6 +217,8 @@ export default function App() {
         description,
         colors,
         colorFormat,
+        folderInput,
+        outputMode,
         activePresetId,
         logoStyle,
         seed,
@@ -211,6 +236,8 @@ export default function App() {
     description,
     colors,
     colorFormat,
+    folderInput,
+    outputMode,
     activePresetId,
     logoStyle,
     seed,
@@ -498,6 +525,8 @@ export default function App() {
       //    stays in utils/icon.js if it is ever wanted again.
       const pkg = await buildThemePackage({
         name,
+        // The user's own folder name, not a slug of the theme name.
+        folderName,
         description,
         colors,
         colorFormat,
@@ -514,20 +543,32 @@ export default function App() {
       }
       pkg.warnings.forEach((warning) => toast.error(t(warning.key, warning.vars)))
 
-      // 4. Package it into a ZIP whose sole top-level entry is the theme folder.
-      const blob = await createZip({ files: pkg.files, folder: pkg.folderName })
-
-      // 5. Hand it to the browser.
-      downloadBlob(blob, pkg.zipName)
-
-      toast.success(t('toast.themeGenerated'))
+      // 4. Deliver it. Both paths carry the same package; only the hand-off
+      //    differs. `folder` writes <folder>/manifest.json straight into a
+      //    directory the user picks, so "Load unpacked" needs no unzipping — but
+      //    only desktop Chrome/Edge can do that, which is why ZIP stays.
+      if (outputMode === 'folder') {
+        const rootName = await writeThemeFolder({ files: pkg.files, folder: pkg.folderName })
+        toast.success(t('toast.folderWritten', { root: rootName, folder: pkg.folderName }))
+      } else {
+        // The archive's sole top-level entry is the theme folder, so unzipping
+        // yields exactly the directory Chrome wants to be handed.
+        const blob = await createZip({ files: pkg.files, folder: pkg.folderName })
+        downloadBlob(blob, pkg.zipName)
+        toast.success(t('toast.themeGenerated'))
+      }
     } catch (error) {
+      // Cancelling the directory picker is a non-event, not a failure.
+      if (error?.name === 'AbortError') return
       const message = error instanceof Error ? error.message : 'Unknown error.'
-      toast.error(t('toast.zipFailed', { error: message }), 6000)
+      toast.error(
+        t(outputMode === 'folder' ? 'toast.folderFailed' : 'toast.zipFailed', { error: message }),
+        6000,
+      )
     } finally {
       setGenerating(false)
     }
-  }, [generating, name, description, colors, colorFormat, logoStyle, toast, t])
+  }, [generating, name, folderName, description, colors, colorFormat, logoStyle, outputMode, toast, t])
 
   // ---------------------------------------------------------------------------
   // Render
@@ -548,12 +589,14 @@ export default function App() {
           <div className="workspace__left">
             <ThemeSettings
               name={name}
+              folderInput={folderInput}
               description={description}
               colors={colors}
               logoStyle={logoStyle}
               nameError={nameError}
               descriptionError={descriptionError}
               onNameChange={handleNameChange}
+              onFolderChange={setFolderInput}
               onDescriptionChange={handleDescriptionChange}
               onColorChange={handleColorChange}
               onLogoStyleChange={handleLogoStyleChange}
@@ -595,6 +638,9 @@ export default function App() {
             <ExportPanel
               colorFormat={colorFormat}
               onColorFormatChange={setColorFormat}
+              outputMode={outputMode}
+              onOutputModeChange={setOutputMode}
+              folderOutputSupported={canWriteFolder()}
               onGenerate={handleGenerate}
               onPreviewManifest={handlePreviewManifest}
               onExportJson={handleExportJson}

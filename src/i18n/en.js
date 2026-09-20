@@ -66,7 +66,12 @@ export default {
   'settings.subtitle': 'Every colour below maps to a real Chrome theme key — see Preview Manifest.',
   'settings.name.label': 'Theme Name',
   'settings.name.placeholder': 'My Theme',
-  'settings.name.hint': 'Used as the theme’s display name, and as the folder name inside the ZIP.',
+  'settings.name.hint':
+    'Written into manifest.json as the theme’s display name, exactly as typed. The folder name below is a separate field.',
+  'settings.folder.label': 'Folder name',
+  'settings.folder.placeholder': 'blush-matcha-theme',
+  'settings.folder.hint':
+    'The folder inside the download, and the file name of the ZIP. Leave it empty to reuse the theme name. Lower-cased, with spaces turned into dashes.',
   'settings.description.label': 'Summary',
   'settings.description.placeholder': 'A calm rose theme for long reading sessions.',
   'settings.description.hint':
@@ -201,13 +206,22 @@ export default {
   'export.title': 'Generate',
   'export.subtitle':
     'Writes all {keys} Chrome colour keys plus {tints} tints. Downloads as {filename}.',
+  'export.subtitleFolder': 'Writes all {keys} Chrome colour keys plus {tints} tints into {folder}/.',
   'export.formatLegend': 'Manifest colour format',
   'export.formatHint': 'RGB arrays are what Chrome loads. The HEX form is for Firefox only.',
   'export.format.rgb': 'RGB array',
   'export.format.hex': 'HEX string',
   'export.formatHexWarn':
     'Chrome aborts the whole manifest when a colour value is a string, so it will refuse to load this theme. Switch to RGB array to install it in Chrome.',
+  'export.outputLegend': 'Output',
+  'export.output.zip': 'ZIP',
+  'export.output.folder': 'Folder',
+  'export.outputHint':
+    'Folder writes the theme into a directory you pick, so there is nothing to unzip before Load unpacked. ZIP downloads an archive instead.',
+  'export.folderUnsupported':
+    'This browser cannot write a folder — that needs desktop Chrome or Edge. Use ZIP instead.',
   'export.packageNote': 'The ZIP holds one folder, {folder}/, containing manifest.json.',
+  'export.packageNoteFolder': 'Creates {folder}/ wherever you choose, holding exactly manifest.json.',
   'export.generate': 'Generate Theme',
   'export.generating': 'Building ZIP…',
   'export.previewManifest': 'Preview Manifest',
@@ -218,6 +232,7 @@ export default {
   'export.howto1a': 'Unzip ',
   'export.howto1b': ' — you get a single folder, ',
   'export.howto1c': '.',
+  'export.howto1Folder': 'Open the directory you picked — {folder}/ is already there, no unzipping needed.',
   'export.howto2': 'Open chrome://extensions and turn on Developer mode.',
   'export.howto3':
     'Click Load unpacked and select that folder itself — Chrome needs the folder containing manifest.json, not the ZIP and not its parent.',
@@ -263,6 +278,8 @@ export default {
   'toast.paletteApplied': 'Applied a {count}-colour palette.',
   'toast.imageExtracted': 'Extracted {count} colour(s) from the image.',
   'toast.zipFailed': 'ZIP generation failed: {error}',
+  'toast.folderFailed': 'Writing the folder failed: {error}',
+  'toast.folderWritten': 'Wrote {folder}/ into {root}.',
   'toast.noValidColors': 'No valid colours were available to generate a theme.',
   'toast.dismiss': 'Dismiss notification: {message}',
 

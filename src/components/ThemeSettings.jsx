@@ -1,7 +1,12 @@
 /**
- * Left column: the theme name field, every Chrome colour setting grouped by where
- * the colour appears in the browser, and the one display property ThemeBake
- * writes (the New Tab Page logo behaviour).
+ * Left column: the theme name and folder name fields, every Chrome colour setting
+ * grouped by where the colour appears in the browser, and the one display property
+ * ThemeBake writes (the New Tab Page logo behaviour).
+ *
+ * The two name fields are deliberately separate. The theme name is free text that
+ * goes into the manifest verbatim, while the folder name has to survive a
+ * filesystem — one field used to do both, which forced dashed slugs into the name
+ * Chrome displays.
  *
  * The colour field list itself comes from `data/themeFields.js` — this component
  * only handles layout and localisation, so adding a new Chrome colour key is a
@@ -25,12 +30,14 @@ const NTP_GROUP_ID = 'New Tab Page'
 
 export function ThemeSettings({
   name,
+  folderInput,
   description,
   colors,
   logoStyle,
   nameError,
   descriptionError,
   onNameChange,
+  onFolderChange,
   onDescriptionChange,
   onColorChange,
   onLogoStyleChange,
@@ -80,6 +87,33 @@ export function ThemeSettings({
             {t('settings.name.hint')}
           </p>
         )}
+      </div>
+
+      {/*
+        The folder name is edited by hand, never derived on the fly: the two fields
+        follow different conventions ("Blush Matcha Theme" vs "blush-matcha-theme")
+        and users keep both. An empty field is the only case where the theme name is
+        reused, and even then nothing is written back into this input.
+      */}
+      <div className="field">
+        <label className="field__label" htmlFor="theme-folder">
+          {t('settings.folder.label')}
+        </label>
+        <input
+          id="theme-folder"
+          type="text"
+          className="text-input"
+          value={folderInput}
+          placeholder={t('settings.folder.placeholder')}
+          maxLength={MAX_NAME_LENGTH}
+          spellCheck="false"
+          autoComplete="off"
+          onChange={(event) => onFolderChange(event.target.value)}
+          aria-describedby="theme-folder-hint"
+        />
+        <p className="field__hint" id="theme-folder-hint">
+          {t('settings.folder.hint')}
+        </p>
       </div>
 
       <div className="field">
