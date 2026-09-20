@@ -1112,3 +1112,145 @@
     transform: translateY(0);
   }
 }
+
+/* ------------------------------- AI naming -------------------------------- */
+.ai-panel .panel__header {
+  margin-bottom: 14px;
+}
+
+.ai__generate {
+  width: 100%;
+}
+
+.ai__candidates {
+  margin-top: 14px;
+}
+
+.ai__candidates-legend {
+  display: block;
+  margin-bottom: 7px;
+  font-size: var(--text-xs);
+  font-weight: 680;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ai__candidate-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai__candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  text-align: left;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.ai__candidate:hover {
+  border-color: var(--border-strong);
+}
+
+.ai__candidate.is-active {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.ai__candidate-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai__candidate-folder {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.ai__candidate-vibe {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ai__settings {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.ai__settings-summary {
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 560;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  list-style: none;
+}
+
+.ai__settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ai__settings-summary::before {
+  content: '+';
+  display: inline-block;
+  width: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ai__settings[open] .ai__settings-summary::before {
+  content: '−';
+}
+
+.ai__settings-summary:hover {
+  color: var(--text-primary);
+}
+
+.ai__settings-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ai__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ai__row .field {
+  margin-bottom: 0;
+}
+
+.ai__range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.ai__remember {
+  margin-top: 8px;
+  padding: 0;
+}
+
+.ai__note {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-inset);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}

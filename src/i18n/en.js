@@ -42,14 +42,14 @@ export default {
   'about.bullet3b': ' → Developer mode → Load unpacked, or upload it to the Chrome Web Store.',
   'about.privacy': 'Privacy',
   'about.privacyBody':
-    'ThemeBake processes theme settings locally in your browser. No account is required. Theme configurations and images are never uploaded to a server. Your draft is kept in this browser’s local storage only.',
+    'ThemeBake processes theme settings locally in your browser. No account is required. Theme configurations and images are never uploaded to a server. Your draft is kept in this browser’s local storage only. The one exception is AI naming: only when you click it are the palette colours sent to the AI provider you configured, using your own key.',
   'about.scope': 'Scope',
   'about.scopeBody':
     'This version generates colour-only themes and does not write background images (theme.images). Every text pair is checked by the built-in contrast audit, and the download stays small.',
 
   // -------------------------------------------------------------------- footer
   'footer.privacy':
-    'ThemeBake processes theme settings locally in your browser. No account is required, and your theme configurations are never uploaded to a server.',
+    'ThemeBake processes theme settings locally in your browser. No account is required, and your theme configurations are never uploaded to a server — the only exception is AI naming, where clicking it sends just the colours to the provider you configured.',
 
   // -------------------------------------------------------- language switcher
   'lang.switcherAria': 'Interface language',
@@ -142,6 +142,60 @@ export default {
   'studio.noteFrameAdjusted':
     '“{hex}” was adjusted so it works as this frame. Its hue still drives the whole theme.',
   'studio.noteSeedsUsed': '{used} of {total} colours from your palette were used directly.',
+
+  // ----------------------------------------------------------------- ai naming
+  'ai.title': 'AI naming',
+  'ai.subtitle': 'Let a model invent the theme name and its folder name from your colours.',
+  'ai.generate': 'Generate names',
+  'ai.generating': 'Asking the model…',
+  'ai.pickOne': 'Pick one — it fills in both the theme name and the folder name.',
+  'ai.settingsSummary': 'AI settings',
+  'ai.statusReady': 'Configured',
+  'ai.statusNoKey': 'No API key',
+  'ai.provider': 'Provider',
+  'ai.baseURL': 'Endpoint',
+  'ai.baseURLHint':
+    'Any OpenAI-compatible base URL. OpenAI’s own api.openai.com blocks browser requests, so it needs your own proxy here.',
+  'ai.model': 'Model',
+  'ai.modelHint': 'The exact model id the provider expects.',
+  'ai.apiKey': 'API key',
+  'ai.apiKeyHint':
+    'Sent straight from your browser to the provider. Kept only in this browser — never uploaded anywhere else, and never written into the theme.',
+  'ai.rememberKey': 'Remember this key',
+  'ai.temperature': 'Creativity',
+  'ai.temperatureHint': 'Higher means more surprising names.',
+  'ai.candidates': 'Candidates',
+  'ai.candidatesOption': '{count}',
+  'ai.style': 'Direction',
+  'ai.style.auto': 'Auto',
+  'ai.style.elegant': 'Elegant',
+  'ai.style.minimal': 'Minimal',
+  'ai.style.cute': 'Cute',
+  'ai.style.tech': 'Technical',
+  'ai.style.nature': 'Nature',
+  'ai.style.retro': 'Retro',
+  'ai.style.dreamy': 'Dreamy',
+  'ai.language': 'Name language',
+  'ai.lang.auto': 'Follow interface',
+  'ai.lang.en': 'English',
+  'ai.lang.zh': 'Chinese',
+  'ai.privacyNote':
+    'The key stays in this browser. Nothing about your theme leaves the page except the colours in this request.',
+  'ai.generated': 'Generated {count} name suggestion(s).',
+  'ai.errorNoKey': 'Add an API key in the AI settings first.',
+  'ai.errorNoBase': 'Enter an endpoint URL in the AI settings.',
+  'ai.errorNoModel': 'Enter a model id in the AI settings.',
+  'ai.errorUnauthorized': 'The provider rejected the API key (401). Check the key and the provider.',
+  'ai.errorForbidden': 'The provider refused the request (403). The key may lack access to this model.',
+  'ai.errorNotFound': 'Endpoint or model not found (404). Check the URL and the model id.',
+  'ai.errorRateLimited': 'Rate limited (429). Wait a moment and try again.',
+  'ai.errorServer': 'The provider had an internal error (5xx). Try again shortly.',
+  'ai.errorNetwork':
+    'Could not reach the provider. A network problem, or the endpoint blocks browser requests (CORS).',
+  'ai.errorTimeout': 'The request timed out. Try again, or pick a faster model.',
+  'ai.errorParse':
+    'The model’s reply could not be read as names. Try again, or lower the creativity.',
+  'ai.errorUnknown': 'AI naming failed. The locally generated name is still in place.',
 
   // -------------------------------------------------------------------- import
   'import.title': 'Import',

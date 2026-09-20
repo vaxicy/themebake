@@ -18,10 +18,15 @@
  *     colour can surface a contrast problem the solver had already prevented.
  *
  * Persistent storage holds only this draft plus the interface language
- * (`utils/storage.js`). Nothing is ever uploaded.
+ * (`utils/storage.js`) and the AI naming settings (`utils/aiConfig.js`, its own
+ * key so Reset cannot wipe an API key). Nothing is uploaded — with one deliberate
+ * exception: clicking "Generate names" sends the palette colours to the AI
+ * provider the user configured, using the user's own key. That path is optional,
+ * explicit, and never blocks the theme itself.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AiNamingPanel } from './components/AiNamingPanel.jsx'
 import { ConfirmDialog } from './components/ConfirmDialog.jsx'
 import { ExportPanel } from './components/ExportPanel.jsx'
 import { Header } from './components/Header.jsx'
@@ -42,6 +47,8 @@ import {
 } from './data/presets.js'
 import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS, OUTPUT_MODE_IDS } from './data/themeFields.js'
 import { useI18n } from './i18n/index.jsx'
+import { loadAiConfig, saveAiConfig } from './utils/aiConfig.js'
+import { describePalette, requestThemeNames } from './utils/aiNaming.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
 import { canWriteFolder, writeThemeFolder } from './utils/fsFolder.js'
@@ -121,7 +128,7 @@ function pick(value, allowed, fallback) {
 
 export default function App() {
   const toast = useToast()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
 
   const [name, setName] = useState(INITIAL.state?.name ?? DEFAULT_THEME_NAME)
   const [description, setDescription] = useState(INITIAL.state?.description ?? '')
@@ -148,6 +155,22 @@ export default function App() {
   const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_COLORS.frame)
   const [smartMode, setSmartMode] = useState(INITIAL.state?.smartMode ?? 'auto')
   const [smartIntensity, setSmartIntensity] = useState(INITIAL.state?.smartIntensity ?? 'balanced')
+
+  // ----------------------------------------------------------------- AI naming
+  // The AI settings are a separate preference, not part of the theme draft: they
+  // persist under their own key so Reset never wipes a pasted API key, and so a
+  // theme export can never leak one.
+  const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiCandidates, setAiCandidates] = useState([])
+  const [aiAppliedName, setAiAppliedName] = useState('')
+  // Names applied this session, sent back to the model as "avoid these" so a
+  // second click yields genuinely different ideas instead of reshuffling one.
+  const aiSeenRef = useRef([])
+
+  useEffect(() => {
+    saveAiConfig(aiConfig)
+  }, [aiConfig])
 
   const [nameError, setNameError] = useState('')
   const [descriptionError, setDescriptionError] = useState('')
@@ -490,6 +513,58 @@ export default function App() {
     [pushHistory, toast, t],
   )
 
+  // --------------------------------------------------------------- AI naming
+  const handleAiConfigChange = useCallback((patch) => {
+    setAiConfig((current) => ({ ...current, ...patch }))
+  }, [])
+
+  /**
+   * Applying a candidate writes **both** fields — the theme name the model
+   * invented and the folder name that goes with it — which is the whole reason
+   * the two are editable side by side.
+   */
+  const handleApplyAiCandidate = useCallback((candidate) => {
+    setName(candidate.name)
+    setNameError('')
+    setFolderInput(candidate.folder)
+    setAiAppliedName(candidate.name)
+    if (candidate.name && !aiSeenRef.current.includes(candidate.name)) {
+      aiSeenRef.current = [candidate.name, ...aiSeenRef.current].slice(0, 20)
+    }
+  }, [])
+
+  /**
+   * Ask the model for names. The first candidate is applied immediately so the
+   * button visibly "generates the file name"; the rest stay as chips to switch
+   * between. A failure only shows a toast — the deterministic local name the
+   * triggering action already wrote stays in place.
+   */
+  const handleAiSuggest = useCallback(async () => {
+    if (!String(aiConfig.apiKey).trim()) {
+      toast.error(t('ai.errorNoKey'))
+      return
+    }
+    setAiBusy(true)
+    try {
+      const names = await requestThemeNames(aiConfig, {
+        palette: describePalette(colors),
+        style: aiConfig.style,
+        language: aiConfig.language === 'auto' ? lang : aiConfig.language,
+        candidates: aiConfig.candidates,
+        exclude: aiAppliedName
+          ? [aiAppliedName, ...aiSeenRef.current]
+          : aiSeenRef.current,
+      })
+      setAiCandidates(names)
+      if (names[0]) handleApplyAiCandidate(names[0])
+      toast.success(t('ai.generated', { count: names.length }))
+    } catch (error) {
+      toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+    } finally {
+      setAiBusy(false)
+    }
+  }, [aiConfig, aiAppliedName, colors, lang, handleApplyAiCandidate, toast, t])
+
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
     if (changed > 0) {
@@ -622,6 +697,16 @@ export default function App() {
               onColorChange={handleColorChange}
               onLogoStyleChange={handleLogoStyleChange}
               onInvalidColor={handleInvalidColor}
+            />
+
+            <AiNamingPanel
+              config={aiConfig}
+              onChange={handleAiConfigChange}
+              onSuggest={handleAiSuggest}
+              onApply={handleApplyAiCandidate}
+              busy={aiBusy}
+              candidates={aiCandidates}
+              appliedName={aiAppliedName}
             />
 
             <PaletteStudio

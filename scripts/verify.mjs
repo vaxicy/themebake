@@ -68,6 +68,20 @@ import {
 } from '../src/utils/package.js'
 import { suggestThemeName } from '../src/utils/nameFromColors.js'
 import {
+  DEFAULT_AI_CONFIG,
+  AI_LANGUAGES,
+  AI_STYLES,
+  AI_TEMPERATURE,
+} from '../src/data/aiProviders.js'
+import { sanitizeAiConfig } from '../src/utils/aiConfig.js'
+import {
+  buildNamingMessages,
+  describePalette,
+  normalizeFolder,
+  parseNamingResponse,
+  requestThemeNames,
+} from '../src/utils/aiNaming.js'
+import {
   EXTENDED_DERIVATIONS,
   deriveExtendedColors,
   deriveTints,
@@ -528,6 +542,9 @@ for (const key of ['warn.droppedInvalid', 'warn.skippedKey', 'warn.hexNotChromeL
 for (const key of ['studio.noteNeutral', 'studio.noteFrameAdjusted', 'studio.noteSeedsUsed']) {
   requiredKeys.add(key)
 }
+// Built dynamically by the AI naming panel.
+for (const style of AI_STYLES) requiredKeys.add(`ai.style.${style}`)
+for (const language of AI_LANGUAGES) requiredKeys.add(`ai.lang.${language}`)
 
 const missingRequired = [...requiredKeys].filter((k) => !Object.prototype.hasOwnProperty.call(en, k))
 ok(`all ${requiredKeys.size} runtime-required keys exist`, missingRequired.length === 0, missingRequired.join(', '))
@@ -1514,6 +1531,113 @@ for (let h = 0; h < 360; h += 15) {
 ok('every hue sample matches the "Word Word Theme" shape', true, `${Object.keys(hueSamples).length} distinct names`)
 ok('distinct hues produce a spread of names (not one label)',
   Object.keys(hueSamples).length > 8, `${Object.keys(hueSamples).length} distinct`)
+
+// ---------------------------------------------------------------------------
+section('20. AI naming — prompt, parsing, error mapping')
+// ---------------------------------------------------------------------------
+// No network here. `describePalette` / `buildNamingMessages` are pure builders,
+// `parseNamingResponse` is pure, and `requestThemeNames` takes an injectable
+// fetch — so the whole request path is exercised with stubs. The failure
+// contract is the important half: every error carries an i18n key the UI can
+// show, and the local name survives a failure.
+const described = describePalette(DEFAULT_COLORS)
+ok('palette description names the dominant hue',
+  /^(red|orange|yellow|lime|green|teal|cyan|azure|blue|violet|magenta|rose)$/.test(described.dominant.hue),
+  described.dominant.hue)
+ok('palette description reports a mode', described.mode === 'light' || described.mode === 'dark', described.mode)
+ok('palette description lists every swatch', described.swatches.length === FIELD_IDS.length, `${described.swatches.length}`)
+
+const messagesEn = buildNamingMessages({ palette: described, style: 'auto', language: 'en', candidates: 5 })
+ok('the English prompt states the three-word "Theme" convention',
+  messagesEn.user.includes('must be "Theme"'), '')
+ok('the prompt carries the palette facts', messagesEn.user.includes(described.dominant.hue))
+ok('the prompt states the JSON contract', messagesEn.user.includes('"candidates"'))
+
+const messagesZh = buildNamingMessages({
+  palette: described, style: 'elegant', language: 'zh', candidates: 3, exclude: ['Old Name Theme'],
+})
+ok('the Chinese prompt switches the naming rules', messagesZh.user.includes('Chinese characters'))
+ok('the prompt lists names to avoid', messagesZh.user.includes('Old Name Theme'))
+ok('the style steer reaches the prompt', messagesZh.user.includes('elegant'))
+
+const aiBare = parseNamingResponse(
+  '{"candidates":[{"name":"Lemon Juice Theme","folder":"Lemon Juice Theme","vibe":"fresh","reason":"lemon yellow"}]}',
+)
+ok('parses a bare JSON object', aiBare.length === 1 && aiBare[0].name === 'Lemon Juice Theme', JSON.stringify(aiBare))
+ok('folder is forced onto lower-case dashes ending in -theme',
+  aiBare[0]?.folder === 'lemon-juice-theme', String(aiBare[0]?.folder))
+
+const fenced = parseNamingResponse('Sure!\n```json\n{"candidates":[{"name":"Mint Mist Theme"}]}\n```\ndone')
+ok('parses JSON inside a markdown fence', fenced.length === 1 && fenced[0].name === 'Mint Mist Theme', JSON.stringify(fenced))
+ok('a missing folder is derived from the name', fenced[0]?.folder === 'mint-mist-theme', String(fenced[0]?.folder))
+
+const noisy = parseNamingResponse(
+  'rambling {"candidates":[{"name":"A B Theme"},{"name":"a b theme"},{"name":""}]} trailing',
+)
+ok('dedupes names and drops blanks', noisy.length === 1 && noisy[0].name === 'A B Theme', JSON.stringify(noisy))
+ok('garbage yields no candidates', parseNamingResponse('not json at all').length === 0)
+ok('an empty reply yields no candidates', parseNamingResponse('').length === 0)
+ok('normalizeFolder appends the -theme tail',
+  normalizeFolder('lemon-soda', 'x') === 'lemon-soda-theme', normalizeFolder('lemon-soda', 'x'))
+
+const stubConfig = {
+  baseURL: 'https://api.siliconflow.cn/v1/',
+  model: 'Qwen/Qwen2.5-7B-Instruct',
+  apiKey: 'sk-test',
+  temperature: 1,
+  candidates: 5,
+  style: 'auto',
+  language: 'en',
+}
+const aiCtx = { palette: described, style: 'auto', language: 'en', candidates: 5 }
+
+let seenUrl = ''
+let seenBody = null
+const recordingFetch = async (url, init) => {
+  seenUrl = url
+  seenBody = JSON.parse(init.body)
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({
+      choices: [{ message: { content: '{"candidates":[{"name":"Sky Frost Theme","folder":"sky-frost-theme"}]}' } }],
+    }),
+  }
+}
+const names = await requestThemeNames(stubConfig, aiCtx, { fetchImpl: recordingFetch })
+ok('request hits {baseURL}/chat/completions (trailing slash stripped)',
+  seenUrl === 'https://api.siliconflow.cn/v1/chat/completions', seenUrl)
+ok('request sends the model and both messages',
+  seenBody?.model === 'Qwen/Qwen2.5-7B-Instruct' && seenBody?.messages?.length === 2, String(seenBody?.messages?.length))
+ok('request returns the parsed candidates', names.length === 1 && names[0].folder === 'sky-frost-theme', JSON.stringify(names))
+
+const keyFor = async (impl, config = stubConfig) => {
+  try {
+    await requestThemeNames(config, aiCtx, { fetchImpl: impl })
+    return null
+  } catch (error) {
+    return error.key
+  }
+}
+const statusFetch = (status) => async () => ({ ok: false, status, json: async () => ({}) })
+ok('401 maps to a key error', (await keyFor(statusFetch(401))) === 'ai.errorUnauthorized')
+ok('429 maps to a rate-limit error', (await keyFor(statusFetch(429))) === 'ai.errorRateLimited')
+ok('500 maps to a server error', (await keyFor(statusFetch(500))) === 'ai.errorServer')
+ok('a thrown fetch maps to a network error',
+  (await keyFor(async () => { throw new TypeError('Failed to fetch') })) === 'ai.errorNetwork')
+ok('an unreadable reply maps to a parse error',
+  (await keyFor(async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'nope' } }] }) }))) ===
+    'ai.errorParse')
+ok('a missing key fails before any network call',
+  (await keyFor(recordingFetch, { ...stubConfig, apiKey: '' })) === 'ai.errorNoKey')
+
+const cleaned = sanitizeAiConfig({ providerId: 'nope', temperature: 9, candidates: 99, style: 'zzz', language: 'zzz' })
+ok('an unknown provider falls back to the default',
+  cleaned.providerId === DEFAULT_AI_CONFIG.providerId, cleaned.providerId)
+ok('temperature is clamped into its range',
+  cleaned.temperature <= AI_TEMPERATURE.max && cleaned.temperature >= AI_TEMPERATURE.min, String(cleaned.temperature))
+ok('an invalid candidate count falls back', cleaned.candidates === DEFAULT_AI_CONFIG.candidates, String(cleaned.candidates))
+ok('invalid style and language fall back', cleaned.style === 'auto' && cleaned.language === 'auto', `${cleaned.style}/${cleaned.language}`)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
