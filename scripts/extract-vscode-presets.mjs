@@ -60,6 +60,19 @@ const shiftL = (hex, delta) => {
 
 const presets = []
 
+/** Curated keep-list — only these end up in the app's preset grid. */
+const KEEP = new Set([
+  'blue-reverie',
+  'blush-cloud',
+  'candy-breeze',
+  'cozy-latte',
+  'dusty-petal',
+  'jade-veil',
+  'lavender-mist',
+  'peach-sorbet',
+  'soft-sky',
+])
+
 for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue
   const dir = join(root, entry.name)
@@ -96,6 +109,8 @@ for (const entry of readdirSync(root, { withFileTypes: true })) {
       /* keep the fallback */
     }
   }
+
+  if (!KEEP.has(entry.name.replace(/-theme$/, ''))) continue
 
   presets.push({
     id: entry.name.replace(/-theme$/, ''),

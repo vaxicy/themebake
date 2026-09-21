@@ -71,10 +71,15 @@ export function PresetsPanel({
                 <PresetSwatch colors={preset.colors} keys={swatchKeys} />
                 <span className="preset__text">
                   <span className="preset__name">
-                    {preset.displayName ?? t(`preset.${preset.id}.name`)}
+                    {/*
+                      Presets that carry their own copy (the VS Code themes
+                      extracted from real extensions) use it verbatim; the
+                      Chrome presets are dictionary-driven by id.
+                    */}
+                    {preset.name ?? t(`preset.${preset.id}.name`)}
                   </span>
                   <span className="preset__description">
-                    {preset.displayDescription ?? t(`preset.${preset.id}.description`)}
+                    {preset.description ?? t(`preset.${preset.id}.description`)}
                   </span>
                 </span>
               </button>
