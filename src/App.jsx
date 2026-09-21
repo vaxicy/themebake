@@ -45,11 +45,13 @@ import {
   buildColors,
   generateRandomColors,
 } from './data/presets.js'
-import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS, OUTPUT_MODE_IDS } from './data/themeFields.js'
+import { DEFAULT_LOGO_STYLE, FIELD_GROUPS, LOGO_STYLES, LOGO_STYLE_IDS, OUTPUT_MODE_IDS, THEME_FIELDS } from './data/themeFields.js'
+import { ModeSwitcher } from './components/ModeSwitcher.jsx'
+import { VSCodeWorkbench } from './components/VSCodeWorkbench.jsx'
 import { useI18n } from './i18n/index.jsx'
 import { loadAiConfig, saveAiConfig } from './utils/aiConfig.js'
 import { describePalette, requestThemeDescription, requestThemeNames } from './utils/aiNaming.js'
-import { loadAutoClearNewTheme, saveAutoClearNewTheme } from './utils/appPrefs.js'
+import { loadAutoClearNewTheme, saveAutoClearNewTheme, loadEditorMode, saveEditorMode } from './utils/appPrefs.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
 import { canWriteFolder, writeThemeFolder } from './utils/fsFolder.js'
@@ -156,6 +158,14 @@ export default function App() {
   // preference rather than part of the draft: it lives under its own localStorage
   // key so Reset and a theme export never touch it (same rule as the AI settings).
   const [autoClearOnNewTheme, setAutoClearOnNewTheme] = useState(() => loadAutoClearNewTheme())
+
+  // Which workspace is open. Each workbench owns a completely separate draft;
+  // this only decides which one is mounted.
+  const [mode, setMode] = useState(() => loadEditorMode())
+
+  useEffect(() => {
+    saveEditorMode(mode)
+  }, [mode])
 
   // ------------------------------------------------------- smart palette studio
   const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_COLORS.frame)
@@ -714,49 +724,89 @@ export default function App() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  /** The NTP logo control belongs inside the New Tab Page colour group. */
+  const renderNtpLogoExtra = useCallback(
+    (group) =>
+      group.id === 'New Tab Page' ? (
+        <div className="field logo-style">
+          <span className="field__label" id="logo-style-label">
+            {t('settings.logo.label')}
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="logo-style-label">
+            {LOGO_STYLES.map((style) => (
+              <label
+                key={style.id}
+                className={`segmented__option${logoStyle === style.id ? ' is-active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="logo-style"
+                  value={style.id}
+                  checked={logoStyle === style.id}
+                  onChange={() => handleLogoStyleChange(style.id)}
+                />
+                <span className="segmented__label">{t(style.labelKey)}</span>
+                <code className="segmented__sample">{style.sample}</code>
+              </label>
+            ))}
+          </div>
+          <p className="field__hint">{t('settings.logo.hint')}</p>
+        </div>
+      ) : null,
+    [handleLogoStyleChange, logoStyle, t],
+  )
+
   return (
     <div className="app">
       <Header
         onReset={() => setResetOpen(true)}
         onUndo={handleUndo}
         canUndo={undoDepth > 0}
-        storageWarning={storageWarning}
+        storageWarning={mode === 'chrome' ? storageWarning : null}
+        showThemeActions={mode === 'chrome'}
       />
 
       <main className="app__main" id="editor">
-        <Hero />
+        <ModeSwitcher mode={mode} onChange={setMode} />
 
-        <div className="workspace">
-          <div className="workspace__left">
-            <ThemeSettings
-              name={name}
-              folderInput={folderInput}
-              colors={colors}
-              logoStyle={logoStyle}
-              nameError={nameError}
-              aiPanel={
-                <AiNamingPanel
-                  config={aiConfig}
-                  onChange={handleAiConfigChange}
-                  onGenerateAll={handleAiGenerateAll}
-                  onApply={handleApplyAiCandidate}
-                  busy={aiBusy}
-                  candidates={aiCandidates}
-                  appliedName={aiAppliedName}
-                  description={description}
-                  descriptionError={descriptionError}
-                  onDescriptionChange={handleDescriptionChange}
+        {mode === 'vscode' ? (
+          <VSCodeWorkbench aiConfig={aiConfig} onAiConfigChange={handleAiConfigChange} />
+        ) : (
+          <>
+            <Hero />
+
+            <div className="workspace">
+              <div className="workspace__left">
+                <ThemeSettings
+                  name={name}
+                  folderInput={folderInput}
+                  colors={colors}
+                  nameError={nameError}
+                  fieldGroups={FIELD_GROUPS}
+                  fields={THEME_FIELDS}
+                  groupExtra={renderNtpLogoExtra}
+                  aiPanel={
+                    <AiNamingPanel
+                      config={aiConfig}
+                      onChange={handleAiConfigChange}
+                      onGenerateAll={handleAiGenerateAll}
+                      onApply={handleApplyAiCandidate}
+                      busy={aiBusy}
+                      candidates={aiCandidates}
+                      appliedName={aiAppliedName}
+                      description={description}
+                      descriptionError={descriptionError}
+                      onDescriptionChange={handleDescriptionChange}
+                    />
+                  }
+                  onNameChange={handleNameChange}
+                  onFolderChange={setFolderInput}
+                  autoClear={autoClearOnNewTheme}
+                  onAutoClearChange={setAutoClearOnNewTheme}
+                  onClearFields={handleClearFields}
+                  onColorChange={handleColorChange}
+                  onInvalidColor={handleInvalidColor}
                 />
-              }
-              onNameChange={handleNameChange}
-              onFolderChange={setFolderInput}
-              autoClear={autoClearOnNewTheme}
-              onAutoClearChange={setAutoClearOnNewTheme}
-              onClearFields={handleClearFields}
-              onColorChange={handleColorChange}
-              onLogoStyleChange={handleLogoStyleChange}
-              onInvalidColor={handleInvalidColor}
-            />
 
             <PaletteStudio
               seed={seed}
@@ -808,30 +858,36 @@ export default function App() {
               folderName={folderName}
             />
           </div>
-        </div>
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="site-footer">
         <p>{t('footer.privacy')}</p>
       </footer>
 
-      <ManifestModal
-        open={manifestOpen}
-        onClose={() => setManifestOpen(false)}
-        manifestJson={manifestResult.json}
-        manifest={manifestResult.manifest}
-        filename={filename}
-      />
+      {mode === 'chrome' ? (
+        <>
+          <ManifestModal
+            open={manifestOpen}
+            onClose={() => setManifestOpen(false)}
+            manifestJson={manifestResult.json}
+            manifest={manifestResult.manifest}
+            filename={filename}
+          />
 
-      <ConfirmDialog
-        open={resetOpen}
-        title={t('confirm.reset.title')}
-        description={t('confirm.reset.description')}
-        confirmLabel={t('confirm.reset.confirm')}
-        destructive
-        onConfirm={handleResetConfirmed}
-        onCancel={() => setResetOpen(false)}
-      />
+          <ConfirmDialog
+            open={resetOpen}
+            title={t('confirm.reset.title')}
+            description={t('confirm.reset.description')}
+            confirmLabel={t('confirm.reset.confirm')}
+            destructive
+            onConfirm={handleResetConfirmed}
+            onCancel={() => setResetOpen(false)}
+          />
+        </>
+      ) : null}
     </div>
   )
 }

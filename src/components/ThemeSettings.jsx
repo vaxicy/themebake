@@ -1,91 +1,93 @@
 /**
- * Left column: the theme name and folder name fields, every Chrome colour setting
- * grouped by where the colour appears in the browser, and the one display property
- * ThemeBake writes (the New Tab Page logo behaviour).
+ * Left column: the identity fields (theme name, folder name, optional AI
+ * panel), every colour setting grouped by where the colour appears, and
+ * per-workspace extras.
  *
- * The two name fields are deliberately separate. The theme name is free text that
- * goes into the manifest verbatim, while the folder name has to survive a
- * filesystem — one field used to do both, which forced dashed slugs into the name
- * Chrome displays.
+ * The component is workspace-agnostic: the Chrome workbench passes its 14
+ * Chrome keys and the NTP logo control; the VS Code workbench passes its 14
+ * master fields and a theme-type selector via `headerSlot`. Everything else —
+ * layout, localisation, the clear/auto-clear actions — is shared.
  *
- * The colour field list itself comes from `data/themeFields.js` — this component
- * only handles layout and localisation, so adding a new Chrome colour key is a
- * one-line change there plus two dictionary entries.
- *
- * The logo control sits inside the New Tab Page group rather than in the export
- * panel, because it *is* an NTP setting and it only makes sense next to the
- * `ntp_background` colour it keys off. `LOGO_STYLES` supplies both the options
- * and the Chrome integers, so no raw 0/1 ever reaches the UI.
+ * The colour field list comes from the workspace's own field definitions, so
+ * adding a new colour key is a one-line change there plus two dictionary
+ * entries.
  */
 
-import { FIELD_GROUPS, LOGO_STYLES, THEME_FIELDS } from '../data/themeFields.js'
 import { useI18n } from '../i18n/index.jsx'
 import { ColorField } from './ColorField.jsx'
 
 const MAX_NAME_LENGTH = 45 // Chrome's own limit for theme/extension names.
 
-/** The group that also gets the logo control appended to it. */
-const NTP_GROUP_ID = 'New Tab Page'
-
 export function ThemeSettings({
   name,
   folderInput,
   colors,
-  logoStyle,
   nameError,
   aiPanel,
-  autoClear,
+  fieldGroups,
+  fields,
+  titleKey = 'settings.title',
+  subtitleKey = 'settings.subtitle',
+  headerSlot = null,
+  groupExtra,
   onAutoClearChange,
   onClearFields,
   onNameChange,
   onFolderChange,
   onColorChange,
-  onLogoStyleChange,
   onInvalidColor,
+  autoClear,
+  autoClearTitle,
 }) {
   const { t } = useI18n()
 
-  const grouped = FIELD_GROUPS.map((group) => ({
-    group,
-    fields: THEME_FIELDS.filter((field) => field.group === group.id),
-  })).filter((entry) => entry.fields.length > 0)
+  const grouped = fieldGroups
+    .map((group) => ({
+      group,
+      groupFields: fields.filter((field) => field.group === group.id),
+    }))
+    .filter((entry) => entry.groupFields.length > 0)
 
   return (
     <section className="panel settings-panel" aria-labelledby="settings-heading">
       <div className="panel__header">
         <div>
           <h2 className="panel__title" id="settings-heading">
-            {t('settings.title')}
+            {t(titleKey)}
           </h2>
-          <p className="panel__subtitle">{t('settings.subtitle')}</p>
+          <p className="panel__subtitle">{t(subtitleKey)}</p>
         </div>
 
         {/*
-          One click empties the three identity fields (name, folder name,
-          summary); the checkbox makes the same clear happen automatically
-          whenever a new theme is applied — preset, random, smart palette or
-          import. The preference persists under its own key, so Reset and a
-          theme export never touch it.
+          One click empties the identity fields; the checkbox makes the same
+          clear happen automatically whenever a new theme is applied. Only
+          rendered when the workspace asks for them.
         */}
-        <div className="settings-actions">
-          <label className="auto-clear-toggle" title={t('settings.autoClearTitle')}>
-            <input
-              type="checkbox"
-              checked={autoClear}
-              onChange={(event) => onAutoClearChange(event.target.checked)}
-            />
-            <span>{t('settings.autoClear')}</span>
-          </label>
-          <button
-            type="button"
-            className="button button--ghost button--sm"
-            onClick={onClearFields}
-            title={t('settings.clearTitle')}
-          >
-            {t('settings.clear')}
-          </button>
-        </div>
+        {onClearFields ? (
+          <div className="settings-actions">
+            {onAutoClearChange ? (
+              <label className="auto-clear-toggle" title={autoClearTitle}>
+                <input
+                  type="checkbox"
+                  checked={autoClear}
+                  onChange={(event) => onAutoClearChange(event.target.checked)}
+                />
+                <span>{t('settings.autoClear')}</span>
+              </label>
+            ) : null}
+            <button
+              type="button"
+              className="button button--ghost button--sm"
+              onClick={onClearFields}
+              title={t('settings.clearTitle')}
+            >
+              {t('settings.clear')}
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      {headerSlot}
 
       <div className="field">
         <label className="field__label" htmlFor="theme-name">
@@ -144,18 +146,17 @@ export function ThemeSettings({
 
       {/*
         The AI controls arrive as a slot rather than being imported here: they own
-        their own state, and keeping the composition in `App` means this component
-        stays a pure layout for the fields it declares. The AI panel now wraps the
-        description field plus a single one-click generate action.
+        their own state, and keeping the composition in the workbench means this
+        component stays a pure layout for the fields it declares.
       */}
       {aiPanel}
 
       <div className="settings-groups">
-        {grouped.map(({ group, fields }) => (
+        {grouped.map(({ group, groupFields }) => (
           <fieldset className="settings-group" key={group.id}>
             <legend className="settings-group__legend">{t(group.key)}</legend>
             <div className="settings-group__fields">
-              {fields.map((field) => (
+              {groupFields.map((field) => (
                 <ColorField
                   key={field.id}
                   id={field.id}
@@ -168,41 +169,10 @@ export function ThemeSettings({
               ))}
 
               {/*
-                The only non-colour control in the panel, and the only
-                `theme.properties` key written. Placed after the NTP colours so
-                the dependency reads in the right order: this value tells Chrome
-                how to render the logo *against* the background above it.
+                Per-workspace extras that belong inside a specific group (the
+                Chrome workbench appends its NTP logo control there).
               */}
-              {group.id === NTP_GROUP_ID ? (
-                <div className="field logo-style">
-                  <span className="field__label" id="logo-style-label">
-                    {t('settings.logo.label')}
-                  </span>
-                  <div
-                    className="segmented"
-                    role="radiogroup"
-                    aria-labelledby="logo-style-label"
-                  >
-                    {LOGO_STYLES.map((style) => (
-                      <label
-                        key={style.id}
-                        className={`segmented__option${logoStyle === style.id ? ' is-active' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="logo-style"
-                          value={style.id}
-                          checked={logoStyle === style.id}
-                          onChange={() => onLogoStyleChange(style.id)}
-                        />
-                        <span className="segmented__label">{t(style.labelKey)}</span>
-                        <code className="segmented__sample">{style.sample}</code>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="field__hint">{t('settings.logo.hint')}</p>
-                </div>
-              ) : null}
+              {groupExtra ? groupExtra(group) : null}
             </div>
           </fieldset>
         ))}

@@ -92,6 +92,44 @@ export function clearTheme() {
 
 const LANGUAGE_KEY = 'themebake:lang:v1'
 
+const VSCODE_STORAGE_KEY = 'themebake:vscode-theme:v1'
+
+/**
+ * Read the saved VS Code workbench draft. Same failure semantics as
+ * `loadTheme` — an i18n key, never display text.
+ * @returns {{ok: true, value: object|null} | {ok: false, error: string}}
+ */
+export function loadVscodeTheme() {
+  if (!storageAvailable()) {
+    return { ok: false, error: 'header.storageUnavailable' }
+  }
+  try {
+    const raw = window.localStorage.getItem(VSCODE_STORAGE_KEY)
+    if (!raw) return { ok: true, value: null }
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return { ok: true, value: null }
+    return { ok: true, value: parsed }
+  } catch {
+    return { ok: false, error: 'header.storageWriteFailed' }
+  }
+}
+
+/** Persist the VS Code workbench draft. @returns {{ok: boolean, error?: string}} */
+export function saveVscodeTheme(state) {
+  if (!storageAvailable()) {
+    return { ok: false, error: 'header.storageUnavailable' }
+  }
+  try {
+    window.localStorage.setItem(
+      VSCODE_STORAGE_KEY,
+      JSON.stringify({ ...state, savedAt: new Date().toISOString() }),
+    )
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'header.storageWriteFailed' }
+  }
+}
+
 /**
  * Read the saved interface language.
  * @returns {'en'|'zh'|null} null when nothing valid is stored

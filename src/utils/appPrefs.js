@@ -8,6 +8,25 @@
 
 const AUTO_CLEAR_KEY = 'themebake.autoClearNewTheme'
 
+const MODE_KEY = 'themebake.editorMode'
+
+/** Which workspace is open: 'chrome' or 'vscode'. */
+export function loadEditorMode() {
+  try {
+    return window.localStorage.getItem(MODE_KEY) === 'vscode' ? 'vscode' : 'chrome'
+  } catch {
+    return 'chrome'
+  }
+}
+
+export function saveEditorMode(mode) {
+  try {
+    window.localStorage.setItem(MODE_KEY, mode === 'vscode' ? 'vscode' : 'chrome')
+  } catch {
+    // Non-fatal: the switcher still works, it just won't persist.
+  }
+}
+
 /** Whether the three identity fields auto-clear when a new theme is applied. */
 export function loadAutoClearNewTheme() {
   try {

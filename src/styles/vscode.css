@@ -1,0 +1,221 @@
+/* ============================================================================
+   vscode.css — workspace mode switcher + the VS Code mockup preview
+   Same aesthetic as the rest of the app: soft surfaces, thin borders, one
+   violet accent. Everything here is additive; no existing rule is overridden.
+   ========================================================================= */
+
+/* ----------------------------- Mode switcher ------------------------------ */
+.mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 auto 22px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  width: fit-content;
+}
+
+.mode-switch__tab {
+  padding: 8px 22px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 640;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.mode-switch__tab:hover {
+  color: var(--text-primary);
+}
+
+.mode-switch__tab.is-active {
+  background-color: var(--accent-soft);
+  color: var(--accent-active);
+}
+
+/* ------------------------------ VS Code mockup ---------------------------- */
+/* Geometry only — every surface is painted inline from buildVscodeColors so the
+   preview always matches the generated theme JSON exactly. */
+.vsc {
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-family: 'Segoe UI', 'Cascadia Code', ui-sans-serif, sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+  user-select: none;
+}
+
+.vsc__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.vsc__title-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.vsc__title-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.45;
+}
+
+.vsc__title-name {
+  flex: 1;
+  text-align: center;
+  font-size: 10.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vsc__body {
+  display: flex;
+  min-height: 300px;
+}
+
+.vsc__activity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0;
+  width: 40px;
+  flex: 0 0 auto;
+}
+
+.vsc__activity-icon {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+}
+
+.vsc__activity-icon::before {
+  content: '';
+  position: absolute;
+  inset: 7px 6px;
+  border-radius: 2px;
+  background-color: currentColor;
+  opacity: 0.75;
+}
+
+.vsc__activity-icon.is-active::before {
+  opacity: 1;
+}
+
+.vsc__sidebar {
+  width: 148px;
+  flex: 0 0 auto;
+  padding: 8px 0;
+  border-right: 1px solid transparent;
+  font-size: 11px;
+}
+
+.vsc__sidebar-title {
+  padding: 2px 12px 8px;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+.vsc__tree-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.vsc__tree-caret {
+  width: 9px;
+  flex: 0 0 auto;
+  font-size: 8px;
+  opacity: 0.8;
+}
+
+.vsc__tree-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.vsc__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vsc__tabs {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.vsc__tab {
+  padding: 7px 14px;
+  border-top: 2px solid transparent;
+  border-right: 1px solid rgba(128, 128, 128, 0.15);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.vsc__editor {
+  flex: 1;
+  padding: 8px 0;
+  overflow: hidden;
+  font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.vsc__line {
+  display: flex;
+  gap: 12px;
+  padding: 1px 12px 1px 0;
+  white-space: pre;
+}
+
+.vsc__line-number {
+  width: 26px;
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: 10px;
+}
+
+.vsc__line-code {
+  font-family: inherit;
+}
+
+.vsc__status {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 10px;
+}
+
+.vsc__status-right {
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .vsc__sidebar {
+    display: none;
+  }
+}

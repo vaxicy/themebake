@@ -10,6 +10,7 @@ import './styles/layout.css'
 import './styles/components.css'
 import './styles/studio.css'
 import './styles/preview.css'
+import './styles/vscode.css'
 
 const container = document.getElementById('root')
 

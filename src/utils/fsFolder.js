@@ -37,7 +37,17 @@ export async function writeThemeFolder({ files, folder }) {
 
   for (const file of files ?? []) {
     if (!file || typeof file.path !== 'string' || !file.path) continue
-    const handle = await dir.getFileHandle(file.path, { create: true })
+
+    // Support nested paths ("themes/x.json") — the VS Code package needs a
+    // themes/ subdirectory. Chrome's flat manifest.json takes the fast path.
+    let target = dir
+    const segments = file.path.split('/')
+    const filename = segments.pop()
+    for (const segment of segments) {
+      target = await target.getDirectoryHandle(segment, { create: true })
+    }
+
+    const handle = await target.getFileHandle(filename, { create: true })
     const writable = await handle.createWritable()
     await writable.write(file.data)
     await writable.close()

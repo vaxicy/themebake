@@ -3,10 +3,13 @@
  *
  * Presets are only a starting point: applying one overwrites the colours, after
  * which every field stays fully editable. Randomize produces a *coordinated*
- * palette (see `generateRandomColors`) rather than 14 independent RGB values.
+ * palette rather than independent RGB values.
  *
- * Names and descriptions are looked up by preset id (`preset.<id>.name`), so a
- * new locale only needs dictionary entries — no component change.
+ * The panel is shared by both workbenches: the Chrome workbench passes its
+ * presets, the VS Code workbench the extracted `VSCODE_PRESETS`. Presets may
+ * carry their own `displayName`/`displayDescription` (proper nouns from the
+ * source themes); otherwise names come from the dictionary by id
+ * (`preset.<id>.name`), so a new locale only needs dictionary entries.
  */
 
 import { PRESETS } from '../data/presets.js'
@@ -14,9 +17,8 @@ import { useI18n } from '../i18n/index.jsx'
 import { normalizeHex } from '../utils/color.js'
 import { DiceIcon } from './Icons.jsx'
 
-function PresetSwatch({ colors }) {
+function PresetSwatch({ colors, keys }) {
   // Show the four colours that best communicate the preset at a glance.
-  const keys = ['frame', 'backgroundTab', 'toolbar', 'ntpLink']
   return (
     <span className="preset__swatch" aria-hidden="true">
       {keys.map((key) => (
@@ -26,7 +28,13 @@ function PresetSwatch({ colors }) {
   )
 }
 
-export function PresetsPanel({ activePresetId, onApplyPreset, onRandomize }) {
+export function PresetsPanel({
+  activePresetId,
+  presets = PRESETS,
+  swatchKeys = ['frame', 'backgroundTab', 'toolbar', 'ntpLink'],
+  onApplyPreset,
+  onRandomize,
+}) {
   const { t } = useI18n()
 
   return (
@@ -50,7 +58,7 @@ export function PresetsPanel({ activePresetId, onApplyPreset, onRandomize }) {
       </div>
 
       <ul className="preset-grid">
-        {PRESETS.map((preset) => {
+        {presets.map((preset) => {
           const isActive = preset.id === activePresetId
           return (
             <li key={preset.id}>
@@ -60,10 +68,14 @@ export function PresetsPanel({ activePresetId, onApplyPreset, onRandomize }) {
                 onClick={() => onApplyPreset(preset.id)}
                 aria-pressed={isActive}
               >
-                <PresetSwatch colors={preset.colors} />
+                <PresetSwatch colors={preset.colors} keys={swatchKeys} />
                 <span className="preset__text">
-                  <span className="preset__name">{t(`preset.${preset.id}.name`)}</span>
-                  <span className="preset__description">{t(`preset.${preset.id}.description`)}</span>
+                  <span className="preset__name">
+                    {preset.displayName ?? t(`preset.${preset.id}.name`)}
+                  </span>
+                  <span className="preset__description">
+                    {preset.displayDescription ?? t(`preset.${preset.id}.description`)}
+                  </span>
                 </span>
               </button>
             </li>

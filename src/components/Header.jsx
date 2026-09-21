@@ -16,7 +16,12 @@ import { Modal } from './Modal.jsx'
 
 export const GITHUB_URL = 'https://github.com/vaxicy/themebake'
 
-export function Header({ onReset, onUndo, canUndo = false, storageWarning }) {
+/**
+ * `showThemeActions` hides Undo/Reset when a workspace that does not own the
+ * Chrome draft (VS Code) is open — those two buttons operate on the Chrome
+ * draft only and would be dead controls otherwise.
+ */
+export function Header({ onReset, onUndo, canUndo = false, storageWarning, showThemeActions = true }) {
   const { t } = useI18n()
   const [aboutOpen, setAboutOpen] = useState(false)
 
@@ -37,27 +42,31 @@ export function Header({ onReset, onUndo, canUndo = false, storageWarning }) {
             {/* Undo lives in the header rather than only behind Ctrl+Z so the
                 shortcut is discoverable — and it is the fastest escape hatch
                 after a randomise or a preset you did not want. */}
-            <button
-              type="button"
-              className="button button--ghost button--sm"
-              onClick={onUndo}
-              disabled={!canUndo}
-              title={t('header.undoTitle')}
-              aria-label={t('header.undo')}
-            >
-              <UndoIcon size={15} />
-              <span className="button__label">{t('header.undo')}</span>
-            </button>
+            {showThemeActions ? (
+              <>
+                <button
+                  type="button"
+                  className="button button--ghost button--sm"
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  title={t('header.undoTitle')}
+                  aria-label={t('header.undo')}
+                >
+                  <UndoIcon size={15} />
+                  <span className="button__label">{t('header.undo')}</span>
+                </button>
 
-            <button
-              type="button"
-              className="button button--ghost button--sm"
-              onClick={onReset}
-              aria-label={t('header.reset')}
-            >
-              <ResetIcon size={15} />
-              <span className="button__label">{t('header.reset')}</span>
-            </button>
+                <button
+                  type="button"
+                  className="button button--ghost button--sm"
+                  onClick={onReset}
+                  aria-label={t('header.reset')}
+                >
+                  <ResetIcon size={15} />
+                  <span className="button__label">{t('header.reset')}</span>
+                </button>
+              </>
+            ) : null}
 
             <a
               className="button button--ghost button--sm"

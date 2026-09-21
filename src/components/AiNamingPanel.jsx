@@ -41,6 +41,9 @@ export function AiNamingPanel({
   description,
   descriptionError,
   onDescriptionChange,
+  // The VS Code workbench has no store summary — hide the field entirely and
+  // the one-click generate only fills the two name fields.
+  showDescription = true,
 }) {
   const { t } = useI18n()
   const hasKey = Boolean(config.apiKey)
@@ -64,7 +67,7 @@ export function AiNamingPanel({
     <>
       {/* The summary field sits above the AI section itself: the one-click
           generate button below still fills it together with the names. */}
-      <div className="field">
+      <div className="field" hidden={!showDescription}>
         <label className="field__label" htmlFor="theme-description">
           {t('settings.description.label')}
         </label>
