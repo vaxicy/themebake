@@ -67,6 +67,9 @@ export default {
   'hero.title': 'Create your own Chrome theme.',
   'hero.subtitle':
     'Pick your colors, preview your theme, and generate a ready-to-use Chrome theme in seconds.',
+  'hero.vscode.title': 'Create your own VS Code theme.',
+  'hero.vscode.subtitle':
+    'Tune 14 master colours, watch the workbench and the syntax highlighting update live, and export an installable extension in seconds.',
 
   // ---------------------------------------------------------------- settings
   'mode.chrome': 'Chrome Theme',

@@ -785,7 +785,15 @@ export default function App() {
         <ModeSwitcher mode={mode} onChange={setMode} />
 
         {mode === 'vscode' ? (
-          <VSCodeWorkbench aiConfig={aiConfig} onAiConfigChange={handleAiConfigChange} />
+          <>
+            {/*
+              Same headline slot as the Chrome workbench, with VS Code copy: the
+              hero is the one line that says which editor this workspace is for,
+              and both workbenches should open the same way.
+            */}
+            <Hero titleKey="hero.vscode.title" subtitleKey="hero.vscode.subtitle" />
+            <VSCodeWorkbench aiConfig={aiConfig} onAiConfigChange={handleAiConfigChange} />
+          </>
         ) : (
           <>
             <Hero />

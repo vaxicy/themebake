@@ -567,6 +567,20 @@ for (const strategy of ACCENT_STRATEGIES) {
   requiredKeys.add(`studio.accentHint.${strategy}`)
 }
 for (const code of LANGUAGES) requiredKeys.add(`lang.${code}`)
+// Passed as props by the workbenches, so the static `t('...')` scan cannot see
+// them: a missing one would silently render the raw key as the page headline.
+for (const key of [
+  'hero.title',
+  'hero.subtitle',
+  'hero.vscode.title',
+  'hero.vscode.subtitle',
+  // Reached through a computed key in the workbench.
+  'vscode.export.outputHint',
+  'vscode.export.outputHintNoFolder',
+  'studio.vscodeSeedHint',
+]) {
+  requiredKeys.add(key)
+}
 // Emitted by manifest.js as structured diagnostics.
 for (const key of ['warn.droppedInvalid', 'warn.skippedKey', 'warn.hexNotChromeLoadable']) {
   requiredKeys.add(key)
