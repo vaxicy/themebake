@@ -281,7 +281,7 @@ export default {
   'export.packageNote': 'The ZIP holds one folder, {folder}/, containing manifest.json.',
   'export.packageNoteFolder': 'Creates {folder}/ wherever you choose, holding exactly manifest.json.',
   'export.generate': 'Generate Theme',
-  'export.generating': 'Building ZIP…',
+  'export.generating': 'Exporting…',
   'export.previewManifest': 'Preview Manifest',
   'export.json': 'Export theme JSON',
   'export.jsonTitle':

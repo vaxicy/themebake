@@ -269,7 +269,7 @@ export default {
   'export.packageNote': 'ZIP 里只有一个文件夹 {folder}/，内含 manifest.json。',
   'export.packageNoteFolder': '会在你选的位置创建文件夹 {folder}/，里面只有 manifest.json。',
   'export.generate': '生成主题',
-  'export.generating': '正在打包 ZIP…',
+  'export.generating': '输出中…',
   'export.previewManifest': '预览 manifest',
   'export.json': '导出主题 JSON',
   'export.jsonTitle': '把当前主题存成一份 JSON 文件，可以直接贴回「导入」面板 —— 备份或分享用。',
