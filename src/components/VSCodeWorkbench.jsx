@@ -38,7 +38,7 @@ import { useI18n } from '../i18n/index.jsx'
 import { describePalette, requestThemeNames } from '../utils/aiNaming.js'
 import { normalizeHex } from '../utils/color.js'
 import { canWriteFolder, writeThemeFolder } from '../utils/fsFolder.js'
-import { buildColors, generateRandomColors } from '../data/presets.js'
+import { buildColors, generateRandomColors, paletteDistance } from '../data/presets.js'
 import { createHistory, record, undo } from '../utils/history.js'
 import { loadVscodeTheme, saveVscodeTheme, storageAvailable } from '../utils/storage.js'
 import { toSafeName } from '../utils/slug.js'
@@ -267,6 +267,8 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     storageAvailable() ? INITIAL.warning : 'header.storageUnavailable',
   )
   const warnedRef = useRef(false)
+  // The last palette randomise produced, so the next one can be forced to differ.
+  const lastRandomRef = useRef(null)
 
   // ---------------------------------------------------------------- persistence
   useEffect(() => {
@@ -570,7 +572,15 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
 
   const handleRandomize = useCallback(() => {
     pushHistory()
-    const built = masterFromPalette(buildColors(generateRandomColors()))
+    // Refuse a theme too close to the previous one — two quick clicks landing on
+    // "the same template in a near hue" is what made randomise feel stuck.
+    let candidate = generateRandomColors()
+    for (let attempt = 0; attempt < 8 && lastRandomRef.current; attempt += 1) {
+      if (paletteDistance(candidate, lastRandomRef.current) >= 0.5) break
+      candidate = generateRandomColors()
+    }
+    lastRandomRef.current = candidate
+    const built = masterFromPalette(buildColors(candidate))
     setColors(built)
     setType(resolveType(type, built))
     reseedPair(built)

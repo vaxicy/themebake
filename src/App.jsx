@@ -44,6 +44,7 @@ import {
   PRESETS_BY_ID,
   buildColors,
   generateRandomColors,
+  paletteDistance,
 } from './data/presets.js'
 import { DEFAULT_LOGO_STYLE, FIELD_GROUPS, LOGO_STYLES, LOGO_STYLE_IDS, OUTPUT_MODE_IDS, THEME_FIELDS } from './data/themeFields.js'
 import { ModeSwitcher } from './components/ModeSwitcher.jsx'
@@ -215,6 +216,8 @@ export default function App() {
 
   // Warn once, not on every render, and never block editing.
   const warnedRef = useRef(false)
+  // The last palette randomise produced, so the next one can be forced to differ.
+  const lastRandomRef = useRef(null)
 
   // ---------------------------------------------------------------------------
   // Undo
@@ -443,7 +446,15 @@ export default function App() {
 
   const handleRandomize = useCallback(() => {
     pushHistory()
-    const built = buildColors(generateRandomColors())
+    // Refuse a theme too close to the previous one — two quick clicks landing on
+    // "the same template in a near hue" is what made randomise feel stuck.
+    let candidate = generateRandomColors()
+    for (let attempt = 0; attempt < 8 && lastRandomRef.current; attempt += 1) {
+      if (paletteDistance(candidate, lastRandomRef.current) >= 0.5) break
+      candidate = generateRandomColors()
+    }
+    lastRandomRef.current = candidate
+    const built = buildColors(candidate)
     const { name: autoName, folder: autoFolder } = suggestThemeName(built)
     setColors(built)
     setName(autoName)

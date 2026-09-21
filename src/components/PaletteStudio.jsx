@@ -21,6 +21,7 @@
 import { useCallback, useMemo } from 'react'
 import { ACCENT_STRATEGIES, INTENSITIES, SOLVER_MODES, solveTheme } from '../utils/palette.js'
 import { generateRandomColors } from '../data/presets.js'
+import { hexToHsl } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
 import { ColorField } from './ColorField.jsx'
 import { SwatchIcon } from './Icons.jsx'
@@ -69,8 +70,16 @@ export function PaletteStudio({
 
   /** One-click exploration: a coordinated random colour rather than pure noise. */
   const handleRandomSeed = useCallback(() => {
-    onSeedChange(generateRandomColors().frame)
-  }, [onSeedChange])
+    let candidate = generateRandomColors().frame
+    // Two quick clicks should not land on nearly the same hue — re-roll unless the
+    // new seed is clearly different from the current one.
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const gap = Math.abs(((hexToHsl(candidate).h - hexToHsl(seed).h) % 360 + 360) % 360)
+      if (Math.min(gap, 360 - gap) >= 40 || !seed) break
+      candidate = generateRandomColors().frame
+    }
+    onSeedChange(candidate)
+  }, [onSeedChange, seed])
 
   return (
     <section className="panel studio" aria-labelledby="studio-heading">

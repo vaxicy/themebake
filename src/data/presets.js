@@ -257,6 +257,16 @@ export function generateRandomColors(seed) {
    * that cannot be mistaken for "another tint of the last one".
    */
   const greyscale = maybe(0.12)
+  /**
+   * How strongly the surfaces are tinted, as its own axis (vs "quiet paper").
+   *
+   * The sameness that made randoms feel like "the same theme in a different hue"
+   * came from the surfaces: a light random was *always* a near-white page with a
+   * tinted chrome, so two light randoms in a row read as one template. Now the
+   * page/toolbar can be clearly coloured at the high end — a different-looking
+   * theme, not a different hue — while the low end stays paper.
+   */
+  const surfaceStrength = greyscale ? pick(0.15, 0.4) : pick(0.2, 1)
 
   /**
    * How many colour families the palette mixes.
@@ -342,12 +352,27 @@ export function generateRandomColors(seed) {
   /** Roles that carry the palette's *other* colour family, when there is one. */
   const otherFamily = (id) => tint(id, familyB)
 
+  /**
+   * How far the page/toolbar surfaces sit from paper, driven by `surfaceStrength`
+   * (so a strong theme has a clearly coloured page, a quiet one stays near
+   * white) but never collapsing to invisible: a second colour family still keeps
+   * a floor so it is not a grey with extra steps.
+   */
+  const pageL = dark
+    ? pick(6, 9) + (1 - surfaceStrength) * pick(6, 16)
+    : pick(82, 92) + (1 - surfaceStrength) * pick(6, 9)
+  const pageChroma = (dark ? pick(0.03, 0.12) : pick(0.03, 0.22)) * surfaceStrength
+  const toolbarL = dark
+    ? primaryL + pick(4, 16)
+    : pick(86, 94) + (1 - surfaceStrength) * pick(3, 5)
+  const toolbarChroma = (dark ? pick(0.05, 0.14) : pick(0.03, 0.16)) * surfaceStrength
+
   if (dark) {
     // ---------------------------------- dark ----------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.85, l: primaryL + 6 })
-    palette.toolbar = tintAt(otherFamily('toolbar'), primaryL + pick(4, 16), chroma(pick(0.05, 0.14)))
+    palette.toolbar = tintAt(otherFamily('toolbar'), toolbarL, Math.max(toolbarChroma, chromaFloor))
     palette.backgroundTab = tintAt(tint('backgroundTab'), primaryL - pick(0, 6), chroma(pick(0.05, 0.15)))
-    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(6, 20), chroma(pick(0.03, 0.11)))
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pageL, Math.max(pageChroma, chromaFloor))
     palette.omniboxBackground = tintAt(otherFamily('omniboxBackground'), pick(11, 26), chroma(pick(0.03, 0.1)))
     palette.buttonBackground = tintAt(buttonHue, primaryL + pick(6, 18), chroma(pick(0.07, 0.18)))
     palette.tabText = hslToHex({ h: baseHue, s: pick(10, 22), l: pick(92, 97) })
@@ -359,12 +384,12 @@ export function generateRandomColors(seed) {
   } else {
     // ---------------------------------- light ---------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.5, l: Math.min(primaryL + 9, 88) })
-    palette.toolbar = tintAt(otherFamily('toolbar'), pick(88, 97), chroma(pick(0.03, 0.11)))
+    palette.toolbar = tintAt(otherFamily('toolbar'), toolbarL, Math.max(toolbarChroma, chromaFloor))
     palette.backgroundTab = tintAt(tint('backgroundTab'), pick(80, 92), chroma(pick(0.06, 0.18)))
-    // The page is not always white: a page at l 88 is a visible tint, which is
-    // what gives the light randoms distinct identities instead of all being
-    // "white with a coloured chrome".
-    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(88, 99), chroma(pick(0.04, 0.13)))
+    // The page is not always paper: at full `surfaceStrength` it is a clearly
+    // coloured surface (a sage or rose page), which is what makes a light random
+    // read as its own theme instead of "white with coloured trim".
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pageL, Math.max(pageChroma, chromaFloor))
     // The URL bar stays near-white most of the time — it carries typed text —
     // but a tint now and then is what real light themes do.
     palette.omniboxBackground = maybe(0.3)
@@ -379,16 +404,18 @@ export function generateRandomColors(seed) {
     palette.ntpText = hslToHex({ h: baseHue, s: pick(16, 34), l: pick(12, 22) })
   }
 
-  // A quieter surface palette gets a louder accent — otherwise the "quiet
-  // surfaces" half of the choice just produces a dull theme. A greyscale theme
-  // keeps its accent grey too, or it would be a colour theme wearing a grey coat.
+  // A greyscale theme keeps its accent grey too, or it would be a colour theme
+  // wearing a grey coat. Otherwise the accent's *character* is its own axis now:
+  // a deep, near-primary accent and a bright pastel one are different themes, not
+  // a tuning of one. A quieter surface palette leans a touch louder so the quiet
+  // half of the choice does not read as dull.
   const accentSatBoost = quietSurfaces ? 1.12 : 1
   palette.ntpLink = hslToHex({
     h: accentHue,
     s: greyscale
       ? pick(0, 8)
-      : Math.min((dark ? pick(48, 70) : pick(52, 76)) * accentSatBoost, 92),
-    l: dark ? pick(70, 82) : pick(38, 50),
+      : Math.min((dark ? pick(48, 74) : pick(46, 88)) * accentSatBoost, 92),
+    l: dark ? pick(64, 84) : pick(34, 60),
   })
 
   // ------------------------- contrast correction pass -------------------------
@@ -407,6 +434,38 @@ export function generateRandomColors(seed) {
   palette.ntpLink = ensureContrast(palette.ntpLink, palette.ntpBackground, 3, dark)
 
   return palette
+}
+
+/**
+ * Perceptual distance between two generated palettes, 0..~1.4.
+ *
+ * Used by the randomise button to refuse a theme that is too close to the one
+ * it just produced — otherwise two quick clicks can land on "the same template
+ * in a near hue" and the button feels broken. The axes are the ones a person
+ * actually notices: frame hue + lightness, accent hue + lightness, and how far
+ * the page sits from paper.
+ *
+ * @param {ThemeColors} a
+ * @param {ThemeColors} b
+ */
+export function paletteDistance(a, b) {
+  const hueGap = (x, y) => {
+    const d = Math.abs(((x - y) % 360 + 360) % 360)
+    return d > 180 ? 360 - d : d
+  }
+  const la = hexToHsl(a.frame).l
+  const lb = hexToHsl(b.frame).l
+  const aa = hexToHsl(a.ntpLink).l
+  const ab = hexToHsl(b.ntpLink).l
+  const pa = hexToHsl(a.ntpBackground).l
+  const pb = hexToHsl(b.ntpBackground).l
+  return Math.sqrt(
+    (hueGap(hexToHsl(a.frame).h, hexToHsl(b.frame).h) / 180) ** 2 +
+      ((la - lb) / 60) ** 2 +
+      (hueGap(hexToHsl(a.ntpLink).h, hexToHsl(b.ntpLink).h) / 180) ** 2 +
+      ((aa - ab) / 45) ** 2 +
+      ((pa - pb) / 30) ** 2,
+  )
 }
 
 /**

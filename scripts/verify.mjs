@@ -41,7 +41,7 @@ import {
   logoStyleFromValue,
   logoStyleValue,
 } from '../src/data/themeFields.js'
-import { DEFAULT_COLORS, DEFAULT_THEME_NAME, PRESETS, buildColors, generateRandomColors } from '../src/data/presets.js'
+import { DEFAULT_COLORS, DEFAULT_THEME_NAME, PRESETS, buildColors, generateRandomColors, paletteDistance } from '../src/data/presets.js'
 import {
   buildManifest,
   parseManifest,
@@ -2366,6 +2366,50 @@ ok('the VS Code editor surface follows the palette', editorLightness.size >= 4,
   [...editorLightness].sort().join(','))
 ok('every random palette survives the VS Code conversion readable',
   randomMasterBad === 0, `${randomMasterBad}/200`)
+
+// The monotony the user felt was structural, not in the hues: a light random was
+// *always* a near-white page (l 88-99) with a mid-tone accent, so two light
+// randoms in a row read as one template. The page lightness now follows its own
+// strength axis and the accent lightness spans a real range.
+const pageLightness = new Set()
+const accentLightness = new Set()
+let strongPage = 0
+for (let seed = 1; seed <= 200; seed += 1) {
+  const palette = generateRandomColors(seed)
+  const page = hexToHsl(palette.ntpBackground)
+  const accent = hexToHsl(palette.ntpLink)
+  pageLightness.add(Math.floor(page.l / 8))
+  accentLightness.add(Math.floor(accent.l / 8))
+  if (page.l < 86) strongPage += 1
+}
+console.log(`  page lightness bands: ${pageLightness.size}, accent bands: ${accentLightness.size}, strong-tinted pages: ${strongPage}/200`)
+ok('light pages range from paper to a clearly coloured surface', pageLightness.size >= 5,
+  [...pageLightness].sort().join(','))
+ok('some randoms get a strongly tinted (non-white) page', strongPage >= 12, `${strongPage}/200`)
+ok('the accent lightness spans deep to bright, not one band', accentLightness.size >= 4,
+  [...accentLightness].sort().join(','))
+
+// The randomise button must refuse a theme that is too close to the previous
+// one, so two quick clicks cannot land on "the same template in a near hue".
+let minConsecutive = 1
+let consecutiveSum = 0
+let prev = null
+for (let i = 0; i < 60; i += 1) {
+  let candidate = generateRandomColors()
+  for (let attempt = 0; attempt < 8 && prev; attempt += 1) {
+    if (paletteDistance(candidate, prev) >= 0.5) break
+    candidate = generateRandomColors()
+  }
+  if (prev) {
+    const d = paletteDistance(candidate, prev)
+    minConsecutive = Math.min(minConsecutive, d)
+    consecutiveSum += d
+  }
+  prev = candidate
+}
+console.log(`  consecutive randomise distance: min ${minConsecutive.toFixed(2)}, avg ${(consecutiveSum / 59).toFixed(2)}`)
+ok('two quick randomise clicks are forced to differ', minConsecutive >= 0.5,
+  minConsecutive.toFixed(2))
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
