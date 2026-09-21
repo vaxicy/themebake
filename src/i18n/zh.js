@@ -135,9 +135,9 @@ export default {
   'studio.noteSeedsUsed': '色卡里的 {total} 个颜色中，有 {used} 个被直接采用。',
 
   // ----------------------------------------------------------------- ai naming
-  'ai.title': 'AI 命名',
-  'ai.subtitle': '让模型根据你的配色，起一个主题名和对应的文件夹名。',
-  'ai.generate': '智能生成名称',
+  'ai.title': 'AI 生成',
+  'ai.subtitle': '根据配色一键生成主题名、文件夹名和商店摘要。',
+  'ai.generate': '一键生成',
   'ai.generating': '正在生成…',
   'ai.generateDesc': '智能生成摘要',
   'ai.generatingDesc': '正在写摘要…',

@@ -20,7 +20,6 @@
 
 import { FIELD_GROUPS, LOGO_STYLES, THEME_FIELDS } from '../data/themeFields.js'
 import { useI18n } from '../i18n/index.jsx'
-import { MAX_DESCRIPTION_LENGTH } from '../utils/manifest.js'
 import { ColorField } from './ColorField.jsx'
 
 const MAX_NAME_LENGTH = 45 // Chrome's own limit for theme/extension names.
@@ -31,15 +30,12 @@ const NTP_GROUP_ID = 'New Tab Page'
 export function ThemeSettings({
   name,
   folderInput,
-  description,
   colors,
   logoStyle,
   nameError,
-  descriptionError,
   aiPanel,
   onNameChange,
   onFolderChange,
-  onDescriptionChange,
   onColorChange,
   onLogoStyleChange,
   onInvalidColor,
@@ -118,40 +114,12 @@ export function ThemeSettings({
       </div>
 
       {/*
-        The AI naming controls arrive as a slot rather than being imported here:
-        they own their own state, and keeping the composition in `App` means this
-        component stays a pure layout for the fields it declares. It sits directly
-        under the two name fields because it fills exactly those two.
+        The AI controls arrive as a slot rather than being imported here: they own
+        their own state, and keeping the composition in `App` means this component
+        stays a pure layout for the fields it declares. The AI panel now wraps the
+        description field plus a single one-click generate action.
       */}
       {aiPanel}
-
-      <div className="field">
-        <label className="field__label" htmlFor="theme-description">
-          {t('settings.description.label')}
-        </label>
-        <input
-          id="theme-description"
-          type="text"
-          className={`text-input${descriptionError ? ' is-invalid' : ''}`}
-          value={description}
-          placeholder={t('settings.description.placeholder')}
-          maxLength={MAX_DESCRIPTION_LENGTH}
-          spellCheck="false"
-          autoComplete="off"
-          onChange={(event) => onDescriptionChange(event.target.value)}
-          aria-invalid={descriptionError ? true : undefined}
-          aria-describedby={descriptionError ? 'theme-description-error' : 'theme-description-hint'}
-        />
-        {descriptionError ? (
-          <p className="field__error" id="theme-description-error" role="status">
-            {descriptionError}
-          </p>
-        ) : (
-          <p className="field__hint" id="theme-description-hint">
-            {t('settings.description.hint', { max: MAX_DESCRIPTION_LENGTH })}
-          </p>
-        )}
-      </div>
 
       <div className="settings-groups">
         {grouped.map(({ group, fields }) => (

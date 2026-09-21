@@ -20,7 +20,7 @@
  * Persistent storage holds only this draft plus the interface language
  * (`utils/storage.js`) and the AI naming settings (`utils/aiConfig.js`, its own
  * key so Reset cannot wipe an API key). Nothing is uploaded — with one deliberate
- * exception: clicking "Generate names" sends the palette colours to the AI
+ * exception: clicking "Generate all" sends the palette colours to the AI
  * provider the user configured, using the user's own key. That path is optional,
  * explicit, and never blocks the theme itself.
  */
@@ -162,7 +162,6 @@ export default function App() {
   // theme export can never leak one.
   const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
   const [aiBusy, setAiBusy] = useState(false)
-  const [aiDescBusy, setAiDescBusy] = useState(false)
   const [aiCandidates, setAiCandidates] = useState([])
   const [aiAppliedName, setAiAppliedName] = useState('')
   // Names applied this session, sent back to the model as "avoid these" so a
@@ -535,12 +534,15 @@ export default function App() {
   }, [])
 
   /**
-   * Ask the model for names. The first candidate is applied immediately so the
-   * button visibly "generates the file name"; the rest stay as chips to switch
-   * between. A failure only shows a toast — the deterministic local name the
-   * triggering action already wrote stays in place.
+   * One click fills the whole store listing — theme name, its folder name, and
+   * the description — from the palette. It runs two requests on the same path
+   * (one key, one endpoint, one set of error toasts): the model's names come
+   * first with the top candidate applied immediately, then the description is
+   * written for that name. The description clamps to the manifest's 132-character
+   * limit inside `parseDescriptionResponse`, so an over-talkative model can never
+   * produce an invalid manifest.
    */
-  const handleAiSuggest = useCallback(async () => {
+  const handleAiGenerateAll = useCallback(async () => {
     if (!String(aiConfig.apiKey).trim()) {
       toast.error(t('ai.errorNoKey'))
       return
@@ -557,31 +559,13 @@ export default function App() {
           : aiSeenRef.current,
       })
       setAiCandidates(names)
-      if (names[0]) handleApplyAiCandidate(names[0])
+      const chosen = names[0]
+      if (chosen) handleApplyAiCandidate(chosen)
       toast.success(t('ai.generated', { count: names.length }))
-    } catch (error) {
-      toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
-    } finally {
-      setAiBusy(false)
-    }
-  }, [aiConfig, aiAppliedName, colors, handleApplyAiCandidate, toast, t])
 
-  /**
-   * One click writes the store description. It shares the naming request path
-   * (same key, same endpoint, same error toasts) and clamps to the manifest's
-   * 132-character limit inside `parseDescriptionResponse`, so an over-talkative
-   * model can never produce an invalid manifest.
-   */
-  const handleAiDescribe = useCallback(async () => {
-    if (!String(aiConfig.apiKey).trim()) {
-      toast.error(t('ai.errorNoKey'))
-      return
-    }
-    setAiDescBusy(true)
-    try {
       const text = await requestThemeDescription(aiConfig, {
         palette: describePalette(colors),
-        name,
+        name: chosen?.name || name,
         language: aiConfig.language,
       })
       setDescription(text)
@@ -590,9 +574,9 @@ export default function App() {
     } catch (error) {
       toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
     } finally {
-      setAiDescBusy(false)
+      setAiBusy(false)
     }
-  }, [aiConfig, colors, name, toast, t])
+  }, [aiConfig, aiAppliedName, colors, handleApplyAiCandidate, name, toast, t])
 
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
@@ -715,27 +699,25 @@ export default function App() {
             <ThemeSettings
               name={name}
               folderInput={folderInput}
-              description={description}
               colors={colors}
               logoStyle={logoStyle}
               nameError={nameError}
-              descriptionError={descriptionError}
               aiPanel={
                 <AiNamingPanel
                   config={aiConfig}
                   onChange={handleAiConfigChange}
-                  onSuggest={handleAiSuggest}
+                  onGenerateAll={handleAiGenerateAll}
                   onApply={handleApplyAiCandidate}
                   busy={aiBusy}
                   candidates={aiCandidates}
                   appliedName={aiAppliedName}
-                  onDescribe={handleAiDescribe}
-                  descBusy={aiDescBusy}
+                  description={description}
+                  descriptionError={descriptionError}
+                  onDescriptionChange={handleDescriptionChange}
                 />
               }
               onNameChange={handleNameChange}
               onFolderChange={setFolderInput}
-              onDescriptionChange={handleDescriptionChange}
               onColorChange={handleColorChange}
               onLogoStyleChange={handleLogoStyleChange}
               onInvalidColor={handleInvalidColor}

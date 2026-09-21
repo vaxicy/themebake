@@ -144,10 +144,10 @@ export default {
   'studio.noteSeedsUsed': '{used} of {total} colours from your palette were used directly.',
 
   // ----------------------------------------------------------------- ai naming
-  'ai.title': 'AI naming',
-  'ai.subtitle': 'Let a model invent the theme name and its folder name from your colours.',
-  'ai.generate': 'Generate names',
-  'ai.generating': 'Asking the model…',
+  'ai.title': 'AI generation',
+  'ai.subtitle': 'Generate the theme name, folder name, and store description from your colours in one click.',
+  'ai.generate': 'Generate all',
+  'ai.generating': 'Generating…',
   'ai.generateDesc': 'Generate description',
   'ai.generatingDesc': 'Writing description…',
   'ai.descGenerated': 'Description updated.',

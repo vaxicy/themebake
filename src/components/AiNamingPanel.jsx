@@ -27,18 +27,20 @@ import {
   AI_TEMPERATURE,
 } from '../data/aiProviders.js'
 import { useI18n } from '../i18n/index.jsx'
+import { MAX_DESCRIPTION_LENGTH } from '../utils/manifest.js'
 import { StarIcon } from './Icons.jsx'
 
 export function AiNamingPanel({
   config,
   onChange,
-  onSuggest,
+  onGenerateAll,
   onApply,
   busy,
   candidates,
   appliedName,
-  onDescribe,
-  descBusy,
+  description,
+  descriptionError,
+  onDescriptionChange,
 }) {
   const { t } = useI18n()
   const hasKey = Boolean(config.apiKey)
@@ -69,29 +71,48 @@ export function AiNamingPanel({
         </span>
       </div>
 
-      {/* Two one-click actions: the names (theme + folder) and the store
-          description. The description button sits directly above the summary
-          field it fills. */}
+      {/* The summary field now lives inside this panel, directly above the one
+          click that fills it along with the names. */}
+      <div className="field">
+        <label className="field__label" htmlFor="theme-description">
+          {t('settings.description.label')}
+        </label>
+        <input
+          id="theme-description"
+          type="text"
+          className={`text-input${descriptionError ? ' is-invalid' : ''}`}
+          value={description}
+          placeholder={t('settings.description.placeholder')}
+          maxLength={MAX_DESCRIPTION_LENGTH}
+          spellCheck="false"
+          autoComplete="off"
+          onChange={(event) => onDescriptionChange(event.target.value)}
+          aria-invalid={descriptionError ? true : undefined}
+          aria-describedby={
+            descriptionError ? 'theme-description-error' : 'theme-description-hint'
+          }
+        />
+        {descriptionError ? (
+          <p className="field__error" id="theme-description-error" role="status">
+            {descriptionError}
+          </p>
+        ) : (
+          <p className="field__hint" id="theme-description-hint">
+            {t('settings.description.hint', { max: MAX_DESCRIPTION_LENGTH })}
+          </p>
+        )}
+      </div>
+
       <div className="ai__actions">
         <button
           type="button"
           className="button button--soft ai__generate"
-          onClick={onSuggest}
+          onClick={onGenerateAll}
           disabled={busy}
           aria-busy={busy ? true : undefined}
         >
           <StarIcon size={16} />
           {busy ? t('ai.generating') : t('ai.generate')}
-        </button>
-        <button
-          type="button"
-          className="button button--soft ai__generate"
-          onClick={onDescribe}
-          disabled={descBusy}
-          aria-busy={descBusy ? true : undefined}
-        >
-          <StarIcon size={16} />
-          {descBusy ? t('ai.generatingDesc') : t('ai.generateDesc')}
         </button>
       </div>
 
