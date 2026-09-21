@@ -1882,6 +1882,30 @@ for (const { id, colors } of pairSources) {
     Object.keys(DEFAULT_VSCODE_COLORS).filter((key) => normalizeHex(light[key]) !== light[key]).join(','))
 }
 
+// The flipped half is tinted by the scheme's *background*, not by its accent —
+// the accent is the loudest colour on screen and surfaces built from it made a
+// grey-sage light scheme flip into a maroon dark one. A sage background with a
+// magenta accent must come back as a sage dark theme.
+const gap = (a, b) => {
+  const d = Math.abs(((a - b) % 360 + 360) % 360)
+  return d > 180 ? 360 - d : d
+}
+const sageWithMagenta = deriveCounterpart(
+  {
+    editorBg: '#202820',
+    sidebarBg: '#1C241C',
+    titleBg: '#253025',
+    activityBg: '#182018',
+    lineHighlightBg: '#263026',
+    accent: '#D6409F',
+  },
+  'dark',
+)
+const sageFlippedHue = hexToHsl(sageWithMagenta.editorBg).h
+ok('the flipped surfaces follow the background hue, not the accent',
+  gap(sageFlippedHue, 120) <= 40 && gap(sageFlippedHue, 320) >= 40,
+  `flipped h=${sageFlippedHue.toFixed(0)}`)
+
 // A derived light palette must survive the rest of the derivation chain — this is
 // what the exported JSON runs through.
 const lightDerived = deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light')

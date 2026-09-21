@@ -142,12 +142,15 @@ function contrastAgainst(hex, background, min = 4.5) {
 /**
  * Flip a master palette into the opposite scheme.
  *
- * The surfaces are rebuilt from the *accent's hue* rather than from the original
- * surfaces' colours: a dark scheme's near-black editor background carries almost
- * no hue information, so inverting its lightness would produce a washed-out grey
- * light theme. Starting from the accent instead gives a surface that is tinted by
- * the theme's own colour — and the accent/error/warning colours are then re-anchored
- * so they still read on the new background at 4.5:1.
+ * The surfaces are rebuilt from the scheme's **own background colour**, not from
+ * the accent: the accent is the loudest colour on screen, and tinting the flipped
+ * half with it made the pair read as "the accent's theme on both sides" — a grey
+ * sage light scheme flipped into a maroon dark one because the accent was maroon.
+ * A near-black editor background carries little hue on its own, so the tint comes
+ * from whichever background-ish surface is the most chromatic (still the background
+ * family, never the accent); when every surface is neutral the flip is neutral too.
+ * The accent/error/warning colours are then re-anchored so they still read on the
+ * new background at 4.5:1.
  *
  * @param {Record<string,string>} colors master colours (any scheme)
  * @param {'dark'|'light'} [targetType] defaults to the opposite of `colors`
@@ -159,12 +162,27 @@ export function deriveCounterpart(colors, targetType) {
   if (target !== 'dark' && target !== 'light') return source
 
   const dark = target === 'dark'
-  const accentHsl = hexToHsl(source.accent)
 
-  // Only a whisper of the accent's saturation goes into the surfaces, so the
-  // accent itself stays the loudest colour on screen.
-  const bg = hslToHex({ h: accentHsl.h, s: Math.min(accentHsl.s, dark ? 24 : 28), l: dark ? 13 : 97 })
-  const fg = hslToHex({ h: accentHsl.h, s: Math.min(accentHsl.s, 24), l: dark ? 93 : 16 })
+  // The background family's tint, by its most colourful member. Chroma (not HSL
+  // saturation) is the ranking axis — a pale surface at l 97 with s 40 is a real
+  // tint, while a dark one at l 13 with s 30 carries the same amount of colour.
+  const surfaceChroma = (hex) => {
+    const { s, l } = hexToHsl(hex)
+    return (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100)
+  }
+  const tintSource = [
+    source.editorBg,
+    source.sidebarBg,
+    source.titleBg,
+    source.activityBg,
+    source.lineHighlightBg,
+  ].reduce((best, hex) => (surfaceChroma(hex) > surfaceChroma(best) ? hex : best))
+  const tint = hexToHsl(tintSource)
+
+  // Only a whisper of the background's saturation goes into the new surfaces, so
+  // the accent itself stays the loudest colour on screen.
+  const bg = hslToHex({ h: tint.h, s: Math.min(tint.s, dark ? 24 : 28), l: dark ? 13 : 97 })
+  const fg = hslToHex({ h: tint.h, s: Math.min(tint.s, 24), l: dark ? 93 : 16 })
   const accent = contrastAgainst(source.accent, bg)
 
   /** A surface one step away from `bg`, in the direction that adds depth. */
