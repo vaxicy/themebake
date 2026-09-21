@@ -26,7 +26,13 @@ import { ThemeSettings } from './ThemeSettings.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
 import { useToast } from './Toast.jsx'
 import { DEFAULT_THEME_NAME } from '../data/presets.js'
-import { INTENSITIES, SOLVER_MODES, solveTheme } from '../utils/palette.js'
+import {
+  ACCENT_STRATEGIES,
+  DEFAULT_ACCENT_STRATEGY,
+  INTENSITIES,
+  SOLVER_MODES,
+  solveTheme,
+} from '../utils/palette.js'
 import { useI18n } from '../i18n/index.jsx'
 import { describePalette, requestThemeNames } from '../utils/aiNaming.js'
 import { normalizeHex } from '../utils/color.js'
@@ -103,6 +109,9 @@ function readInitialState() {
       seed: normalizeHex(saved.seed) ?? DEFAULT_VSCODE_COLORS.editorBg,
       smartMode: SOLVER_MODES.includes(saved.smartMode) ? saved.smartMode : 'auto',
       smartIntensity: INTENSITIES.includes(saved.smartIntensity) ? saved.smartIntensity : 'balanced',
+      smartAccent: ACCENT_STRATEGIES.includes(saved.smartAccent)
+        ? saved.smartAccent
+        : DEFAULT_ACCENT_STRATEGY,
     },
     warning: null,
   }
@@ -149,6 +158,9 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_VSCODE_COLORS.editorBg)
   const [smartMode, setSmartMode] = useState(INITIAL.state?.smartMode ?? 'auto')
   const [smartIntensity, setSmartIntensity] = useState(INITIAL.state?.smartIntensity ?? 'balanced')
+  const [smartAccent, setSmartAccent] = useState(
+    INITIAL.state?.smartAccent ?? DEFAULT_ACCENT_STRATEGY,
+  )
 
   // ----------------------------------------------------------------- AI naming
   const [aiBusy, setAiBusy] = useState(false)
@@ -175,6 +187,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
         seed,
         smartMode,
         smartIntensity,
+        smartAccent,
       })
       if (!result.ok && !warnedRef.current) {
         warnedRef.current = true
@@ -182,7 +195,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       }
     }, 250)
     return () => window.clearTimeout(timer)
-  }, [name, folderInput, type, colors, outputMode, pair, seed, smartMode, smartIntensity])
+  }, [name, folderInput, type, colors, outputMode, pair, seed, smartMode, smartIntensity, smartAccent])
 
   // ------------------------------------------------------------------ derived
   const master = useMemo(() => buildMasterColors(colors), [colors])
@@ -290,7 +303,12 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   /** Shared "solve a palette and adopt it" step for studio / random / import. */
   const applySolvedPalette = useCallback(
     (seeds) => {
-      const result = solveTheme({ seeds, mode: smartMode, intensity: smartIntensity })
+      const result = solveTheme({
+        seeds,
+        mode: smartMode,
+        intensity: smartIntensity,
+        accentStrategy: smartAccent,
+      })
       if (!result.ok) {
         toast.error(t('import.errorNoColors'))
         return null
@@ -303,7 +321,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       setActivePresetId(null)
       return result
     },
-    [smartMode, smartIntensity, toast, t, type],
+    [smartMode, smartIntensity, smartAccent, toast, t, type],
   )
 
   const handleStudioGenerate = useCallback(() => {
@@ -531,9 +549,13 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
           seed={seed}
           mode={smartMode}
           intensity={smartIntensity}
+          accent={smartAccent}
           onSeedChange={setSeed}
           onModeChange={(next) => setSmartMode(SOLVER_MODES.includes(next) ? next : 'auto')}
           onIntensityChange={(next) => setSmartIntensity(INTENSITIES.includes(next) ? next : 'balanced')}
+          onAccentChange={(next) =>
+            setSmartAccent(ACCENT_STRATEGIES.includes(next) ? next : DEFAULT_ACCENT_STRATEGY)
+          }
           onGenerate={handleStudioGenerate}
           onInvalidSeed={(label) => toast.error(t('colorField.invalidToast', { label }))}
           seedHintKey="studio.vscodeSeedHint"

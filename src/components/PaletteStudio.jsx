@@ -19,7 +19,7 @@
  */
 
 import { useCallback, useMemo } from 'react'
-import { INTENSITIES, SOLVER_MODES, solveTheme } from '../utils/palette.js'
+import { ACCENT_STRATEGIES, INTENSITIES, SOLVER_MODES, solveTheme } from '../utils/palette.js'
 import { generateRandomColors } from '../data/presets.js'
 import { useI18n } from '../i18n/index.jsx'
 import { ColorField } from './ColorField.jsx'
@@ -39,9 +39,11 @@ export function PaletteStudio({
   seed,
   mode,
   intensity,
+  accent = 'harmony',
   onSeedChange,
   onModeChange,
   onIntensityChange,
+  onAccentChange,
   onGenerate,
   onInvalidSeed,
   seedLabelKey = 'studio.seedLabel',
@@ -54,8 +56,8 @@ export function PaletteStudio({
   // Deterministic and cheap (14 HSL derivations), so recomputing on every change
   // is fine and keeps the strip honest — it is literally the solve result.
   const preview = useMemo(
-    () => solveTheme({ seeds: seed ? [seed] : [], mode, intensity }),
-    [seed, mode, intensity],
+    () => solveTheme({ seeds: seed ? [seed] : [], mode, intensity, accentStrategy: accent }),
+    [seed, mode, intensity, accent],
   )
 
   // What the strip paints: the solved roles as-is, or their conversion into the
@@ -138,6 +140,32 @@ export function PaletteStudio({
         </fieldset>
 
         <fieldset className="studio__fieldset">
+          <legend className="studio__legend">{t('studio.accentLegend')}</legend>
+          <div
+            className="segmented segmented--three"
+            role="radiogroup"
+            aria-label={t('studio.accentLegend')}
+          >
+            {ACCENT_STRATEGIES.map((option) => (
+              <label
+                key={option}
+                className={`segmented__option${accent === option ? ' is-active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="studio-accent"
+                  value={option}
+                  checked={accent === option}
+                  onChange={() => onAccentChange(option)}
+                />
+                <span className="segmented__label">{t(`studio.accent.${option}`)}</span>
+              </label>
+            ))}
+          </div>
+          <p className="studio__hint">{t(`studio.accentHint.${accent}`)}</p>
+        </fieldset>
+
+        <fieldset className="studio__fieldset">
           <legend className="studio__legend">{t('studio.intensityLegend')}</legend>
           <div
             className="segmented segmented--three"
@@ -182,6 +210,8 @@ export function PaletteStudio({
           </span>
         </div>
       ) : null}
+
+
 
       {preview.ok && preview.notes.length ? (
         <ul className="studio__notes">

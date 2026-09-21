@@ -665,11 +665,57 @@ export function buildVscodePackage({
  */
 export function masterFromPalette(solved) {
   const frame = solved.frame
-  const dark = relativeLuminance(frame) < 0.5
+  /**
+   * Light or dark, decided by the palette's own ink.
+   *
+   * A luminance threshold on the *frame* is the wrong question and the wrong
+   * answer in the middle of the range: the solver's light theme built on
+   * `#D48ACA` has a frame of luminance 0.36, so a `< 0.5` test called it dark and
+   * produced a near-black editor carrying that theme's dark ink — 3.85:1, an
+   * unreadable VS Code theme from a perfectly good Chrome palette. The ink is
+   * what actually has to sit on the surface, so compare the two: if the text is
+   * lighter than the frame, this is a dark palette.
+   */
+  const ink = solved.tabText ?? solved.ntpText
+  const dark = ink ? relativeLuminance(ink) > relativeLuminance(frame) : relativeLuminance(frame) < 0.5
   const bg = dark ? mix(frame, '#131120', 0.74) : mix(frame, '#FFFFFF', 0.88)
   const surface = dark ? mix(bg, '#FFFFFF', 0.05) : mix(bg, '#000000', 0.04)
   const surface2 = dark ? mix(bg, '#FFFFFF', 0.09) : mix(bg, '#000000', 0.07)
-  const accent = solved.ntpLink
+
+  /**
+   * The accent, re-checked against the surface it is about to sit on.
+   *
+   * Chrome only requires the link colour to clear 3:1 on the New Tab background —
+   * it is an interactive element, not body text — and the solver stops there. In
+   * VS Code the same value becomes link text, cursors and focus borders on the
+   * *editor* surface, where 4.5:1 is the bar. A cyan accent that passed at 3.02
+   * there measured 2.89 here, so it gets nudged again rather than exported
+   * unreadable.
+   */
+  const accent = contrastAgainst(solved.ntpLink ?? frame, bg)
+
+  /**
+   * A trace of the accent in the shell surfaces.
+   *
+   * The studio can deliberately place the accent on the opposite hue (see
+   * `ACCENT_STRATEGIES`), and the user's own palette may hold one. Letting a few
+   * percent of it into the panels — never the editor, which stays the reading
+   * surface — is what makes the result read as one designed theme instead of a
+   * monochrome workbench with a stray coloured link.
+   */
+  const shell = (base, amount) => mix(base, accent, amount)
+
+  /**
+   * Buttons: the solver's own button colour when it carries a hue of its own.
+   *
+   * In a triadic theme the window buttons were given the *third* corner of the
+   * wheel; collapsing them onto the accent here would throw that away and leave
+   * the VS Code workbench with two hues where the Chrome one has three. A
+   * near-grey button surface is the one case where the accent is the better
+   * answer — a tinted button with no tint reads as a bug.
+   */
+  const solvedButton = solved.buttonBackground ?? accent
+  const buttonBg = hexToHsl(solvedButton).s >= 18 ? solvedButton : accent
 
   return {
     editorBg: bg,
@@ -678,13 +724,16 @@ export function masterFromPalette(solved) {
     selectionBg: mix(accent, bg, 0.72),
     lineHighlightBg: surface,
     mutedFg: mix(solved.tabBackgroundText, bg, 0.2),
-    activityBg: dark ? mix(bg, '#000000', 0.25) : mix(bg, '#000000', 0.06),
-    sidebarBg: surface,
-    titleBg: surface2,
+    activityBg: shell(dark ? mix(bg, '#000000', 0.25) : mix(bg, '#000000', 0.06), 0.05),
+    sidebarBg: shell(surface, 0.04),
+    titleBg: shell(surface2, 0.06),
     border: dark ? mix(bg, '#FFFFFF', 0.12) : mix(bg, '#000000', 0.12),
-    buttonBg: accent,
-    buttonFg: readableTextOn(accent),
-    errorFg: mix('#E06C75', accent, 0.12),
-    warningFg: mix('#E5C07B', accent, 0.18),
+    buttonBg,
+    buttonFg: readableTextOn(buttonBg),
+    // Nudged onto the new surface: the semantic colours come from the solver, but
+    // nothing upstream guarantees they clear 4.5:1 against an editor background
+    // this function just invented.
+    errorFg: contrastAgainst(mix('#E06C75', accent, 0.12), bg),
+    warningFg: contrastAgainst(mix('#E5C07B', accent, 0.18), bg),
   }
 }

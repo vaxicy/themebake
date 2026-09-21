@@ -222,11 +222,21 @@ export default {
   'studio.intensity.soft': '柔和',
   'studio.intensity.balanced': '标准',
   'studio.intensity.bold': '鲜明',
+  'studio.accentLegend': '配色方式',
+  'studio.accent.harmony': '同色系',
+  'studio.accent.clash': '撞色',
+  'studio.accent.triad': '三色',
+  'studio.accentHint.harmony': '所有表面色与强调色都留在主色的色相里 —— 一套安静的同色阶。',
+  'studio.accentHint.clash':
+    '表面色留在主色的色相，强调色落到色轮的对侧；表面色会自动收敛，让强调色成为主角。',
+  'studio.accentHint.triad': '三个相关色相：主色做表面、第二个色相做强调色、第三个色相给窗口按钮。',
   'studio.generate': '生成主题',
   'studio.resultLegend': '推导结果',
   'studio.noteNeutral': '检测到中性色 —— 会生成灰阶主题，不会硬套一个色相。',
   'studio.noteFrameAdjusted': '已把「{hex}」调成适合做窗口框架的明度，它的色相仍然主导整套配色。',
   'studio.noteSeedsUsed': '色卡里的 {total} 个颜色中，有 {used} 个被直接采用。',
+  'studio.noteClash': '强调色取的是主色的对角色相（{hex}），表面色仍沿用主色自己的色相。',
+  'studio.noteTriad': '三色搭配：强调色 {hex}，窗口按钮用第三个色相 {third}。',
 
   // ----------------------------------------------------------------- ai naming
   'ai.title': 'AI 生成',

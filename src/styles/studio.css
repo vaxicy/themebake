@@ -110,6 +110,14 @@
   margin-bottom: 0;
 }
 
+/* Explains what the chosen colour relationship does, right where it is set. */
+.studio__hint {
+  margin-top: 7px;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* The scheme the solver actually chose — small, but always visible. */
 .studio__badge {
   flex: 0 0 auto;

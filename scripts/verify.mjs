@@ -95,12 +95,21 @@ import {
 } from '../src/utils/derivedColors.js'
 import { drawThemeIcon, ICON_FALLBACK_COLORS } from '../src/utils/icon.js'
 import { auditContrast, repairContrast, AUDIT_RULES } from '../src/utils/contrastAudit.js'
-import { INTENSITIES, SOLVER_MODES, solveTheme, usedSeedHexes } from '../src/utils/palette.js'
+import {
+  ACCENT_STRATEGIES,
+  DEFAULT_ACCENT_STRATEGY,
+  INTENSITIES,
+  SOLVER_MODES,
+  SURFACE_HUE_DRIFT,
+  solveTheme,
+  usedSeedHexes,
+} from '../src/utils/palette.js'
 import {
   buildVscodePackage,
   buildVscodeThemeJson,
   counterpartTypeFor,
   deriveCounterpart,
+  masterFromPalette,
   resolveType,
   schemeOf,
 } from '../src/vscode/build.js'
@@ -553,6 +562,10 @@ for (const mode of OUTPUT_MODES) requiredKeys.add(mode.labelKey)
 for (const mode of VSCODE_OUTPUT_MODES) requiredKeys.add(mode.labelKey)
 for (const m of SOLVER_MODES) requiredKeys.add(`studio.mode.${m}`)
 for (const i of INTENSITIES) requiredKeys.add(`studio.intensity.${i}`)
+for (const strategy of ACCENT_STRATEGIES) {
+  requiredKeys.add(`studio.accent.${strategy}`)
+  requiredKeys.add(`studio.accentHint.${strategy}`)
+}
 for (const code of LANGUAGES) requiredKeys.add(`lang.${code}`)
 // Emitted by manifest.js as structured diagnostics.
 for (const key of ['warn.droppedInvalid', 'warn.skippedKey', 'warn.hexNotChromeLoadable']) {
@@ -1961,6 +1974,145 @@ ok('the default format is still the zip layout',
 ok('VS Code offers vsix, zip and folder, in that order',
   VSCODE_OUTPUT_MODES.map((mode) => mode.id).join(',') === 'vsix,zip,folder',
   VSCODE_OUTPUT_MODES.map((mode) => mode.id).join(','))
+
+// ---------------------------------------------------------------------------
+section('23. Accent strategies (matching / contrasting / triadic)')
+// ---------------------------------------------------------------------------
+ok('the three relationships are exposed',
+  ACCENT_STRATEGIES.join(',') === 'harmony,clash,triad',
+  ACCENT_STRATEGIES.join(','))
+ok('the default is the calm one', DEFAULT_ACCENT_STRATEGY === 'harmony')
+ok('an unknown strategy falls back instead of breaking the solve',
+  solveTheme({ seeds: ['#B1B2FF'], accentStrategy: 'nonsense' }).accentStrategy === 'harmony')
+
+/** Shortest angular distance between two hues, 0-180. */
+const hueGap = (a, b) => {
+  const d = Math.abs(((a - b) % 360 + 360) % 360)
+  return d > 180 ? 360 - d : d
+}
+
+// Every strategy x mode x a coarse hue wheel: all valid, all contrast-clean, and
+// the accent must land where the strategy says it will.
+const strategyFailures = []
+const accentDistances = { harmony: [181, 0], clash: [181, 0], triad: [181, 0] }
+for (const strategy of ACCENT_STRATEGIES) {
+  for (let hue = 0; hue < 360; hue += 12) {
+    for (const mode of ['light', 'dark']) {
+      const seedHex = hslToHex({ h: hue, s: 55, l: 62 })
+      const result = solveTheme({ seeds: [seedHex], mode, accentStrategy: strategy })
+      if (!result.ok) {
+        strategyFailures.push(`${strategy} ${seedHex} ok=false`)
+        continue
+      }
+      if (result.accentStrategy !== strategy) strategyFailures.push(`${strategy} ${seedHex} strategy lost`)
+      for (const id of FIELD_IDS) {
+        if (!isValidHex(result.colors[id])) strategyFailures.push(`${strategy} ${seedHex} ${id}`)
+      }
+      const issues = auditContrast(result.colors)
+      if (issues.length) {
+        strategyFailures.push(`${strategy} ${seedHex} ${mode}: ${issues.map((i) => `${i.fg}/${i.bg}`).join(' ')}`)
+      }
+      const gap = hueGap(hexToHsl(result.colors.ntpLink).h, hue)
+      const [min, max] = accentDistances[strategy]
+      accentDistances[strategy] = [Math.min(min, gap), Math.max(max, gap)]
+    }
+  }
+}
+ok('every strategy solves on the whole hue wheel: valid + contrast-clean',
+  strategyFailures.length === 0,
+  `${strategyFailures.length} failures: ${strategyFailures.slice(0, 3).join(' | ')}`)
+console.log(`  accent hue gap: harmony ${accentDistances.harmony[0].toFixed(0)}-${accentDistances.harmony[1].toFixed(0)}deg, `
+  + `clash ${accentDistances.clash[0].toFixed(0)}-${accentDistances.clash[1].toFixed(0)}deg, `
+  + `triad ${accentDistances.triad[0].toFixed(0)}-${accentDistances.triad[1].toFixed(0)}deg`)
+ok('harmony keeps the accent inside the family',
+  accentDistances.harmony[1] <= 35, `max ${accentDistances.harmony[1].toFixed(1)}`)
+ok('clash puts the accent opposite the family',
+  accentDistances.clash[0] >= 150, `min ${accentDistances.clash[0].toFixed(1)}`)
+ok('triad puts the accent a third of the wheel away',
+  accentDistances.triad[0] >= 95 && accentDistances.triad[1] <= 145,
+  `${accentDistances.triad[0].toFixed(1)}-${accentDistances.triad[1].toFixed(1)}`)
+
+// A contrasting accent is only worth anything if it actually contrasts with the
+// surfaces it sits next to — this is the user-facing promise of the strategy.
+const clashSeed = '#D48ACA'
+const clash = solveTheme({ seeds: [clashSeed], accentStrategy: 'clash', mode: 'light' })
+const harmony = solveTheme({ seeds: [clashSeed], accentStrategy: 'harmony', mode: 'light' })
+ok('a clash accent is a different hue to the frame',
+  hueGap(hexToHsl(clash.colors.ntpLink).h, hexToHsl(clash.colors.frame).h) >= 150,
+  `${hueGap(hexToHsl(clash.colors.ntpLink).h, hexToHsl(clash.colors.frame).h).toFixed(1)}`)
+ok('harmony and clash really do differ on the same seed',
+  hueGap(hexToHsl(clash.colors.ntpLink).h, hexToHsl(harmony.colors.ntpLink).h) >= 120)
+ok('the clash surfaces stay in the seed family',
+  hueGap(hexToHsl(clash.colors.ntpBackground).h, hexToHsl(clashSeed).h) <= 25,
+  hueGap(hexToHsl(clash.colors.ntpBackground).h, hexToHsl(clashSeed).h).toFixed(1))
+// Quiet surfaces: the accent has to out-shout them, or nothing reads as an accent.
+const clashSurfaceSat = hexToHsl(clash.colors.toolbar).s
+const harmonySurfaceSat = hexToHsl(harmony.colors.toolbar).s
+ok('clash holds the surfaces back', clashSurfaceSat <= harmonySurfaceSat,
+  `${clashSurfaceSat.toFixed(1)} vs ${harmonySurfaceSat.toFixed(1)}`)
+
+// Three hues, each on its own corner: accent 120 one way, buttons 120 the other.
+const triad = solveTheme({ seeds: [clashSeed], accentStrategy: 'triad', mode: 'light' })
+const seedHue = hexToHsl(clashSeed).h
+ok('triad gives the window buttons the third corner',
+  hueGap(hexToHsl(triad.colors.buttonBackground).h, seedHue) >= 95 &&
+    hueGap(hexToHsl(triad.colors.buttonBackground).h, hexToHsl(triad.colors.ntpLink).h) >= 95,
+  `${hueGap(hexToHsl(triad.colors.buttonBackground).h, seedHue).toFixed(1)} / ${hueGap(hexToHsl(triad.colors.buttonBackground).h, hexToHsl(triad.colors.ntpLink).h).toFixed(1)}`)
+ok('a clash theme says so in its notes',
+  clash.notes.some((note) => note.key === 'studio.noteClash'))
+ok('a triad theme says so in its notes',
+  triad.notes.some((note) => note.key === 'studio.noteTriad'))
+// The third hue has to be *visible* on the element that carries it; a grey
+// button would make the strategy (and the note claiming it) a lie.
+ok('a triad button is a visible hue, not a grey',
+  hexToHsl(triad.colors.buttonBackground).s >= 14,
+  `s=${hexToHsl(triad.colors.buttonBackground).s.toFixed(1)} ${triad.colors.buttonBackground}`)
+ok('the VS Code master carries that third hue into its buttons',
+  hueGap(hexToHsl(masterFromPalette(triad.colors).buttonBg).h, seedHue) >= 95,
+  `${hueGap(hexToHsl(masterFromPalette(triad.colors).buttonBg).h, seedHue).toFixed(1)}`)
+ok('the VS Code master keeps the accent readable on its own surfaces',
+  ['accent', 'errorFg', 'warningFg', 'editorFg'].every(
+    (key) => contrastRatio(masterFromPalette(triad.colors)[key], masterFromPalette(triad.colors).editorBg) >= 4.5,
+  ),
+  ['accent', 'errorFg', 'warningFg', 'editorFg']
+    .map((key) => `${key} ${contrastRatio(masterFromPalette(triad.colors)[key], masterFromPalette(triad.colors).editorBg).toFixed(2)}`)
+    .join(' '))
+ok('harmony stays quiet about it',
+  !harmony.notes.some((note) => note.key === 'studio.noteClash' || note.key === 'studio.noteTriad'))
+
+// Fidelity beats the strategy: a hue the user actually supplied is their accent.
+const PAIR = ['#9CBFA8', '#B83075']
+const fromPair = solveTheme({ seeds: PAIR, accentStrategy: 'clash' })
+ok('a contrasting colour in the user palette is used as-is',
+  fromPair.colors.ntpLink === '#B83075' || usedSeedHexes(fromPair.colors, PAIR).length === 2,
+  fromPair.colors.ntpLink)
+ok('and the strategy does not claim credit for it',
+  !fromPair.notes.some((note) => note.key === 'studio.noteClash'))
+
+// Surfaces are layered by hue, not only by lightness: one flat wash was the
+// original complaint, and equal hues still read flat however far apart the
+// lightnesses are.
+ok('every stacked surface has its own hue drift',
+  ['toolbar', 'backgroundTab', 'buttonBackground', 'omniboxBackground', 'ntpBackground']
+    .every((id) => typeof SURFACE_HUE_DRIFT[id] === 'number' && SURFACE_HUE_DRIFT[id] !== 0))
+// A seed dark enough that nothing can snap into a surface role (see ELIGIBLE),
+// so every surface really is derived and its drift is what is being measured.
+const layering = solveTheme({ seeds: [hslToHex({ h: 200, s: 55, l: 62 })], mode: 'light' })
+const layeredHues = new Set(
+  ['toolbar', 'backgroundTab', 'ntpBackground'].map((id) => hexToHsl(layering.colors[id]).h.toFixed(1)),
+)
+ok('three surfaces do not share one exact hue', layeredHues.size === 3, [...layeredHues].join(','))
+
+// Neutral input must never grow a hue just because a strategy asked for one.
+const greyClash = solveTheme({ seeds: ['#808080'], accentStrategy: 'clash' })
+ok('a neutral seed stays greyscale even in clash mode',
+  FIELD_IDS.every((id) => {
+    const rgb = parseHex(greyClash.colors[id])
+    return rgb.r === rgb.g && rgb.g === rgb.b
+  }),
+  greyClash.colors.ntpLink)
+ok('and no strategy note is emitted for it',
+  !greyClash.notes.some((note) => note.key === 'studio.noteClash'))
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

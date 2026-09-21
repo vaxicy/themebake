@@ -241,12 +241,26 @@ export default {
   'studio.intensity.soft': 'Soft',
   'studio.intensity.balanced': 'Balanced',
   'studio.intensity.bold': 'Bold',
+  'studio.accentLegend': 'Colour relationship',
+  'studio.accent.harmony': 'Matching',
+  'studio.accent.clash': 'Contrasting',
+  'studio.accent.triad': 'Triadic',
+  'studio.accentHint.harmony':
+    'Every surface and the accent stay in the seed hue — one calm colour in a few tints.',
+  'studio.accentHint.clash':
+    'Surfaces keep the seed hue while the accent lands on the opposite side of the colour wheel. The surfaces are held back so the accent carries the theme.',
+  'studio.accentHint.triad':
+    'Three related hues: the seed for the surfaces, a second for the accent and a third for the window buttons.',
   'studio.generate': 'Generate theme',
   'studio.resultLegend': 'Derived result',
   'studio.noteNeutral': 'Neutral seed detected — deriving a greyscale theme rather than inventing a hue.',
   'studio.noteFrameAdjusted':
     '“{hex}” was adjusted so it works as this frame. Its hue still drives the whole theme.',
   'studio.noteSeedsUsed': '{used} of {total} colours from your palette were used directly.',
+  'studio.noteClash':
+    'The accent sits on the opposite hue to your seed ({hex}); the surfaces keep the seed hue.',
+  'studio.noteTriad':
+    'Triadic result: accent {hex}, with the window buttons on the third hue {third}.',
 
   // ----------------------------------------------------------------- ai naming
   'ai.title': 'AI generation',

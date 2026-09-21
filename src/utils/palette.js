@@ -80,12 +80,70 @@ export const INTENSITIES = ['soft', 'balanced', 'bold']
 export const SOLVER_MODES = ['auto', 'light', 'dark']
 
 /**
- * How far the hue may drift for the accent. Kept small on purpose: for a
- * monochromatic palette a deeper, slightly shifted sibling of the same hue reads
- * as a deliberate accent, whereas a complementary hue would look imported.
- * Set this to 180 if you ever want a bold complementary link colour instead.
+ * How the accent relates to the palette's own hue family.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THERE IS A CHOICE AT ALL
+ * ---------------------------------------------------------------------------
+ * Deriving every role from one hue is safe but monotone: the window, the
+ * surfaces and the links all come back as tints of a single colour, which reads
+ * as "tinted" rather than "designed". The hand-made reference themes never do
+ * that — a grey-green surface family carrying a magenta accent is the house
+ * look, and the contrast between the two hues is what makes the accent read as
+ * a deliberate choice.
+ *
+ *   - `harmony` keeps the accent inside the family (±20°, mud-avoiding). The
+ *     default, and the right answer when the user wants one calm colour.
+ *   - `clash` puts the accent on the opposite hue (180°): the surfaces stay in
+ *     the seed's family, so the palette keeps its identity while the links and
+ *     active states land on the other side of the wheel.
+ *   - `triad` sits 120° away and hands the window buttons the *third* corner, so
+ *     the theme carries three related hues instead of two.
  */
-const ACCENT_HUE_SHIFT = 20
+export const ACCENT_STRATEGIES = ['harmony', 'clash', 'triad']
+
+export const DEFAULT_ACCENT_STRATEGY = 'harmony'
+
+/**
+ * How far the hue may drift for the accent, per strategy.
+ *
+ * `harmony` is kept small on purpose: a deeper, slightly shifted sibling of the
+ * same hue reads as a deliberate accent, whereas a complementary hue would look
+ * imported *unless the user asked for one*.
+ */
+const ACCENT_DISTANCE = { harmony: 20, clash: 180, triad: 120 }
+
+/**
+ * Minimum saturation for the accent, per strategy. An accent has to out-shout
+ * the surfaces it sits on, and a contrasting accent that is too pale reads as a
+ * mistake rather than a decision.
+ */
+const ACCENT_FLOOR = { harmony: 46, clash: 62, triad: 56 }
+
+/**
+ * Surface saturation multiplier per strategy. Contrasting themes need *quieter*
+ * surfaces: the whole point is that one colour is loud, and it cannot be if the
+ * background is shouting too.
+ */
+const SURFACE_SAT_SCALE = { harmony: 1, clash: 0.78, triad: 0.84 }
+
+/**
+ * A few degrees of extra hue drift per surface role.
+ *
+ * Stacked surfaces that share one exact hue read as a single flat wash no matter
+ * how far apart their lightness is. The reference themes never do that: the
+ * toolbar sits a shade off the frame, the New Tab page the other way, and the
+ * result reads as depth. Ten degrees is enough to separate the layers and far
+ * too little to read as a second colour family.
+ */
+export const SURFACE_HUE_DRIFT = {
+  toolbar: 6,
+  backgroundTab: -5,
+  buttonBackground: 12,
+  omniboxBackground: -8,
+  ntpBackground: -12,
+  frameInactive: 4,
+}
 
 /**
  * The hue band that reads as *dirt*. A +20° drift is not neutral: applied to a
@@ -100,9 +158,9 @@ const MUD_HUE = 45
  * *chroma*, which understates how saturated a pale colour looks: a dusty pink of
  * chroma 0.165 yields baseS ≈ 26, and an accent at 26% saturation is by
  * definition mud. The accent is the one role where vividness is the point, so it
- * gets a floor.
+ * gets a floor. See `ACCENT_FLOOR` for the per-strategy floors.
  */
-const ACCENT_SATURATION_FLOOR = 46
+const ACCENT_SATURATION_FLOOR = ACCENT_FLOOR.harmony
 
 /** Minimum saturation for the frame — the surface that carries the theme's identity. */
 const FRAME_SATURATION_FLOOR = 38
@@ -300,8 +358,20 @@ function detectMode(seeds, requested) {
   return mean < 42 ? 'dark' : 'light'
 }
 
-/** Derive a colour from the hue family at a target lightness/saturation. */
-function derive(family, target, intensity, mode, hueOverride) {
+/**
+ * Derive a colour from the hue family at a target lightness/saturation.
+ *
+ * @param {object} family  result of `hueFamily`
+ * @param {object} target  a `TARGETS` entry
+ * @param {string} intensity
+ * @param {'light'|'dark'} mode
+ * @param {object} [options]
+ * @param {number} [options.hue]      override the family hue (surface drift, accent)
+ * @param {number} [options.minSat]   override the saturation floor
+ * @param {number} [options.satScale] extra saturation multiplier (quiet surfaces)
+ */
+function derive(family, target, intensity, mode, options = {}) {
+  const { hue: hueOverride, minSat, satScale = 1 } = options
   const scale = INTENSITY_SCALE[intensity] ?? 1
 
   if (family.neutral) {
@@ -315,8 +385,8 @@ function derive(family, target, intensity, mode, hueOverride) {
   // carry the theme's identity (the frame) or its energy (the accent) may set a
   // floor on top of that, because chroma understates pale colours.
   const baseS = clamp(family.chroma * 100 * BASE_SATURATION_MULTIPLIER, 16, 78)
-  const floor = target.minSat ?? (target.cat === 'accent' ? ACCENT_SATURATION_FLOOR : 0)
-  const s = clamp(Math.max(baseS, floor) * target.s * scale, 0, 88)
+  const floor = minSat ?? target.minSat ?? (target.cat === 'accent' ? ACCENT_SATURATION_FLOOR : 0)
+  const s = clamp(Math.max(baseS, floor) * target.s * scale * satScale, 0, 88)
   return hslToHex({ h: hue, s, l: target.l })
 }
 
@@ -350,23 +420,37 @@ function snap(seeds, target, mode, exclude = null) {
 }
 
 /**
- * Hue for the accent role.
+ * Pick `hue ± distance`, preferring the side that is further from the mud band.
+ *
+ * @param {number} hue  the palette's family hue
+ * @param {number} distance  how far to travel, with the sign decided here
+ * @returns {number} the resulting hue, 0-360
+ */
+function hueAtDistance(hue, distance) {
+  const plus = (hue + distance + 360) % 360
+  const minus = (hue - distance + 360) % 360
+  // Ties (the seed lands equidistant from mud) fall to `plus`, which is the
+  // traditional "warmer accent" direction and is safe at that distance.
+  return hueDistance(plus, MUD_HUE) >= hueDistance(minus, MUD_HUE) ? plus : minus
+}
+
+/**
+ * Hue for the accent role, given the user's chosen colour relationship.
  *
  * `family.hue + 20` was an unconditional drift, which is only flattering in half
  * the hue wheel: from a pink (0°) it lands on orange-brown, from a green (120°)
  * on olive. Both read as dirt. The drift is therefore signed so it always moves
  * *away* from `MUD_HUE`, and the saturated-accent floor in `derive` keeps the
- * result from sinking into a low-chroma grey.
+ * result from sinking into a low-chroma grey. A contrasting accent needs the same
+ * care: 180° from an orange (35°) is a blue-cyan (215°), which is fine, but the
+ * ±120° corners of a triad can land in the band, so the side is chosen too.
  *
  * @param {number} hue  the palette's family hue
+ * @param {string} [strategy]  one of `ACCENT_STRATEGIES`
  * @returns {number} the accent hue, 0-360
  */
-function accentHueFor(hue) {
-  const plus = (hue + ACCENT_HUE_SHIFT + 360) % 360
-  const minus = (hue - ACCENT_HUE_SHIFT + 360) % 360
-  // Ties (the seed lands equidistant from mud) fall to `plus`, which is the
-  // traditional "warmer accent" direction and is safe at that distance.
-  return hueDistance(plus, MUD_HUE) >= hueDistance(minus, MUD_HUE) ? plus : minus
+function accentHueFor(hue, strategy = DEFAULT_ACCENT_STRATEGY) {
+  return hueAtDistance(hue, ACCENT_DISTANCE[strategy] ?? ACCENT_DISTANCE.harmony)
 }
 
 /**
@@ -509,6 +593,8 @@ function ensureContrastAgainst(fg, backgrounds, min) {
  * @param {string[]} options.seeds        Raw hex strings (invalid ones are ignored).
  * @param {'auto'|'light'|'dark'} [options.mode='auto']
  * @param {'soft'|'balanced'|'bold'} [options.intensity='balanced']
+ * @param {'harmony'|'clash'|'triad'} [options.accentStrategy='harmony']
+ *   How the accent relates to the seed's hue — see `ACCENT_STRATEGIES`.
  * @returns {{
  *   ok: boolean,
  *   colors: Record<string,string>,
@@ -517,10 +603,19 @@ function ensureContrastAgainst(fg, backgrounds, min) {
  *   distinctSeedsUsed: number,
  *   seedCount: number,
  *   neutral: boolean,
+ *   accentStrategy: string,
  *   notes: {key: string, vars?: Record<string, unknown>}[],
  * }}
  */
-export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}) {
+export function solveTheme({
+  seeds,
+  mode = 'auto',
+  intensity = 'balanced',
+  accentStrategy = DEFAULT_ACCENT_STRATEGY,
+} = {}) {
+  const strategy = ACCENT_STRATEGIES.includes(accentStrategy)
+    ? accentStrategy
+    : DEFAULT_ACCENT_STRATEGY
   const parsed = normalizeSeeds(seeds)
 
   if (!parsed.length) {
@@ -529,8 +624,10 @@ export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}
       colors: {},
       mode: 'light',
       seedsUsed: 0,
+      distinctSeedsUsed: 0,
       seedCount: 0,
       neutral: false,
+      accentStrategy: strategy,
       notes: [],
     }
   }
@@ -591,17 +688,60 @@ export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}
         { l: clamp(frameLActual + (resolvedMode === 'dark' ? 6 : 9), 0, 92), s: 0.55 },
         intensity,
         resolvedMode,
+        { hue: family.hue + (SURFACE_HUE_DRIFT.frameInactive ?? 0) },
       )
 
   // --------------------------- accent hue ----------------------------------
-  // Use a genuinely different seed's hue if the palette contains one; otherwise
-  // stay in the family and shift in whichever direction avoids the mud band.
+  // A hue the user actually gave us always wins: if their palette holds a
+  // genuinely different colour at usable chroma, that *is* their accent, and
+  // overriding it with a computed one would throw their input away. Only when
+  // there is no such colour does the chosen relationship decide.
   let accentHue = null
+  let accentFromSeeds = false
   if (!family.neutral) {
     const outliers = parsed
       .filter((s) => s.chroma >= 0.1 && hueDistance(s.h, family.hue) > 35)
       .sort((a, b) => b.chroma - a.chroma)
-    accentHue = outliers.length ? outliers[0].h : accentHueFor(family.hue)
+    accentFromSeeds = outliers.length > 0
+    accentHue = accentFromSeeds ? outliers[0].h : accentHueFor(family.hue, strategy)
+  }
+  /** Set when the accent role itself was filled by one of the user's colours. */
+  let accentSnapped = false
+
+  // The third corner of the wheel, for the strategies that use one. `clash` has
+  // no third corner of its own (its mirror is the accent itself), so its window
+  // buttons join the accent instead.
+  const thirdHue = family.neutral ? null : (2 * family.hue - accentHue + 720) % 360
+  const buttonHue = family.neutral
+    ? undefined
+    : strategy === 'triad'
+      ? thirdHue
+      : strategy === 'clash'
+        ? accentHue
+        : family.hue + (SURFACE_HUE_DRIFT.buttonBackground ?? 0)
+
+  const surfaceSatScale = SURFACE_SAT_SCALE[strategy] ?? 1
+  const accentFloor = ACCENT_FLOOR[strategy] ?? ACCENT_SATURATION_FLOOR
+  /**
+   * Floor for the window buttons when they carry a second hue.
+   *
+   * Surfaces are derived from the seed's chroma, which for a soft seed is low
+   * enough that a third hue arrives as a grey — the strategy would then be
+   * invisible on the one element that shows it, and a note claiming otherwise
+   * would be a lie. The floor is pre-multiplier on purpose: `derive` scales it by
+   * the role's own factor, so it lands around 20% saturation in the output.
+   */
+  const buttonFloor = strategy === 'harmony' ? undefined : 30
+
+  /**
+   * Hue for one role: the accent, the third corner, a drifted surface, or the
+   * family itself (`undefined` lets `derive` use `family.hue`).
+   */
+  const hueFor = (fieldId) => {
+    if (fieldId === 'ntpLink') return accentHue ?? undefined
+    if (fieldId === 'buttonBackground') return buttonHue
+    const drift = SURFACE_HUE_DRIFT[fieldId]
+    return drift ? family.hue + drift : undefined
   }
 
   // -------------------- remaining roles: snap, else derive ------------------
@@ -617,16 +757,22 @@ export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}
     if (hit) {
       colors[fieldId] = hit.hex
       if (claimsBackground) claimedBackgroundSeeds.add(hit.hex)
+      if (fieldId === 'ntpLink') accentSnapped = true
       continue
     }
 
-    colors[fieldId] = derive(
-      family,
-      target,
-      intensity,
-      resolvedMode,
-      fieldId === 'ntpLink' ? accentHue : undefined,
-    )
+    colors[fieldId] = derive(family, target, intensity, resolvedMode, {
+      hue: hueFor(fieldId),
+      minSat:
+        target.cat === 'accent'
+          ? accentFloor
+          : fieldId === 'buttonBackground'
+            ? buttonFloor
+            : undefined,
+      // Quiet surfaces are what let a contrasting accent be the loudest thing on
+      // screen; text and accent roles keep their own saturation.
+      satScale: BACKGROUND_CATS.has(target.cat) ? surfaceSatScale : 1,
+    })
   }
 
   // ----------------------------- contrast pass -----------------------------
@@ -648,6 +794,15 @@ export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}
     })
   }
 
+  // Say out loud what the strategy did — otherwise a contrasting accent looks
+  // like the solver drifted off on its own.
+  if (!family.neutral && !accentFromSeeds && !accentSnapped && strategy !== 'harmony') {
+    notes.push({
+      key: strategy === 'triad' ? 'studio.noteTriad' : 'studio.noteClash',
+      vars: { hex: colors.ntpLink, third: colors.buttonBackground },
+    })
+  }
+
   return {
     ok: true,
     colors,
@@ -656,6 +811,7 @@ export function solveTheme({ seeds, mode = 'auto', intensity = 'balanced' } = {}
     distinctSeedsUsed,
     seedCount: parsed.length,
     neutral: family.neutral,
+    accentStrategy: strategy,
     notes,
   }
 }

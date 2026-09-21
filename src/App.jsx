@@ -60,7 +60,7 @@ import { exportThemeJson } from './utils/importTheme.js'
 import { buildManifest, parseManifest, validateThemeInput } from './utils/manifest.js'
 import { buildThemePackage, toThemeFolderName } from './utils/package.js'
 import { suggestThemeName } from './utils/nameFromColors.js'
-import { INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
+import { ACCENT_STRATEGIES, DEFAULT_ACCENT_STRATEGY, INTENSITIES, SOLVER_MODES, solveTheme } from './utils/palette.js'
 import { toSafeName } from './utils/slug.js'
 import { clearTheme, loadTheme, saveTheme, storageAvailable } from './utils/storage.js'
 import { createZip, downloadBlob, downloadText } from './utils/zip.js'
@@ -117,6 +117,9 @@ function readInitialState() {
       seed: normalizeHex(saved.seed) ?? colors.frame,
       smartMode: SOLVER_MODES.includes(saved.smartMode) ? saved.smartMode : 'auto',
       smartIntensity: INTENSITIES.includes(saved.smartIntensity) ? saved.smartIntensity : 'balanced',
+      smartAccent: ACCENT_STRATEGIES.includes(saved.smartAccent)
+        ? saved.smartAccent
+        : DEFAULT_ACCENT_STRATEGY,
     },
     warning: null,
   }
@@ -171,6 +174,11 @@ export default function App() {
   const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_COLORS.frame)
   const [smartMode, setSmartMode] = useState(INITIAL.state?.smartMode ?? 'auto')
   const [smartIntensity, setSmartIntensity] = useState(INITIAL.state?.smartIntensity ?? 'balanced')
+  // How the derived accent relates to the seed's hue: inside the family, or on
+  // the opposite side of the wheel. Part of the draft so a solve can be repeated.
+  const [smartAccent, setSmartAccent] = useState(
+    INITIAL.state?.smartAccent ?? DEFAULT_ACCENT_STRATEGY,
+  )
 
   // ----------------------------------------------------------------- AI naming
   // The AI settings are a separate preference, not part of the theme draft: they
@@ -268,6 +276,7 @@ export default function App() {
         seed,
         smartMode,
         smartIntensity,
+        smartAccent,
       })
       if (!result.ok && !warnedRef.current) {
         warnedRef.current = true
@@ -287,6 +296,7 @@ export default function App() {
     seed,
     smartMode,
     smartIntensity,
+    smartAccent,
   ])
 
   // ---------------------------------------------------------------------------
@@ -465,7 +475,12 @@ export default function App() {
    */
   const applySolvedTheme = useCallback(
     (seeds) => {
-      const result = solveTheme({ seeds, mode: smartMode, intensity: smartIntensity })
+      const result = solveTheme({
+        seeds,
+        mode: smartMode,
+        intensity: smartIntensity,
+        accentStrategy: smartAccent,
+      })
       if (!result.ok) {
         toast.error(t('import.errorNoColors'))
         return null
@@ -482,7 +497,7 @@ export default function App() {
       setActivePresetId(null)
       return result
     },
-    [autoClearOnNewTheme, pushHistory, smartMode, smartIntensity, toast, t],
+    [autoClearOnNewTheme, pushHistory, smartMode, smartIntensity, smartAccent, toast, t],
   )
 
   const handleStudioGenerate = useCallback(() => {
@@ -812,9 +827,11 @@ export default function App() {
               seed={seed}
               mode={smartMode}
               intensity={smartIntensity}
+              accent={smartAccent}
               onSeedChange={setSeed}
               onModeChange={(next) => setSmartMode(pick(next, SOLVER_MODES, 'auto'))}
               onIntensityChange={(next) => setSmartIntensity(pick(next, INTENSITIES, 'balanced'))}
+              onAccentChange={(next) => setSmartAccent(pick(next, ACCENT_STRATEGIES, DEFAULT_ACCENT_STRATEGY))}
               onGenerate={handleStudioGenerate}
               onInvalidSeed={handleInvalidColor}
             />
