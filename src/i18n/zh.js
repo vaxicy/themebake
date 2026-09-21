@@ -170,7 +170,7 @@ export default {
   'ai.style.nature': '自然',
   'ai.style.retro': '复古',
   'ai.style.dreamy': '梦幻',
-  'ai.language': '名称语言',
+  'ai.language': '生成语言',
   'ai.lang.en': '英文',
   'ai.lang.zh': '中文',
   'ai.privacyNote': 'Key 只留在本机浏览器里；每次请求除了这几个颜色，不会把你的主题内容发出去。',
