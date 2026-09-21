@@ -812,7 +812,12 @@ export default function App() {
               and both workbenches should open the same way.
             */}
             <Hero titleKey="hero.vscode.title" subtitleKey="hero.vscode.subtitle" />
-            <VSCodeWorkbench aiConfig={aiConfig} onAiConfigChange={handleAiConfigChange} />
+            <VSCodeWorkbench
+              aiConfig={aiConfig}
+              onAiConfigChange={handleAiConfigChange}
+              autoClear={autoClearOnNewTheme}
+              onAutoClearChange={setAutoClearOnNewTheme}
+            />
           </>
         ) : (
           <>

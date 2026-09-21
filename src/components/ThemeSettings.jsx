@@ -28,6 +28,14 @@ export function ThemeSettings({
   fields,
   titleKey = 'settings.title',
   subtitleKey = 'settings.subtitle',
+  /*
+   * The identity hints name the file the values end up in, and that file differs
+   * per workspace (manifest.json for Chrome, package.json for a VS Code theme), so
+   * each workspace passes its own keys. Defaulting to the Chrome ones keeps the
+   * Chrome workbench's markup exactly as it was.
+   */
+  nameHintKey = 'settings.name.hint',
+  folderHintKey = 'settings.folder.hint',
   headerSlot = null,
   footerSlot = null,
   groupExtra,
@@ -85,7 +93,7 @@ export function ThemeSettings({
               </button>
             ) : null}
             {onAutoClearChange ? (
-              <label className="auto-clear-toggle" title={autoClearTitle}>
+              <label className="auto-clear-toggle" title={autoClearTitle ?? t('settings.autoClearTitle')}>
                 <input
                   type="checkbox"
                   checked={autoClear}
@@ -131,7 +139,7 @@ export function ThemeSettings({
           </p>
         ) : (
           <p className="field__hint" id="theme-name-hint">
-            {t('settings.name.hint')}
+            {t(nameHintKey)}
           </p>
         )}
       </div>
@@ -159,7 +167,7 @@ export function ThemeSettings({
           aria-describedby="theme-folder-hint"
         />
         <p className="field__hint" id="theme-folder-hint">
-          {t('settings.folder.hint')}
+          {t(folderHintKey)}
         </p>
       </div>
 

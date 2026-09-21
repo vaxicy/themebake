@@ -197,7 +197,20 @@ function paletteForAi(master) {
   }
 }
 
-export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
+/**
+ * @param {object} props
+ * @param {boolean} [props.autoClear]  Auto-clear the identity fields on a new theme.
+ *   Owned by the app (one preference, one storage key, shared with the Chrome
+ *   workbench) rather than by this draft, so the switch means the same thing in
+ *   both workspaces and a theme export can never reset it.
+ * @param {(value: boolean) => void} [props.onAutoClearChange]
+ */
+export function VSCodeWorkbench({
+  aiConfig,
+  onAiConfigChange,
+  autoClear = false,
+  onAutoClearChange = null,
+}) {
   const toast = useToast()
   const { t } = useI18n()
 
@@ -408,6 +421,21 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     toast.info(t('toast.vscodeFieldsCleared'))
   }, [toast, t])
 
+  /**
+   * Empty the identity fields for a theme that has just arrived.
+   *
+   * The switch mirrors the Chrome workbench's (same preference, same storage key):
+   * a new palette *replaces* the theme, so the previous theme's name and folder go
+   * with it instead of quietly labelling a different palette. Hand edits and the
+   * palette itself are never touched — only the two text fields are.
+   */
+  const clearIdentityForNewTheme = useCallback(() => {
+    if (!autoClear) return
+    setName('')
+    setFolderInput('')
+    setNameError('')
+  }, [autoClear])
+
   /** Colour edits land in whichever half is on screen. */
   const handleColorChange = useCallback(
     (fieldId, next) => {
@@ -517,9 +545,10 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       setType(resolveType(type, built))
       reseedPair(built)
       setActivePresetId(preset.id)
+      clearIdentityForNewTheme()
       toast.success(t('toast.presetApplied', { name: preset.name }))
     },
-    [pushHistory, reseedPair, toast, t, type],
+    [clearIdentityForNewTheme, pushHistory, reseedPair, toast, t, type],
   )
 
   /** Shared "solve a palette and adopt it" step for studio / random / import. */
@@ -543,9 +572,20 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       setType(resolveType(type, built))
       reseedPair(built)
       setActivePresetId(null)
+      clearIdentityForNewTheme()
       return result
     },
-    [pushHistory, reseedPair, smartMode, smartIntensity, smartAccent, toast, t, type],
+    [
+      clearIdentityForNewTheme,
+      pushHistory,
+      reseedPair,
+      smartMode,
+      smartIntensity,
+      smartAccent,
+      toast,
+      t,
+      type,
+    ],
   )
 
   const handleStudioGenerate = useCallback(() => {
@@ -586,8 +626,9 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     setType(resolveType(type, built))
     reseedPair(built)
     setActivePresetId(null)
+    clearIdentityForNewTheme()
     toast.success(t('toast.randomApplied'))
-  }, [pushHistory, reseedPair, toast, t, type])
+  }, [clearIdentityForNewTheme, pushHistory, reseedPair, toast, t, type])
 
   const handleApplyAiCandidate = useCallback((candidate) => {
     setName(candidate.name)
@@ -717,9 +758,16 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
           fields={VSCODE_FIELDS}
           titleKey="vscode.title"
           subtitleKey="vscode.subtitle"
+          // The name lands in the extension's package.json here, not in a Chrome
+          // manifest — sharing Chrome's hint would describe the wrong file.
+          nameHintKey="vscode.name.hint"
+          folderHintKey="vscode.folder.hint"
           onUndo={handleUndo}
           canUndo={undoDepth > 0}
           onClearFields={handleClearFields}
+          autoClear={autoClear}
+          onAutoClearChange={onAutoClearChange}
+          autoClearTitle={t('vscode.autoClearTitle')}
           aiPanel={
             <AiNamingPanel
               config={aiConfig}

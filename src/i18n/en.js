@@ -113,6 +113,12 @@ export default {
   'vscode.pair.hint':
     'Derives the {other} palette from your colours and exports both themes from one package. The preview switch flips between them.',
   'vscode.pair.hcUnsupported': 'High contrast has no light/dark counterpart, so pairing is unavailable.',
+  'vscode.autoClearTitle':
+    'Clears the theme name and folder name whenever a new theme is applied (preset, random, smart palette, palette import)',
+  'vscode.name.hint':
+    'Written into the extension’s package.json as displayName — what the VS Code theme picker shows after installing, kept exactly as typed. The folder name below is a separate field.',
+  'vscode.folder.hint':
+    'The exported folder and file name. Written as typed, minus characters the file system rejects; left empty, it is derived from the theme name.',
   'vscode.importManifestUnsupported': 'The VS Code workspace cannot import a Chrome theme — use palette import.',
   'vscode.group.editor': 'Editor',
   'vscode.group.shell': 'Shell',
