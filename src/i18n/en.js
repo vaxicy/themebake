@@ -56,6 +56,13 @@ export default {
   'lang.en': 'EN',
   'lang.zh': '中文',
 
+  // ------------------------------------------------------------------- scheme
+  // The light/dark pair, one word each. Kept separate from `vscode.type.*`
+  // because the studio and the preview switch talk about schemes, not about a
+  // theme's declared type.
+  'scheme.light': 'Light',
+  'scheme.dark': 'Dark',
+
   // ---------------------------------------------------------------------- hero
   'hero.title': 'Create your own Chrome theme.',
   'hero.subtitle':
@@ -97,7 +104,12 @@ export default {
   'vscode.type.dark': 'Dark',
   'vscode.type.light': 'Light',
   'vscode.type.hc': 'High contrast',
-  'vscode.type.hint': 'Written into the theme JSON as type, and drives the package.json uiTheme.',
+  'vscode.type.hint':
+    'Written into the theme JSON as type, and drives the package.json uiTheme. Switching it re-solves the palette, which currently reads as {scheme}.',
+  'vscode.pair.label': 'Also generate the opposite scheme',
+  'vscode.pair.hint':
+    'Derives the {other} palette from your colours and exports both themes from one package. The preview switch flips between them.',
+  'vscode.pair.hcUnsupported': 'High contrast has no light/dark counterpart, so pairing is unavailable.',
   'vscode.importManifestUnsupported': 'The VS Code workspace cannot import a Chrome theme — use palette import.',
   'vscode.group.editor': 'Editor',
   'vscode.group.shell': 'Shell',
@@ -135,11 +147,24 @@ export default {
   'vscode.preview.subtitle': 'The workbench and syntax colours rendered from your palette.',
   'vscode.preview.aria': 'VS Code interface preview',
   'vscode.preview.derived': 'Derives {colors} workbench colour keys + {tokens} syntax rules.',
+  'vscode.preview.variantLegend': 'Previewed scheme',
+  'vscode.preview.pairNote':
+    'Showing the {shown} theme, derived from your {base} colours. The exported package contains both.',
+  'vscode.preview.pairNoteBase':
+    'Editing the {base} theme; the {other} theme is derived from it. The exported package contains both.',
   'vscode.export.title': 'Export VS Code Theme',
   'vscode.export.subtitle': 'Builds an installable extension package {filename} (package.json + themes/ JSON + README).',
   'vscode.export.subtitleFolder': 'Writes the extension folder {folder}/ directly — no unzipping needed.',
+  'vscode.export.subtitlePair':
+    'Builds one installable package {filename} carrying {count} themes: package.json + a JSON per scheme + README.',
+  'vscode.export.subtitlePairFolder':
+    'Writes the folder {folder}/ carrying {count} themes — install once, switch whenever you like.',
   'vscode.export.note': 'The ZIP holds a single folder {folder}/ with package.json and the theme JSON under themes/.',
   'vscode.export.noteFolder': 'Creates folder {folder}/ at your chosen location, with package.json and the theme JSON under themes/.',
+  'vscode.export.notePair':
+    'The ZIP holds a single folder {folder}/ whose themes/ directory carries the light and the dark JSON.',
+  'vscode.export.notePairFolder':
+    'Creates folder {folder}/ at your chosen location, with both theme JSONs under themes/.',
   'vscode.export.howtoSummary': 'How to install',
   'vscode.export.howto1': 'Copy the exported folder into %USERPROFILE%\\.vscode\\extensions\\.',
   'vscode.export.howto2': 'Restart VS Code (or open the folder and debug it as an extension).',
@@ -191,6 +216,12 @@ export default {
   'studio.subtitle': 'Pick one colour and ThemeBake derives a full, contrast-checked theme.',
   'studio.seedLabel': 'Main colour',
   'studio.seedHint': 'Becomes the window frame. Everything else is derived from it.',
+  // The VS Code workbench solves the same palette but writes different roles, so
+  // it says where the seed lands there instead of talking about a window frame.
+  'studio.vscodeSeedHint':
+    'Drives the whole palette — the frame solved from it becomes the editor surface, and the rest of the workbench follows.',
+  'studio.randomSeed': 'Random colour',
+  'studio.resolvedScheme': 'Resolved: {scheme}',
   'studio.modeLegend': 'Brightness',
   'studio.mode.auto': 'Auto',
   'studio.mode.light': 'Light',
@@ -394,6 +425,8 @@ export default {
   'toast.themeReset': 'Theme reset.',
   'toast.fieldsCleared': 'Name, folder name and summary cleared.',
   'toast.vscodeGenerated': 'VS Code theme package generated.',
+  'toast.vscodeGeneratedPair': 'VS Code theme package with a light and a dark theme generated.',
+  'toast.vscodeSchemeSwitched': 'Re-solved the palette for the {scheme} scheme.',
   'toast.vscodeFieldsCleared': 'Name and folder name cleared.',
   'toast.undone': 'Undid the last change.',
   'toast.presetApplied': 'Applied preset “{name}”.',

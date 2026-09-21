@@ -85,6 +85,16 @@
   margin-bottom: 16px;
 }
 
+/* The 明暗 legend carries the resolved scheme on its right, so the two share a
+   row instead of the badge pushing the options down. */
+.studio__legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
 .studio__legend {
   padding: 0;
   margin-bottom: 7px;
@@ -93,6 +103,28 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* Inside the legend row the legend's own bottom margin would double the gap. */
+.studio__legend-row .studio__legend {
+  margin-bottom: 0;
+}
+
+/* The scheme the solver actually chose — small, but always visible. */
+.studio__badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--accent-soft);
+  color: var(--accent-active);
+  font-size: var(--text-xs);
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.studio__random {
+  flex: 0 0 auto;
 }
 
 /* The shared `.segmented` grid is 2-up for the export format picker; these
@@ -111,18 +143,23 @@
   font-size: var(--text-sm);
 }
 
+/*
+  The derived result: a legend row, then one labelled swatch per role. The strip
+  used to be a single unlabelled bar, which showed a palette but not *what it was
+  going to become* — the hex under each swatch is the value that lands in the
+  exported theme, so the preview can be checked at a glance.
+*/
 .studio__result {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 11px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
 }
 
 .studio__result-legend {
-  flex: 0 0 auto;
   font-size: var(--text-xs);
   font-weight: 680;
   letter-spacing: 0.06em;
@@ -131,17 +168,34 @@
 }
 
 .studio__strip {
-  flex: 1 1 auto;
   display: flex;
-  height: 26px;
+  gap: 5px;
   min-width: 0;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-xs);
-  overflow: hidden;
+}
+
+.studio__strip-cell {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .studio__strip-swatch {
-  flex: 1 1 0;
+  height: 30px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-xs);
+}
+
+.studio__strip-hex {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .studio__notes {
@@ -340,10 +394,14 @@
 }
 
 @media (max-width: 560px) {
-  .studio__result {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 7px;
+  /* Six hex codes do not fit on one phone-width row, so they wrap into rows of
+     three rather than shrinking into illegible type. */
+  .studio__strip {
+    flex-wrap: wrap;
+  }
+
+  .studio__strip-cell {
+    flex: 0 0 calc(33.333% - 4px);
   }
 
   .segmented--three .segmented__label {

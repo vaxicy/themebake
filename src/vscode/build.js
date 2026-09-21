@@ -15,7 +15,17 @@
  * Free of DOM calls so it stays runnable in Node (verify / future tests).
  */
 
-import { adjustL, mix, parseHex, readableTextOn, relativeLuminance } from '../utils/color.js'
+import {
+  adjustL,
+  clamp,
+  contrastRatio,
+  hexToHsl,
+  hslToHex,
+  mix,
+  parseHex,
+  readableTextOn,
+  relativeLuminance,
+} from '../utils/color.js'
 import { toSafeName } from '../utils/slug.js'
 import { toThemeFolderName } from '../utils/package.js'
 import { DEFAULT_VSCODE_COLORS, DEFAULT_VSCODE_TYPE, VSCODE_TYPES, VSCODE_FIELD_IDS } from './fields.js'
@@ -28,6 +38,110 @@ function fade(hex, alpha) {
 /** Is the master palette a dark scheme? Drives a handful of derivations. */
 export function isDarkTheme(colors) {
   return relativeLuminance(colors.editorBg) < 0.4
+}
+
+/**
+ * Which scheme a palette actually *is*, read off its editor background.
+ *
+ * Never trust the declared `type` for this: a palette solved from a light seed
+ * while the selector still said "dark" is a real state (the studio sets both,
+ * but a restored draft or a hand-edited colour can desync them), and the derived
+ * workbench keys follow the colours, not the label.
+ *
+ * @param {Record<string,string>} colors master colours
+ * @returns {'dark'|'light'}
+ */
+export function schemeOf(colors) {
+  return isDarkTheme(buildMasterColors(colors)) ? 'dark' : 'light'
+}
+
+/**
+ * The opposite scheme of a theme type, or `null` when there is none.
+ * High contrast is deliberately excluded: `hc-black` is its own rendering mode,
+ * not one half of a light/dark pair.
+ * @param {string} type
+ * @returns {'dark'|'light'|null}
+ */
+export function counterpartTypeFor(type) {
+  if (type === 'dark') return 'light'
+  if (type === 'light') return 'dark'
+  return null
+}
+
+/**
+ * Push a colour's lightness until it clears `min` contrast against a background.
+ *
+ * Only lightness moves — hue and saturation are what make the colour *that*
+ * colour, and a hue-preserving nudge is what keeps a derived light theme looking
+ * like a sibling of its dark original instead of a different theme. The direction
+ * is decided by the background, not by the theme type, because a background can
+ * land mid-range and then only one direction has headroom.
+ */
+function contrastAgainst(hex, background, min = 4.5) {
+  if (contrastRatio(hex, background) >= min) return hex
+
+  const hsl = hexToHsl(hex)
+  const towardsLight = relativeLuminance(background) < 0.5
+  for (let step = 1; step <= 44; step += 1) {
+    const l = clamp(hsl.l + (towardsLight ? step : -step) * 1.5, 0, 100)
+    const candidate = hslToHex({ ...hsl, l })
+    if (contrastRatio(candidate, background) >= min) return candidate
+    if (l <= 0 || l >= 100) break
+  }
+  // No lightness on that axis can clear the bar — fall back to the extreme, which
+  // is the most readable this hue can get on that surface.
+  return hslToHex({ ...hsl, l: towardsLight ? 96 : 6 })
+}
+
+/**
+ * Flip a master palette into the opposite scheme.
+ *
+ * The surfaces are rebuilt from the *accent's hue* rather than from the original
+ * surfaces' colours: a dark scheme's near-black editor background carries almost
+ * no hue information, so inverting its lightness would produce a washed-out grey
+ * light theme. Starting from the accent instead gives a surface that is tinted by
+ * the theme's own colour — and the accent/error/warning colours are then re-anchored
+ * so they still read on the new background at 4.5:1.
+ *
+ * @param {Record<string,string>} colors master colours (any scheme)
+ * @param {'dark'|'light'} [targetType] defaults to the opposite of `colors`
+ * @returns {Record<string,string>} a complete master record for `targetType`
+ */
+export function deriveCounterpart(colors, targetType) {
+  const source = buildMasterColors(colors)
+  const target = targetType ?? counterpartTypeFor(schemeOf(source))
+  if (target !== 'dark' && target !== 'light') return source
+
+  const dark = target === 'dark'
+  const accentHsl = hexToHsl(source.accent)
+
+  // Only a whisper of the accent's saturation goes into the surfaces, so the
+  // accent itself stays the loudest colour on screen.
+  const bg = hslToHex({ h: accentHsl.h, s: Math.min(accentHsl.s, dark ? 24 : 28), l: dark ? 13 : 97 })
+  const fg = hslToHex({ h: accentHsl.h, s: Math.min(accentHsl.s, 24), l: dark ? 93 : 16 })
+  const accent = contrastAgainst(source.accent, bg)
+
+  /** A surface one step away from `bg`, in the direction that adds depth. */
+  const step = (t) => mix(bg, dark ? '#FFFFFF' : '#000000', t)
+
+  return {
+    editorBg: bg,
+    editorFg: fg,
+    accent,
+    selectionBg: mix(accent, bg, 0.72),
+    // Tinted with the text colour, not with a fixed lightness step, so the
+    // current line reads as a highlight in both schemes.
+    lineHighlightBg: mix(bg, fg, dark ? 0.07 : 0.06),
+    mutedFg: mix(fg, bg, 0.42),
+    activityBg: dark ? mix(bg, '#000000', 0.25) : mix(bg, '#000000', 0.05),
+    sidebarBg: step(0.05),
+    titleBg: step(0.09),
+    border: step(0.12),
+    buttonBg: accent,
+    buttonFg: readableTextOn(accent),
+    errorFg: contrastAgainst(source.errorFg, bg),
+    warningFg: contrastAgainst(source.warningFg, bg),
+  }
 }
 
 /**
@@ -272,26 +386,75 @@ export function uiThemeFor(type) {
   return VSCODE_TYPES.find((entry) => entry.id === type)?.uiTheme ?? 'vs-dark'
 }
 
+/** Label suffix used when a package ships both schemes, per house convention. */
+const SCHEME_LABEL = { light: 'Light', dark: 'Dark' }
+
 /**
  * Build the full extension package.
+ *
+ * Passing `counterpart` declares **two** themes in one extension (light + dark),
+ * which is the house convention of the hand-made reference themes: files named
+ * `<slug>-{light,dark}-color-theme.json`, labels `"<Name> Light"` / `"<Name>
+ * Dark"`, light listed first so the picker reads consistently across families.
  *
  * @param {object} options
  * @param {string} options.name  Display name, written verbatim.
  * @param {string} [options.folderName]  User's folder-name field; falls back to
  *   a slug of `name`.
  * @param {string} [options.type]  'dark' | 'light' | 'hc-black'
- * @param {Record<string,string>} options.colors  Master colours.
+ * @param {Record<string,string>} options.colors  Master colours of the edited scheme.
+ * @param {{type:string, colors:Record<string,string>}|null} [options.counterpart]
+ *   The other scheme (`deriveCounterpart`). Ignored for `hc-black`, which is a
+ *   rendering mode of its own rather than one half of a pair.
  * @returns {{files:{path:string,data:string}[], folderName:string, zipName:string,
- *   themeJson:string, colorCount:number, tokenColorCount:number}}
+ *   themeJson:string, colorCount:number, tokenColorCount:number,
+ *   themeCount:number, themes:{label:string,uiTheme:string,path:string}[]}}
  */
-export function buildVscodePackage({ name, folderName: explicitFolderName, type = DEFAULT_VSCODE_TYPE, colors }) {
+export function buildVscodePackage({
+  name,
+  folderName: explicitFolderName,
+  type = DEFAULT_VSCODE_TYPE,
+  colors,
+  counterpart = null,
+}) {
   const master = buildMasterColors(colors)
-  const themeJson = buildVscodeThemeJson({ name, type, colors: master })
-
   const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
   const folderName = (typedFolderName || toThemeFolderName(name)).toLowerCase()
-  const themeFileName = `${folderName}-color-theme.json`
-  const isDark = type !== 'light'
+  const paired = Boolean(counterpart) && (type === 'dark' || type === 'light')
+
+  /** One contributed theme: its JSON payload plus the package.json entry. */
+  const makeTheme = (label, themeType, themeColors, fileName) => {
+    const json = buildVscodeThemeJson({ name: label, type: themeType, colors: themeColors })
+    return {
+      label,
+      json,
+      file: { path: `themes/${fileName}`, data: `${JSON.stringify(json, null, 2)}\n` },
+      contribution: { label, uiTheme: uiThemeFor(themeType), path: `./themes/${fileName}` },
+    }
+  }
+
+  let themes
+  if (paired) {
+    const otherType = counterpartTypeFor(type)
+    const other = buildMasterColors(counterpart.colors)
+    // Light first, then dark — the order the reference families use.
+    themes = ['light', 'dark'].map((scheme) => {
+      const themeType = type === scheme ? type : otherType
+      const themeColors = type === scheme ? master : other
+      return makeTheme(
+        `${name} ${SCHEME_LABEL[scheme]}`,
+        themeType,
+        themeColors,
+        `${folderName}-${scheme}-color-theme.json`,
+      )
+    })
+  } else {
+    themes = [makeTheme(name, type, master, `${folderName}-color-theme.json`)]
+  }
+
+  // The marketplace banner sits behind the logo, so take the light side of a
+  // pair (matching the reference families) and otherwise whatever was edited.
+  const bannerColors = paired ? buildMasterColors(type === 'light' ? master : counterpart.colors) : master
 
   const pkg = {
     name: folderName,
@@ -302,38 +465,42 @@ export function buildVscodePackage({ name, folderName: explicitFolderName, type 
     engines: { vscode: '^1.80.0' },
     categories: ['Themes'],
     galleryBanner: {
-      color: master.sidebarBg,
-      theme: isDark ? 'dark' : 'light',
+      color: bannerColors.sidebarBg,
+      theme: schemeOf(bannerColors),
     },
-    keywords: ['theme', 'color-theme', 'vscode-theme'],
-    contributes: {
-      themes: [
-        {
-          label: name,
-          uiTheme: uiThemeFor(type),
-          path: `./themes/${themeFileName}`,
-        },
-      ],
-    },
+    keywords: [
+      'theme',
+      'color-theme',
+      'vscode-theme',
+      ...(paired ? ['light-theme', 'dark-theme'] : []),
+    ],
+    contributes: { themes: themes.map((theme) => theme.contribution) },
     license: 'MIT',
   }
 
   const readme = [
     `# ${name}`,
     '',
-    `A VS Code color theme generated with [ThemeBake](https://themebake.pages.dev).`,
+    'A VS Code color theme generated with [ThemeBake](https://themebake.pages.dev).',
     '',
+    ...(paired
+      ? [`Includes ${themes.length} themes: ${themes.map((theme) => `**${theme.label}**`).join(' and ')}.`, '']
+      : []),
     '## Install',
     '',
     '1. Copy this folder into your extensions directory (`%USERPROFILE%\\.vscode\\extensions`).',
     '2. Restart VS Code.',
-    `3. Open the theme picker (\`Ctrl+K Ctrl+T\`) and choose **${name}**.`,
+    `3. Open the theme picker (\`Ctrl+K Ctrl+T\`) and choose ${themes
+      .map((theme) => `**${theme.label}**`)
+      .join(' or ')}.`,
     '',
   ].join('\n')
 
+  const primary = themes[0]
+
   const files = [
     { path: 'package.json', data: `${JSON.stringify(pkg, null, 2)}\n` },
-    { path: `themes/${themeFileName}`, data: `${JSON.stringify(themeJson, null, 2)}\n` },
+    ...themes.map((theme) => theme.file),
     { path: 'README.md', data: `${readme}\n` },
     { path: '.vscodeignore', data: '.vscode/**\n.gitignore\n' },
   ]
@@ -342,9 +509,11 @@ export function buildVscodePackage({ name, folderName: explicitFolderName, type 
     files,
     folderName,
     zipName: `${folderName}.zip`,
-    themeJson: themeJson ? `${JSON.stringify(themeJson, null, 2)}\n` : '',
-    colorCount: Object.keys(themeJson.colors).length,
-    tokenColorCount: themeJson.tokenColors.length,
+    themeJson: primary.json ? `${JSON.stringify(primary.json, null, 2)}\n` : '',
+    colorCount: Object.keys(primary.json.colors).length,
+    tokenColorCount: primary.json.tokenColors.length,
+    themeCount: themes.length,
+    themes: themes.map((theme) => theme.contribution),
   }
 }
 

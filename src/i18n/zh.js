@@ -50,6 +50,12 @@ export default {
   'lang.en': 'EN',
   'lang.zh': '中文',
 
+  // ------------------------------------------------------------------- scheme
+  // 浅色 / 深色这两个词本身。与 `vscode.type.*` 分开：智能配色与预览开关说的是
+  // 「配色方案」，不是主题声明的 type。
+  'scheme.light': '浅色',
+  'scheme.dark': '深色',
+
   // ---------------------------------------------------------------------- hero
   'hero.title': '创建你自己的 Chrome 主题。',
   'hero.subtitle': '挑选颜色、实时预览，几秒内生成一个可直接使用的 Chrome 主题。',
@@ -90,7 +96,10 @@ export default {
   'vscode.type.dark': '深色',
   'vscode.type.light': '浅色',
   'vscode.type.hc': '高对比',
-  'vscode.type.hint': '写入 theme JSON 的 type，并决定 package.json 的 uiTheme。',
+  'vscode.type.hint': '写入 theme JSON 的 type，并决定 package.json 的 uiTheme。切换会按新方案重新解算配色，当前是{scheme}配色。',
+  'vscode.pair.label': '同时生成相反的色调',
+  'vscode.pair.hint': '由当前配色推导出{other}方案，一个扩展包里同时包含两套主题；预览上方可随时切换。',
+  'vscode.pair.hcUnsupported': '高对比没有对应的浅色/深色方案，无法成对生成。',
   'vscode.importManifestUnsupported': 'VS Code 工作台不支持导入 Chrome 主题 —— 请用调色板导入。',
   'vscode.group.editor': '编辑器',
   'vscode.group.shell': '外壳',
@@ -128,11 +137,19 @@ export default {
   'vscode.preview.subtitle': '按当前配色实时渲染工作台与语法高亮。',
   'vscode.preview.aria': 'VS Code 界面预览',
   'vscode.preview.derived': '派生 {colors} 个工作台颜色键 + {tokens} 条语法高亮规则。',
+  'vscode.preview.variantLegend': '预览配色',
+  'vscode.preview.pairNote': '当前预览的是{shown}主题（由{base}配色自动派生）。导出的扩展包会同时包含两套主题。',
+  'vscode.preview.pairNoteBase': '正在编辑{base}主题，{other}主题由它自动派生。导出的扩展包会同时包含两套主题。',
   'vscode.export.title': '导出 VS Code 主题',
   'vscode.export.subtitle': '生成可安装的扩展包 {filename}（package.json + themes/ 主题 JSON + README）。',
   'vscode.export.subtitleFolder': '直接写一个扩展包文件夹 {folder}/，无需解压即可安装。',
+  'vscode.export.subtitlePair':
+    '生成一个可安装的扩展包 {filename}，内含 {count} 套主题（package.json + 每套方案各一个 JSON + README）。',
+  'vscode.export.subtitlePairFolder': '直接写出含 {count} 套主题的扩展包文件夹 {folder}/，安装一次，之后随时切换。',
   'vscode.export.note': 'ZIP 里只有一个文件夹 {folder}/，内含 package.json 与 themes/ 下的主题 JSON。',
   'vscode.export.noteFolder': '会在你选的位置创建文件夹 {folder}/，内含 package.json 与 themes/ 下的主题 JSON。',
+  'vscode.export.notePair': 'ZIP 里只有一个文件夹 {folder}/，themes/ 下同时包含浅色与深色两套主题 JSON。',
+  'vscode.export.notePairFolder': '会在你选的位置创建文件夹 {folder}/，themes/ 下同时包含浅色与深色两套主题。',
   'vscode.export.howtoSummary': '安装方法',
   'vscode.export.howto1': '把导出的文件夹复制到 %USERPROFILE%\\.vscode\\extensions\\。',
   'vscode.export.howto2': '重启 VS Code（或对文件夹「以文件夹方式安装」调试）。',
@@ -183,6 +200,11 @@ export default {
   'studio.subtitle': '选一个颜色，ThemeBake 帮你推导出一整套经过对比度校验的主题。',
   'studio.seedLabel': '主色',
   'studio.seedHint': '它会成为窗口框架色，其余颜色都由它推导出来。',
+  // VS Code 工作台解出的还是同一套配色，但落到不同的角色上，所以这里说的是它
+  // 自己的落点，不再提「窗口框架」。
+  'studio.vscodeSeedHint': '它会成为整套配色的基准 —— 由它解出的框架色会落到编辑器背景，其余工作台配色随之推导。',
+  'studio.randomSeed': '随机主色',
+  'studio.resolvedScheme': '推导为{scheme}',
   'studio.modeLegend': '明暗',
   'studio.mode.auto': '自动',
   'studio.mode.light': '浅色',
@@ -378,6 +400,8 @@ export default {
   'toast.themeReset': '主题已重置。',
   'toast.fieldsCleared': '已清空名称、文件夹名和摘要。',
   'toast.vscodeGenerated': 'VS Code 主题扩展包已生成。',
+  'toast.vscodeGeneratedPair': '含浅色与深色两套主题的 VS Code 扩展包已生成。',
+  'toast.vscodeSchemeSwitched': '已按{scheme}方案重新解算整套配色。',
   'toast.vscodeFieldsCleared': '已清空名称和文件夹名。',
   'toast.undone': '已撤销上一步修改。',
   'toast.presetApplied': '已应用预设「{name}」。',

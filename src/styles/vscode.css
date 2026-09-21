@@ -37,6 +37,89 @@
   color: var(--accent-active);
 }
 
+/* ------------------------ Paired light + dark themes ---------------------- */
+/*
+  Sits under the theme-type picker. Two lines of text (a label and a hint) on one
+  checkbox, so it reads as a real option rather than a stray tick box — and it
+  stays visible while disabled for high contrast, where it explains itself.
+*/
+.pair-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.pair-toggle:hover {
+  border-color: var(--border-strong);
+}
+
+.pair-toggle input {
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.pair-toggle__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pair-toggle__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pair-toggle__hint {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.pair-toggle.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Two compact tabs, so the pair switch does not compete with the mockup. */
+.segmented--pair {
+  flex: 0 0 auto;
+  grid-template-columns: auto auto;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+}
+
+.segmented--pair .segmented__option {
+  padding: 4px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  align-items: center;
+  text-align: center;
+}
+
+.segmented--pair .segmented__option.is-active {
+  background-color: var(--accent-soft);
+}
+
+.segmented--pair .segmented__label {
+  font-size: var(--text-xs);
+  font-weight: 640;
+}
+
 /* ------------------------------ VS Code mockup ---------------------------- */
 /* Geometry only — every surface is painted inline from buildVscodeColors so the
    preview always matches the generated theme JSON exactly. */

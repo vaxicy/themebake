@@ -96,6 +96,15 @@ import {
 import { drawThemeIcon, ICON_FALLBACK_COLORS } from '../src/utils/icon.js'
 import { auditContrast, repairContrast, AUDIT_RULES } from '../src/utils/contrastAudit.js'
 import { INTENSITIES, SOLVER_MODES, solveTheme, usedSeedHexes } from '../src/utils/palette.js'
+import {
+  buildVscodePackage,
+  buildVscodeThemeJson,
+  counterpartTypeFor,
+  deriveCounterpart,
+  schemeOf,
+} from '../src/vscode/build.js'
+import { DEFAULT_VSCODE_COLORS } from '../src/vscode/fields.js'
+import { VSCODE_PRESETS } from '../src/data/vscodePresets.js'
 import { extractColors, looksLikeJson, looksLikePaletteUrl } from '../src/utils/parseColors.js'
 import { exportThemeJson, importThemeJson } from '../src/utils/importTheme.js'
 import { clusterColors, detectBands, measureFlatness } from '../src/utils/image.js'
@@ -1711,6 +1720,130 @@ ok('the Gemini preset targets the OpenAI-compatible endpoint',
   AI_PROVIDERS.find((p) => p.id === 'gemini')?.baseURL)
 ok('the OpenAI preset is flagged as needing a proxy',
   AI_PROVIDERS.find((p) => p.id === 'openai')?.needsProxy === true)
+
+// ---------------------------------------------------------------------------
+section('21. Paired light + dark VS Code themes')
+// ---------------------------------------------------------------------------
+// Every reference preset was extracted from a dark theme file, so the sweep runs
+// over dark palettes and checks both directions out of them.
+const pairSources = [
+  { id: 'default', colors: DEFAULT_VSCODE_COLORS },
+  ...VSCODE_PRESETS.map(({ id, colors }) => ({ id, colors })),
+]
+
+ok(
+  'every source palette reads as dark',
+  pairSources.every(({ colors }) => schemeOf(colors) === 'dark'),
+  pairSources.filter(({ colors }) => schemeOf(colors) !== 'dark').map((s) => s.id).join(','),
+)
+ok('counterpartTypeFor flips the two schemes and refuses high contrast',
+  counterpartTypeFor('dark') === 'light' &&
+    counterpartTypeFor('light') === 'dark' &&
+    counterpartTypeFor('hc-black') === null)
+ok('deriveCounterpart with no target picks the opposite scheme',
+  schemeOf(deriveCounterpart(DEFAULT_VSCODE_COLORS)) === 'light')
+
+const contrastOn = (fg, bg) => contrastRatio(fg, bg)
+
+for (const { id, colors } of pairSources) {
+  const light = deriveCounterpart(colors, 'light')
+  const backToDark = deriveCounterpart(light, 'dark')
+
+  ok(`${id}: the derived palette is light`, schemeOf(light) === 'light')
+  ok(`${id}: light and dark surfaces are on opposite sides of the luminance range`,
+    relativeLuminance(light.editorBg) >= 0.5 && relativeLuminance(backToDark.editorBg) <= 0.2,
+    `${relativeLuminance(light.editorBg).toFixed(3)} / ${relativeLuminance(backToDark.editorBg).toFixed(3)}`)
+  ok(`${id}: text and accent colours clear 4.5:1 on both surfaces`,
+    ['editorFg', 'accent', 'errorFg', 'warningFg'].every(
+      (key) => contrastOn(light[key], light.editorBg) >= 4.5 && contrastOn(backToDark[key], backToDark.editorBg) >= 4.5,
+    ),
+    ['editorFg', 'accent', 'errorFg', 'warningFg']
+      .map((key) => `${key} ${contrastOn(light[key], light.editorBg).toFixed(2)}/${contrastOn(backToDark[key], backToDark.editorBg).toFixed(2)}`)
+      .join(' '))
+  // Muted text is deliberately lower contrast than body text, but it still has to
+  // be readable rather than decorative.
+  ok(`${id}: muted text stays readable on both surfaces`,
+    contrastOn(light.mutedFg, light.editorBg) >= 3.5 && contrastOn(backToDark.mutedFg, backToDark.editorBg) >= 3.5,
+    `${contrastOn(light.mutedFg, light.editorBg).toFixed(2)} / ${contrastOn(backToDark.mutedFg, backToDark.editorBg).toFixed(2)}`)
+  ok(`${id}: the current line is a visible step away from the editor surface`,
+    light.lineHighlightBg !== light.editorBg && backToDark.lineHighlightBg !== backToDark.editorBg)
+  ok(`${id}: the pair is a real round trip`,
+    schemeOf(backToDark) === 'dark' && schemeOf(deriveCounterpart(backToDark, 'light')) === 'light')
+  // Nothing may be left undefined: a missing key would silently fall back to a
+  // default colour in the exported theme.
+  ok(`${id}: the derived palette is complete`,
+    Object.keys(DEFAULT_VSCODE_COLORS).every((key) => normalizeHex(light[key]) === light[key]),
+    Object.keys(DEFAULT_VSCODE_COLORS).filter((key) => normalizeHex(light[key]) !== light[key]).join(','))
+}
+
+// A derived light palette must survive the rest of the derivation chain — this is
+// what the exported JSON runs through.
+const lightDerived = deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light')
+const lightTheme = buildVscodeThemeJson({ name: 'Pair Test', type: 'light', colors: lightDerived })
+ok('a derived light theme declares type light', lightTheme.type === 'light')
+ok('a derived light theme paints the editor with its own background',
+  lightTheme.colors['editor.background'] === lightDerived.editorBg,
+  lightTheme.colors['editor.background'])
+ok('a derived light theme is dark-on-light',
+  relativeLuminance(lightTheme.colors['editor.background']) > relativeLuminance(lightTheme.colors['editor.foreground']))
+
+const counterpartInput = { type: 'light', colors: lightDerived }
+const pairPkg = buildVscodePackage({
+  name: 'Peach Test',
+  folderName: 'peach-test',
+  type: 'dark',
+  colors: DEFAULT_VSCODE_COLORS,
+  counterpart: counterpartInput,
+})
+const readFileFrom = (pkg, path) => pkg.files.find((file) => file.path === path)?.data ?? ''
+const pairManifest = JSON.parse(readFileFrom(pairPkg, 'package.json'))
+
+ok('a paired package declares two themes', pairPkg.themeCount === 2, String(pairPkg.themeCount))
+ok('both theme files are in the package',
+  pairPkg.files.some((f) => f.path === 'themes/peach-test-light-color-theme.json') &&
+    pairPkg.files.some((f) => f.path === 'themes/peach-test-dark-color-theme.json'))
+ok('package.json lists light before dark',
+  pairManifest.contributes.themes.map((t) => t.uiTheme).join(',') === 'vs,vs-dark',
+  pairManifest.contributes.themes.map((t) => t.uiTheme).join(','))
+ok('every contributed label carries its scheme',
+  pairManifest.contributes.themes.map((t) => t.label).join('|') === 'Peach Test Light|Peach Test Dark',
+  pairManifest.contributes.themes.map((t) => t.label).join('|'))
+ok('every declared theme path exists in the package',
+  pairManifest.contributes.themes.every((t) => pairPkg.files.some((f) => `./${f.path}` === t.path)))
+ok('each theme JSON matches its own contribution type',
+  pairManifest.contributes.themes.every((t) => {
+    const json = JSON.parse(readFileFrom(pairPkg, t.path.replace('./', '')))
+    return json.type === (t.uiTheme === 'vs' ? 'light' : 'dark') && json.name === t.label && !!json.colors && !!json.tokenColors
+  }))
+ok('the marketplace banner follows the light side of a pair',
+  pairManifest.galleryBanner.theme === 'light' && pairManifest.galleryBanner.color === lightDerived.sidebarBg,
+  pairManifest.galleryBanner.theme)
+ok('a paired package advertises both schemes in its keywords',
+  pairManifest.keywords.includes('light-theme') && pairManifest.keywords.includes('dark-theme'))
+ok('the README names both themes',
+  (readFileFrom(pairPkg, 'README.md').match(/Peach Test (Light|Dark)/g) ?? []).length >= 2)
+
+// Regression guard: the single-scheme output must not change shape.
+const soloPkg = buildVscodePackage({ name: 'Solo Test', folderName: 'solo-test', type: 'light', colors: lightDerived })
+ok('a package without a counterpart declares one theme', soloPkg.themeCount === 1)
+ok('a single theme keeps the unsuffixed file name',
+  soloPkg.files.some((f) => f.path === 'themes/solo-test-color-theme.json'))
+ok('a single theme keeps its label unsuffixed',
+  JSON.parse(readFileFrom(soloPkg, 'package.json')).contributes.themes[0].label === 'Solo Test')
+ok('a single theme adds no pair keywords',
+  !JSON.parse(readFileFrom(soloPkg, 'package.json')).keywords.includes('light-theme'))
+
+// High contrast is its own rendering mode; the builder must refuse to pair it even
+// if a caller passes a counterpart anyway.
+const hcPkg = buildVscodePackage({
+  name: 'HC Test',
+  type: 'hc-black',
+  colors: DEFAULT_VSCODE_COLORS,
+  counterpart: counterpartInput,
+})
+ok('high contrast ignores a counterpart', hcPkg.themeCount === 1, String(hcPkg.themeCount))
+ok('high contrast keeps its own uiTheme',
+  JSON.parse(readFileFrom(hcPkg, 'package.json')).contributes.themes[0].uiTheme === 'hc-black')
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
