@@ -128,10 +128,7 @@ function pick(value, allowed, fallback) {
 
 export default function App() {
   const toast = useToast()
-  // The description follows the interface language — it is store prose written
-  // for the user's own audience, unlike the *names*, whose language is an
-  // explicit setting (English by default).
-  const { t, lang } = useI18n()
+  const { t } = useI18n()
 
   const [name, setName] = useState(INITIAL.state?.name ?? DEFAULT_THEME_NAME)
   const [description, setDescription] = useState(INITIAL.state?.description ?? '')
@@ -585,7 +582,7 @@ export default function App() {
       const text = await requestThemeDescription(aiConfig, {
         palette: describePalette(colors),
         name,
-        language: lang,
+        language: aiConfig.language,
       })
       setDescription(text)
       setDescriptionError('')
@@ -595,7 +592,7 @@ export default function App() {
     } finally {
       setAiDescBusy(false)
     }
-  }, [aiConfig, colors, name, lang, toast, t])
+  }, [aiConfig, colors, name, toast, t])
 
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
