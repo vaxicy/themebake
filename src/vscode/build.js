@@ -69,6 +69,32 @@ export function counterpartTypeFor(type) {
 }
 
 /**
+ * The type a theme must actually be *written* as.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THE PALETTE WINS
+ * ---------------------------------------------------------------------------
+ * Dark and light are not a preference here, they are a property of the colours:
+ * VS Code uses `type` to decide which of its own UI assumptions apply, so a
+ * theme that says `light` while its editor background is near-black renders
+ * wrong. Letting a user pick the label freely therefore produces a broken theme
+ * whenever the two disagree — and they disagree in practice, because the
+ * palette arrives from a seed, a preset, an import or a hand-edited hex field,
+ * none of which consult a selector.
+ *
+ * So the palette decides, and only high contrast stays a manual choice: it is a
+ * rendering *mode* (`hc-black`), not a scheme, and its palette is deliberately
+ * pushed to the extremes rather than being light or dark.
+ *
+ * @param {string} declaredType the selector's value
+ * @param {Record<string,string>} colors master colours
+ * @returns {'dark'|'light'|'hc-black'}
+ */
+export function resolveType(declaredType, colors) {
+  return declaredType === 'hc-black' ? 'hc-black' : schemeOf(colors)
+}
+
+/**
  * Push a colour's lightness until it clears `min` contrast against a background.
  *
  * Only lightness moves — hue and saturation are what make the colour *that*
@@ -373,7 +399,9 @@ export function buildVscodeThemeJson({ name, type = DEFAULT_VSCODE_TYPE, colors 
   const { tokenColors, semanticTokenColors } = buildTokenColors(master)
   return {
     name,
-    type,
+    // Normalised here, at the single point every theme JSON is created, so no
+    // caller can emit a theme whose `type` contradicts its own colours.
+    type: resolveType(type, master),
     colors: buildVscodeColors(master),
     semanticHighlighting: true,
     semanticTokenColors,
@@ -420,7 +448,11 @@ export function buildVscodePackage({
   const master = buildMasterColors(colors)
   const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
   const folderName = (typedFolderName || toThemeFolderName(name)).toLowerCase()
-  const paired = Boolean(counterpart) && (type === 'dark' || type === 'light')
+  // The declared type decides only *whether* a pair is possible; which side each
+  // palette is comes from the palettes themselves (`schemeOf`), so a stale label
+  // can never put a dark JSON under the Light contribution.
+  const declaredType = resolveType(type, master)
+  const paired = Boolean(counterpart) && counterpartTypeFor(declaredType) !== null
 
   /** One contributed theme: its JSON payload plus the package.json entry. */
   const makeTheme = (label, themeType, themeColors, fileName) => {
@@ -435,26 +467,26 @@ export function buildVscodePackage({
 
   let themes
   if (paired) {
-    const otherType = counterpartTypeFor(type)
     const other = buildMasterColors(counterpart.colors)
+    const masterIsLight = schemeOf(master) === 'light'
     // Light first, then dark — the order the reference families use.
-    themes = ['light', 'dark'].map((scheme) => {
-      const themeType = type === scheme ? type : otherType
-      const themeColors = type === scheme ? master : other
-      return makeTheme(
+    themes = ['light', 'dark'].map((scheme) =>
+      makeTheme(
         `${name} ${SCHEME_LABEL[scheme]}`,
-        themeType,
-        themeColors,
+        scheme,
+        scheme === 'light' ? (masterIsLight ? master : other) : (masterIsLight ? other : master),
         `${folderName}-${scheme}-color-theme.json`,
-      )
-    })
+      ),
+    )
   } else {
-    themes = [makeTheme(name, type, master, `${folderName}-color-theme.json`)]
+    themes = [makeTheme(name, declaredType, master, `${folderName}-color-theme.json`)]
   }
 
   // The marketplace banner sits behind the logo, so take the light side of a
   // pair (matching the reference families) and otherwise whatever was edited.
-  const bannerColors = paired ? buildMasterColors(type === 'light' ? master : counterpart.colors) : master
+  const bannerColors = paired
+    ? buildMasterColors(schemeOf(master) === 'light' ? master : counterpart.colors)
+    : master
 
   const pkg = {
     name: folderName,

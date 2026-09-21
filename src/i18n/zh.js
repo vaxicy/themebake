@@ -96,7 +96,8 @@ export default {
   'vscode.type.dark': '深色',
   'vscode.type.light': '浅色',
   'vscode.type.hc': '高对比',
-  'vscode.type.hint': '写入 theme JSON 的 type，并决定 package.json 的 uiTheme。切换会按新方案重新解算配色，当前是{scheme}配色。',
+  'vscode.type.hint':
+    '深色 / 浅色由你的配色自动判断，当前是{scheme}，theme JSON 的 type 也随之写入。点另一张卡片会把整套配色换算成那个方案；高对比是渲染模式，仍需手动选。',
   'vscode.pair.label': '同时生成相反的色调',
   'vscode.pair.hint': '由当前配色推导出{other}方案，一个扩展包里同时包含两套主题；预览上方可随时切换。',
   'vscode.pair.hcUnsupported': '高对比没有对应的浅色/深色方案，无法成对生成。',

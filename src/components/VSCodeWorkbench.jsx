@@ -45,6 +45,7 @@ import {
   counterpartTypeFor,
   deriveCounterpart,
   masterFromPalette,
+  resolveType,
   schemeOf,
 } from '../vscode/build.js'
 import { VSCODE_PRESETS } from '../data/vscodePresets.js'
@@ -73,15 +74,20 @@ function readInitialState() {
   const result = loadVscodeTheme()
   if (!result.ok || !result.value) return { state: null, warning: result.ok ? null : result.error }
   const saved = result.value
+  const colors = buildMasterColors(saved.colors)
+  const declared = VSCODE_TYPES.some((entry) => entry.id === saved.type) ? saved.type : DEFAULT_VSCODE_TYPE
+
   return {
     state: {
       name: typeof saved.name === 'string' ? saved.name : DEFAULT_THEME_NAME,
       folderInput: typeof saved.folderInput === 'string' ? saved.folderInput : '',
-      type: VSCODE_TYPES.some((entry) => entry.id === saved.type) ? saved.type : DEFAULT_VSCODE_TYPE,
-      colors: buildMasterColors(saved.colors),
+      // Healed on load: a draft saved before the palette became the source of
+      // truth can say "light" while holding dark colours, and that is exactly the
+      // state that used to render a light theme dark.
+      type: resolveType(declared, colors),
+      colors,
       outputMode: OUTPUT_MODE_IDS.includes(saved.outputMode) ? saved.outputMode : 'zip',
-      // Paired light+dark export. Off unless the user asked for it, so a restored
-      // draft always exports exactly what the selector says.
+      // Paired light+dark export. Off unless the user asked for it.
       pair: saved.pair === true,
       seed: normalizeHex(saved.seed) ?? DEFAULT_VSCODE_COLORS.editorBg,
       smartMode: SOLVER_MODES.includes(saved.smartMode) ? saved.smartMode : 'auto',
@@ -171,34 +177,40 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   const master = useMemo(() => buildMasterColors(colors), [colors])
 
   /**
-   * The scheme the edited palette *is*, read off the colours rather than the
-   * selector: the solver, a preset or a restored draft can all leave a light
-   * palette under a `dark` label, and the derived workbench keys follow the
-   * colours. `type` is the declared type (which may be `hc-black`); this is what
-   * the pair is built around.
+   * The scheme the palette *is*, read off the colours — never off the selector.
+   * It is what the UI shows, what the pair is built around, and (through
+   * `resolveType`) what the exported theme declares.
    */
   const scheme = useMemo(() => schemeOf(master), [master])
+  /** `hc-black` is a rendering mode, so it is the one manual choice left. */
+  const highContrast = type === 'hc-black'
   const pairable = isPairableType(type)
+  /** The scheme the other half of the pair has, or null in high contrast. */
+  const otherScheme = counterpartTypeFor(scheme)
 
-  /** The opposite-scheme palette, derived on the fly — never stored. */
+  /**
+   * The opposite-scheme palette, derived on the fly — never stored, and derived
+   * from the *palette's* scheme rather than the declared type, so the label and
+   * the colours can never point at different halves.
+   */
   const counterpart = useMemo(
-    () => (pair && pairable ? deriveCounterpart(master, counterpartTypeFor(type)) : null),
-    [pair, pairable, master, type],
+    () => (pair && pairable && otherScheme ? deriveCounterpart(master, otherScheme) : null),
+    [pair, pairable, otherScheme, master],
   )
 
-  // `counterpart` is guaranteed to be the mirror of `scheme`, so it is always the
-  // other tab's palette; falling back to the edited one keeps the mockup painted.
+  /** The type every export writes. For dark/light it is the palette's own scheme. */
+  const exportedType = useMemo(() => resolveType(type, master), [type, master])
+
   const previewColors = previewScheme === 'counterpart' && counterpart ? counterpart : master
   const previewIsCounterpart = previewColors === counterpart
 
   const themeJson = useMemo(
-    () => buildVscodeThemeJson({ name, type, colors: previewColors }),
-    [name, type, previewColors],
+    () => buildVscodeThemeJson({ name, type: exportedType, colors: previewColors }),
+    [name, exportedType, previewColors],
   )
   const folderName = useMemo(() => toSafeName(folderInput) || toThemeFolderName(name), [folderInput, name])
   const filename = useMemo(() => `${folderName}.zip`, [folderName])
   const storageWarning = storageWarningKey ? t(storageWarningKey) : null
-  const otherScheme = counterpart ? counterpartTypeFor(scheme) : null
 
   // ----------------------------------------------------------------- handlers
   const handleClearFields = useCallback(() => {
@@ -213,20 +225,23 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   }, [])
 
   /**
-   * The type selector is the scheme selector, so it does what a user means by it:
-   * choosing 浅色 on a dark palette converts the palette instead of writing a
-   * `type` that contradicts its own colours (a mismatch VS Code renders wrong).
-   * High contrast is left alone — it is a rendering mode, not a scheme.
+   * The dark/light cards are not a label picker: the palette already *is* one of
+   * them, so clicking the other one means "give me that version" and the palette
+   * is converted to match. The selector can therefore never disagree with the
+   * colours it describes.
    */
-  const handleTypeChange = useCallback(
+  const handleTypeSelect = useCallback(
     (next) => {
+      if (next === 'hc-black') {
+        setType('hc-black')
+        return
+      }
       setType(next)
-      const target = next === 'dark' || next === 'light' ? next : null
-      if (!target || target === schemeOf(master)) return
-      setColors(deriveCounterpart(master, target))
-      toast.info(t('toast.vscodeSchemeSwitched', { scheme: t(`scheme.${target}`) }))
+      if (next === scheme) return
+      setColors(deriveCounterpart(master, next))
+      toast.info(t('toast.vscodeSchemeSwitched', { scheme: t(`scheme.${next}`) }))
     },
-    [master, toast, t],
+    [master, scheme, toast, t],
   )
 
   const handlePairChange = useCallback(
@@ -246,8 +261,8 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       const built = buildMasterColors(preset.colors)
       setColors(built)
       // Read the scheme off the preset's own colours: presets ship one palette
-      // each, and some are built from a light file.
-      setType(isPairableType(type) ? schemeOf(built) : type)
+      // each, and some are built from a light file. High contrast is preserved.
+      setType(resolveType(type, built))
       setActivePresetId(preset.id)
       toast.success(t('toast.presetApplied', { name: preset.name }))
     },
@@ -264,9 +279,9 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       }
       const built = masterFromPalette(buildColors(result.colors))
       setColors(built)
-      // The solver decided light or dark from the seed; the selector follows, so
-      // "generate a theme from this colour" also picks the matching pair side.
-      setType(isPairableType(type) ? schemeOf(built) : type)
+      // The solver decided light or dark from the seed; the declared type follows
+      // the palette it produced, so the pair is always the right way round.
+      setType(resolveType(type, built))
       setActivePresetId(null)
       return result
     },
@@ -346,9 +361,11 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       const pkg = buildVscodePackage({
         name,
         folderName,
-        type,
+        type: exportedType,
         colors: master,
-        counterpart: counterpart ? { type: counterpartTypeFor(type), colors: counterpart } : null,
+        counterpart: counterpart
+          ? { type: counterpartTypeFor(exportedType), colors: counterpart }
+          : null,
       })
       if (outputMode === 'folder') {
         const rootName = await writeThemeFolder({ files: pkg.files, folder: pkg.folderName })
@@ -368,7 +385,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     } finally {
       setGenerating(false)
     }
-  }, [colors, counterpart, folderName, generating, master, name, outputMode, toast, t, type])
+  }, [colors, counterpart, exportedType, folderName, generating, master, name, outputMode, toast, t])
 
   // ------------------------------------------------------------------- render
   return (
@@ -413,22 +430,32 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
                 role="radiogroup"
                 aria-label={t('vscode.type.label')}
               >
-                {VSCODE_TYPES.map((entry) => (
-                  <label
-                    key={entry.id}
-                    className={`segmented__option${type === entry.id ? ' is-active' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="vscode-type"
-                      value={entry.id}
-                      checked={type === entry.id}
-                      onChange={() => handleTypeChange(entry.id)}
-                    />
-                    <span className="segmented__label">{t(entry.labelKey)}</span>
-                    <code className="segmented__sample">{entry.uiTheme}</code>
-                  </label>
-                ))}
+                {VSCODE_TYPES.map((entry) => {
+                  // Dark and light are read off the palette, so their cards show
+                  // what the colours *are*; only high contrast is a stored choice.
+                  // While high contrast is on, exactly one card may be active —
+                  // otherwise the scheme card stays lit and clicking it is a no-op,
+                  // because a radio that is already checked never fires onChange.
+                  const active = highContrast
+                    ? entry.id === 'hc-black'
+                    : entry.id === scheme
+                  return (
+                    <label
+                      key={entry.id}
+                      className={`segmented__option${active ? ' is-active' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="vscode-type"
+                        value={entry.id}
+                        checked={active}
+                        onChange={() => handleTypeSelect(entry.id)}
+                      />
+                      <span className="segmented__label">{t(entry.labelKey)}</span>
+                      <code className="segmented__sample">{entry.uiTheme}</code>
+                    </label>
+                  )
+                })}
               </div>
               <p className="format-picker__hint">
                 {t('vscode.type.hint', { scheme: t(`scheme.${scheme}`) })}
@@ -450,7 +477,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
                   <span className="pair-toggle__label">{t('vscode.pair.label')}</span>
                   <span className="pair-toggle__hint">
                     {pairable
-                      ? t('vscode.pair.hint', { other: t(`scheme.${counterpartTypeFor(type)}`) })
+                      ? t('vscode.pair.hint', { other: t(`scheme.${otherScheme}`) })
                       : t('vscode.pair.hcUnsupported')}
                   </span>
                 </span>

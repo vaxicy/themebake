@@ -105,7 +105,7 @@ export default {
   'vscode.type.light': 'Light',
   'vscode.type.hc': 'High contrast',
   'vscode.type.hint':
-    'Written into the theme JSON as type, and drives the package.json uiTheme. Switching it re-solves the palette, which currently reads as {scheme}.',
+    'Dark and light follow your own colours — {scheme} right now, which is also the type written into the theme JSON. Picking the other card re-solves the whole palette for it; high contrast is a rendering mode, so it stays a manual choice.',
   'vscode.pair.label': 'Also generate the opposite scheme',
   'vscode.pair.hint':
     'Derives the {other} palette from your colours and exports both themes from one package. The preview switch flips between them.',

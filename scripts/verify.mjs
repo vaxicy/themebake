@@ -101,6 +101,7 @@ import {
   buildVscodeThemeJson,
   counterpartTypeFor,
   deriveCounterpart,
+  resolveType,
   schemeOf,
 } from '../src/vscode/build.js'
 import { DEFAULT_VSCODE_COLORS } from '../src/vscode/fields.js'
@@ -1731,6 +1732,9 @@ const pairSources = [
   ...VSCODE_PRESETS.map(({ id, colors }) => ({ id, colors })),
 ]
 
+/** Read one file out of a built package. */
+const readFileFrom = (pkg, path) => pkg.files.find((file) => file.path === path)?.data ?? ''
+
 ok(
   'every source palette reads as dark',
   pairSources.every(({ colors }) => schemeOf(colors) === 'dark'),
@@ -1742,6 +1746,39 @@ ok('counterpartTypeFor flips the two schemes and refuses high contrast',
     counterpartTypeFor('hc-black') === null)
 ok('deriveCounterpart with no target picks the opposite scheme',
   schemeOf(deriveCounterpart(DEFAULT_VSCODE_COLORS)) === 'light')
+
+// The reported bug: a draft declaring "light" while holding dark colours produced
+// a "light" theme that rendered dark — and an equally wrong "derived light" that
+// was dark again. The palette is the source of truth now.
+const lightPalette = deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light')
+ok('a dark palette outvotes a declared light type', resolveType('light', DEFAULT_VSCODE_COLORS) === 'dark')
+ok('a light palette outvotes a declared dark type', resolveType('dark', lightPalette) === 'light')
+ok('the declared type is used only when it agrees with the palette',
+  resolveType('dark', DEFAULT_VSCODE_COLORS) === 'dark' && resolveType('light', lightPalette) === 'light')
+ok('high contrast survives the palette rule', resolveType('hc-black', DEFAULT_VSCODE_COLORS) === 'hc-black')
+ok('a mismatched type can never reach the theme JSON',
+  buildVscodeThemeJson({ name: 'Stale Label', type: 'light', colors: DEFAULT_VSCODE_COLORS }).type === 'dark')
+const mislabelledSingle = buildVscodePackage({ name: 'Stale Label', type: 'light', colors: DEFAULT_VSCODE_COLORS })
+ok('a mismatched type can never reach package.json either',
+  JSON.parse(readFileFrom(mislabelledSingle, 'package.json')).contributes.themes[0].uiTheme === 'vs-dark')
+// A paired export must pair the palettes it was given, whatever the label says:
+// the dark JSON may never end up under the Light contribution.
+const mislabelledPair = buildVscodePackage({
+  name: 'Stale Pair',
+  type: 'light',
+  colors: DEFAULT_VSCODE_COLORS,
+  counterpart: { type: 'dark', colors: lightPalette },
+})
+const mislabelledManifest = JSON.parse(readFileFrom(mislabelledPair, 'package.json'))
+ok('a mislabelled pair still puts light first and dark second',
+  mislabelledManifest.contributes.themes.map((t) => t.uiTheme).join(',') === 'vs,vs-dark',
+  mislabelledManifest.contributes.themes.map((t) => t.uiTheme).join(','))
+ok('every contribution agrees with the palette inside its own JSON',
+  mislabelledManifest.contributes.themes.every((contribution) => {
+    const json = JSON.parse(readFileFrom(mislabelledPair, contribution.path.replace('./', '')))
+    const isLight = relativeLuminance(json.colors['editor.background']) >= 0.5
+    return json.type === (isLight ? 'light' : 'dark') && json.type === (contribution.uiTheme === 'vs' ? 'light' : 'dark')
+  }))
 
 const contrastOn = (fg, bg) => contrastRatio(fg, bg)
 
@@ -1795,7 +1832,6 @@ const pairPkg = buildVscodePackage({
   colors: DEFAULT_VSCODE_COLORS,
   counterpart: counterpartInput,
 })
-const readFileFrom = (pkg, path) => pkg.files.find((file) => file.path === path)?.data ?? ''
 const pairManifest = JSON.parse(readFileFrom(pairPkg, 'package.json'))
 
 ok('a paired package declares two themes', pairPkg.themeCount === 2, String(pairPkg.themeCount))
