@@ -165,10 +165,21 @@ export default {
     'The ZIP holds a single folder {folder}/ whose themes/ directory carries the light and the dark JSON.',
   'vscode.export.notePairFolder':
     'Creates folder {folder}/ at your chosen location, with both theme JSONs under themes/.',
+  'vscode.export.outputHint':
+    'VSIX is the package VS Code installs directly — no unzipping, and it shows up in the Extensions list. ZIP downloads an archive you can unzip into any folder on any OS. Folder writes the extension straight into a directory you pick, which is the quickest path while tweaking a theme.',
+  'vscode.export.outputHintNoFolder':
+    'VSIX is the package VS Code installs directly — no unzipping, and it shows up in the Extensions list. ZIP downloads an archive you can unzip into any folder on any OS. This browser cannot write a folder — that needs desktop Chrome or Edge.',
+  'vscode.export.noteVsix':
+    'Downloads {filename} — the standard VS Code extension package. It installs into the Extensions list, and there is nothing to unzip.',
+  'vscode.export.notePairVsix':
+    '{filename} carries both the light and the dark theme in one package — install once, switch any time.',
   'vscode.export.howtoSummary': 'How to install',
   'vscode.export.howto1': 'Copy the exported folder into %USERPROFILE%\\.vscode\\extensions\\.',
   'vscode.export.howto2': 'Restart VS Code (or open the folder and debug it as an extension).',
   'vscode.export.howto3': 'Open the theme picker with Ctrl+K Ctrl+T and choose “{name}”.',
+  'vscode.export.howtoVsix1':
+    'In VS Code, open the Extensions view, use the ⋯ menu → Install from VSIX… and pick the downloaded file.',
+  'vscode.export.howtoVsix2': 'Or from a terminal: code --install-extension {filename}',
   'settings.logo.adaptive': 'Adaptive',
   'settings.logo.classic': 'Original',
   'settings.logo.hint':
@@ -368,6 +379,7 @@ export default {
   'export.outputLegend': 'Output',
   'export.output.zip': 'ZIP',
   'export.output.folder': 'Folder',
+  'export.output.vsix': 'VSIX',
   'export.outputHint':
     'Folder writes the theme into a directory you pick, so there is nothing to unzip before Load unpacked. ZIP downloads an archive instead.',
   'export.folderUnsupported':
@@ -426,6 +438,8 @@ export default {
   'toast.fieldsCleared': 'Name, folder name and summary cleared.',
   'toast.vscodeGenerated': 'VS Code theme package generated.',
   'toast.vscodeGeneratedPair': 'VS Code theme package with a light and a dark theme generated.',
+  'toast.vscodeVsixGenerated': 'VS Code extension package (.vsix) generated.',
+  'toast.vscodeVsixGeneratedPair': '.vsix generated, carrying a light and a dark theme.',
   'toast.vscodeSchemeSwitched': 'Re-solved the palette for the {scheme} scheme.',
   'toast.vscodeFieldsCleared': 'Name and folder name cleared.',
   'toast.undone': 'Undid the last change.',

@@ -33,12 +33,21 @@ import { normalizeHex } from '../utils/color.js'
 import { canWriteFolder, writeThemeFolder } from '../utils/fsFolder.js'
 import { buildColors, generateRandomColors } from '../data/presets.js'
 import { loadVscodeTheme, saveVscodeTheme, storageAvailable } from '../utils/storage.js'
-import { OUTPUT_MODE_IDS } from '../data/themeFields.js'
 import { toSafeName } from '../utils/slug.js'
 import { toThemeFolderName } from '../utils/package.js'
 import { createZip, downloadBlob } from '../utils/zip.js'
-import { VSCODE_FIELDS, VSCODE_FIELD_GROUPS, VSCODE_TYPES, DEFAULT_VSCODE_COLORS, DEFAULT_VSCODE_TYPE } from '../vscode/fields.js'
 import {
+  VSCODE_FIELDS,
+  VSCODE_FIELD_GROUPS,
+  VSCODE_TYPES,
+  VSCODE_OUTPUT_MODES,
+  VSCODE_OUTPUT_MODE_IDS,
+  DEFAULT_VSCODE_COLORS,
+  DEFAULT_VSCODE_OUTPUT_MODE,
+  DEFAULT_VSCODE_TYPE,
+} from '../vscode/fields.js'
+import {
+  VSCODE_EXTENSION_VERSION,
   buildMasterColors,
   buildVscodePackage,
   buildVscodeThemeJson,
@@ -86,7 +95,9 @@ function readInitialState() {
       // state that used to render a light theme dark.
       type: resolveType(declared, colors),
       colors,
-      outputMode: OUTPUT_MODE_IDS.includes(saved.outputMode) ? saved.outputMode : 'zip',
+      outputMode: VSCODE_OUTPUT_MODE_IDS.includes(saved.outputMode)
+        ? saved.outputMode
+        : DEFAULT_VSCODE_OUTPUT_MODE,
       // Paired light+dark export. Off unless the user asked for it.
       pair: saved.pair === true,
       seed: normalizeHex(saved.seed) ?? DEFAULT_VSCODE_COLORS.editorBg,
@@ -123,8 +134,8 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   const [colors, setColors] = useState(INITIAL.state?.colors ?? { ...DEFAULT_VSCODE_COLORS })
   const [outputMode, setOutputMode] = useState(() => {
     const saved = INITIAL.state?.outputMode
-    if (!OUTPUT_MODE_IDS.includes(saved)) return 'zip'
-    return saved === 'folder' && !canWriteFolder() ? 'zip' : saved
+    if (!VSCODE_OUTPUT_MODE_IDS.includes(saved)) return DEFAULT_VSCODE_OUTPUT_MODE
+    return saved === 'folder' && !canWriteFolder() ? DEFAULT_VSCODE_OUTPUT_MODE : saved
   })
   const [activePresetId, setActivePresetId] = useState(null)
   // Ship both schemes in one extension. A preference about the *output*, so it is
@@ -209,7 +220,14 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     [name, exportedType, previewColors],
   )
   const folderName = useMemo(() => toSafeName(folderInput) || toThemeFolderName(name), [folderInput, name])
-  const filename = useMemo(() => `${folderName}.zip`, [folderName])
+  /** What the chosen output will be called, shown before anything is generated. */
+  const exportFilename = useMemo(
+    () =>
+      outputMode === 'vsix'
+        ? `${folderName}-${VSCODE_EXTENSION_VERSION}.vsix`
+        : `${folderName}.zip`,
+    [folderName, outputMode],
+  )
   const storageWarning = storageWarningKey ? t(storageWarningKey) : null
 
   // ----------------------------------------------------------------- handlers
@@ -366,14 +384,30 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
         counterpart: counterpart
           ? { type: counterpartTypeFor(exportedType), colors: counterpart }
           : null,
+        format: outputMode,
       })
       if (outputMode === 'folder') {
         const rootName = await writeThemeFolder({ files: pkg.files, folder: pkg.folderName })
         toast.success(t('toast.folderWritten', { root: rootName, folder: pkg.folderName }))
       } else {
-        const blob = await createZip({ files: pkg.files, folder: pkg.folderName })
-        downloadBlob(blob, pkg.zipName)
-        toast.success(t(pkg.themeCount > 1 ? 'toast.vscodeGeneratedPair' : 'toast.vscodeGenerated'))
+        // A VSIX is a zip whose entries are already archive-absolute, so it must
+        // NOT be wrapped in the theme folder the bare-ZIP hand-over needs.
+        const blob = await createZip({
+          files: pkg.files,
+          folder: outputMode === 'vsix' ? null : pkg.folderName,
+        })
+        downloadBlob(blob, pkg.fileName)
+        toast.success(
+          t(
+            outputMode === 'vsix'
+              ? pkg.themeCount > 1
+                ? 'toast.vscodeVsixGeneratedPair'
+                : 'toast.vscodeVsixGenerated'
+              : pkg.themeCount > 1
+                ? 'toast.vscodeGeneratedPair'
+                : 'toast.vscodeGenerated',
+          ),
+        )
       }
     } catch (error) {
       if (error?.name === 'AbortError') return
@@ -600,7 +634,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
                       { folder: folderName },
                     )
                   : t(counterpart ? 'vscode.export.subtitlePair' : 'vscode.export.subtitle', {
-                      filename,
+                      filename: exportFilename,
                       count: counterpart ? 2 : 1,
                     })}
               </p>
@@ -609,29 +643,33 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
 
           <fieldset className="format-picker">
             <legend className="format-picker__legend">{t('export.outputLegend')}</legend>
-            <div className="segmented" role="radiogroup" aria-label={t('export.outputLegend')}>
-              {['zip', 'folder'].map((modeId) => {
-                const disabled = modeId === 'folder' && !canWriteFolder()
+            <div
+              className="segmented segmented--three"
+              role="radiogroup"
+              aria-label={t('export.outputLegend')}
+            >
+              {VSCODE_OUTPUT_MODES.map((mode) => {
+                const disabled = mode.id === 'folder' && !canWriteFolder()
                 return (
                   <label
-                    key={modeId}
-                    className={`segmented__option${outputMode === modeId ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
+                    key={mode.id}
+                    className={`segmented__option${outputMode === mode.id ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
                   >
                     <input
                       type="radio"
                       name="vscode-output-mode"
-                      value={modeId}
-                      checked={outputMode === modeId}
+                      value={mode.id}
+                      checked={outputMode === mode.id}
                       disabled={disabled}
-                      onChange={() => setOutputMode(modeId)}
+                      onChange={() => setOutputMode(mode.id)}
                     />
-                    <span className="segmented__label">{t(`export.output.${modeId}`)}</span>
+                    <span className="segmented__label">{t(mode.labelKey)}</span>
                   </label>
                 )
               })}
             </div>
             <p className="format-picker__hint">
-              {canWriteFolder() ? t('export.outputHint') : t('export.folderUnsupported')}
+              {t(canWriteFolder() ? 'vscode.export.outputHint' : 'vscode.export.outputHintNoFolder')}
             </p>
           </fieldset>
 
@@ -640,9 +678,13 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
               ? t(counterpart ? 'vscode.export.notePairFolder' : 'vscode.export.noteFolder', {
                   folder: folderName,
                 })
-              : t(counterpart ? 'vscode.export.notePair' : 'vscode.export.note', {
-                  folder: folderName,
-                })}
+              : outputMode === 'vsix'
+                ? t(counterpart ? 'vscode.export.notePairVsix' : 'vscode.export.noteVsix', {
+                    filename: exportFilename,
+                  })
+                : t(counterpart ? 'vscode.export.notePair' : 'vscode.export.note', {
+                    folder: folderName,
+                  })}
           </p>
 
           <div className="export-panel__actions">
@@ -659,10 +701,22 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
 
           <details className="howto">
             <summary className="howto__summary">{t('vscode.export.howtoSummary')}</summary>
+            {/* The steps follow the chosen artefact: a VSIX is installed from the
+                Extensions view, a folder is copied — telling the wrong one is how
+                a theme ends up "generated but not installed". */}
             <ol className="howto__list">
-              <li>{t('vscode.export.howto1', { name })}</li>
-              <li>{t('vscode.export.howto2')}</li>
-              <li>{t('vscode.export.howto3')}</li>
+              {outputMode === 'vsix' ? (
+                <>
+                  <li>{t('vscode.export.howtoVsix1')}</li>
+                  <li>{t('vscode.export.howtoVsix2', { filename: exportFilename })}</li>
+                </>
+              ) : (
+                <>
+                  <li>{t('vscode.export.howto1', { name })}</li>
+                  <li>{t('vscode.export.howto2')}</li>
+                </>
+              )}
+              <li>{t('vscode.export.howto3', { name })}</li>
             </ol>
           </details>
         </section>

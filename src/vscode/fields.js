@@ -19,6 +19,29 @@ export const VSCODE_TYPE_IDS = VSCODE_TYPES.map((type) => type.id)
 
 export const DEFAULT_VSCODE_TYPE = 'dark'
 
+/**
+ * How a finished VS Code theme is handed over.
+ *
+ * VSIX first, because it is the format VS Code actually installs: one file,
+ * double-clicked or picked in the Extensions view, no unzipping and no
+ * `extensions/` folder to find. ZIP stays for the cases a VSIX cannot serve —
+ * it downloads to any folder on any OS and can be unzipped anywhere — and the
+ * folder output stays because writing straight into `~/.vscode/extensions` is
+ * the fastest path while developing a theme.
+ *
+ * @type {{id: string, labelKey: string}[]}
+ */
+export const VSCODE_OUTPUT_MODES = [
+  { id: 'vsix', labelKey: 'export.output.vsix' },
+  { id: 'zip', labelKey: 'export.output.zip' },
+  { id: 'folder', labelKey: 'export.output.folder' },
+]
+
+/** Valid VS Code `outputMode` values, in render order. */
+export const VSCODE_OUTPUT_MODE_IDS = VSCODE_OUTPUT_MODES.map((mode) => mode.id)
+
+export const DEFAULT_VSCODE_OUTPUT_MODE = 'vsix'
+
 /** Where each master field appears in the generated theme JSON (documentation). */
 export const VSCODE_FIELD_GROUPS = [
   { id: 'Editor', key: 'vscode.group.editor' },

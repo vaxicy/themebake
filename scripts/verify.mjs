@@ -104,7 +104,7 @@ import {
   resolveType,
   schemeOf,
 } from '../src/vscode/build.js'
-import { DEFAULT_VSCODE_COLORS } from '../src/vscode/fields.js'
+import { DEFAULT_VSCODE_COLORS, VSCODE_OUTPUT_MODES } from '../src/vscode/fields.js'
 import { VSCODE_PRESETS } from '../src/data/vscodePresets.js'
 import { extractColors, looksLikeJson, looksLikePaletteUrl } from '../src/utils/parseColors.js'
 import { exportThemeJson, importThemeJson } from '../src/utils/importTheme.js'
@@ -550,6 +550,7 @@ for (const format of COLOR_FORMATS) {
   if (format.noteKey) requiredKeys.add(format.noteKey)
 }
 for (const mode of OUTPUT_MODES) requiredKeys.add(mode.labelKey)
+for (const mode of VSCODE_OUTPUT_MODES) requiredKeys.add(mode.labelKey)
 for (const m of SOLVER_MODES) requiredKeys.add(`studio.mode.${m}`)
 for (const i of INTENSITIES) requiredKeys.add(`studio.intensity.${i}`)
 for (const code of LANGUAGES) requiredKeys.add(`lang.${code}`)
@@ -1871,6 +1872,7 @@ ok('a single theme adds no pair keywords',
 
 // High contrast is its own rendering mode; the builder must refuse to pair it even
 // if a caller passes a counterpart anyway.
+
 const hcPkg = buildVscodePackage({
   name: 'HC Test',
   type: 'hc-black',
@@ -1880,6 +1882,85 @@ const hcPkg = buildVscodePackage({
 ok('high contrast ignores a counterpart', hcPkg.themeCount === 1, String(hcPkg.themeCount))
 ok('high contrast keeps its own uiTheme',
   JSON.parse(readFileFrom(hcPkg, 'package.json')).contributes.themes[0].uiTheme === 'hc-black')
+
+// ---------------------------------------------------------------------------
+section('22. VSIX hand-over (and the ZIP hand-over it must not disturb)')
+// ---------------------------------------------------------------------------
+const vsixPkg = buildVscodePackage({
+  name: 'Peach Test',
+  folderName: 'peach-test',
+  type: 'dark',
+  colors: DEFAULT_VSCODE_COLORS,
+  counterpart: counterpartInput,
+  format: 'vsix',
+})
+const vsixPaths = vsixPkg.files.map((file) => file.path)
+const vsixManifestXml = readFileFrom(vsixPkg, 'extension.vsixmanifest')
+
+ok('the vsix descriptor is named <slug>-<version>.vsix',
+  vsixPkg.vsixName === 'peach-test-1.0.0.vsix' && vsixPkg.fileName === vsixPkg.vsixName,
+  `${vsixPkg.vsixName} / ${vsixPkg.fileName}`)
+ok('the vsix carries its OPC metadata at the archive root',
+  vsixPaths.includes('extension.vsixmanifest') && vsixPaths.includes('[Content_Types].xml'))
+ok('everything else lives under extension/',
+  vsixPaths.filter((path) => path !== 'extension.vsixmanifest' && path !== '[Content_Types].xml')
+    .every((path) => path.startsWith('extension/')))
+ok('the vsix carries both theme JSONs',
+  vsixPaths.includes('extension/themes/peach-test-light-color-theme.json') &&
+    vsixPaths.includes('extension/themes/peach-test-dark-color-theme.json'))
+ok('the manifest asset VS Code reads actually exists in the package',
+  /Asset Type="Microsoft\.VisualStudio\.Code\.Manifest" Path="extension\/package\.json"/.test(vsixManifestXml) &&
+    vsixPaths.includes('extension/package.json'))
+ok('the vsix identity matches the packaged package.json',
+  JSON.parse(readFileFrom(vsixPkg, 'extension/package.json')).version === '1.0.0' &&
+    /<Identity Language="en-US" Id="peach-test" Version="1\.0\.0" Publisher="themebake" \/>/.test(vsixManifestXml))
+ok('the vsix manifest is a complete PackageManifest document',
+  vsixManifestXml.startsWith('<?xml version="1.0" encoding="utf-8"?>') &&
+    vsixManifestXml.includes('xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"') &&
+    vsixManifestXml.trimEnd().endsWith('</PackageManifest>'))
+ok('the vsix advertises the theme engine and the theme category',
+  /Microsoft\.VisualStudio\.Code\.Engine" Value="\^1\.80\.0"/.test(vsixManifestXml) &&
+    vsixManifestXml.includes('<Categories>Themes</Categories>'))
+ok('the vsix shows the readme as its details page',
+  vsixManifestXml.includes('Path="extension/README.md"') && vsixPaths.includes('extension/README.md'))
+
+// User text must not be able to break the XML: a theme called `AT&T <Dark>` is a
+// realistic name, and an unescaped ampersand makes the whole vsix unreadable.
+const riskyPkg = buildVscodePackage({
+  name: 'AT&T <Dark>',
+  folderName: 'at-and-t',
+  type: 'dark',
+  colors: DEFAULT_VSCODE_COLORS,
+  format: 'vsix',
+})
+const riskyXml = readFileFrom(riskyPkg, 'extension.vsixmanifest')
+ok('user text is escaped in the vsix manifest',
+  riskyXml.includes('<DisplayName>AT&amp;T &lt;Dark&gt;</DisplayName>') &&
+    !/AT&T/.test(riskyXml),
+  riskyXml.split('\n').find((line) => line.includes('DisplayName')))
+ok('an unescaped ampersand never reaches the metadata',
+  !/<[^>]*&(?!(amp|lt|gt|quot);)[^>]*>/.test(riskyXml))
+
+// Regression guard: the zip / folder hand-over keeps package.json at the root.
+const zipLayout = buildVscodePackage({
+  name: 'Peach Test',
+  folderName: 'peach-test',
+  type: 'dark',
+  colors: DEFAULT_VSCODE_COLORS,
+  format: 'zip',
+})
+ok('the zip layout still keeps package.json at the root',
+  zipLayout.files.some((f) => f.path === 'package.json') &&
+    !zipLayout.files.some((f) => f.path.startsWith('extension/')))
+ok('the zip layout is unaffected by the vsix option',
+  zipLayout.zipName === 'peach-test.zip' && zipLayout.fileName === 'peach-test.zip')
+ok('the default format is still the zip layout',
+  buildVscodePackage({ name: 'Peach Test', type: 'dark', colors: DEFAULT_VSCODE_COLORS }).files.some(
+    (f) => f.path === 'package.json',
+  ))
+ok('VS Code offers vsix, zip and folder, in that order',
+  VSCODE_OUTPUT_MODES.map((mode) => mode.id).join(',') === 'vsix,zip,folder',
+  VSCODE_OUTPUT_MODES.map((mode) => mode.id).join(','))
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

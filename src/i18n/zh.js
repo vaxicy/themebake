@@ -151,10 +151,18 @@ export default {
   'vscode.export.noteFolder': '会在你选的位置创建文件夹 {folder}/，内含 package.json 与 themes/ 下的主题 JSON。',
   'vscode.export.notePair': 'ZIP 里只有一个文件夹 {folder}/，themes/ 下同时包含浅色与深色两套主题 JSON。',
   'vscode.export.notePairFolder': '会在你选的位置创建文件夹 {folder}/，themes/ 下同时包含浅色与深色两套主题。',
+  'vscode.export.outputHint':
+    '「VSIX」是 VS Code 直接安装的扩展包：不用解压，装完就出现在扩展列表里。「ZIP」下载压缩包，任何系统都能解压到任意文件夹。「文件夹」直接把扩展写进你选的目录，边改主题边看效果最省事。',
+  'vscode.export.outputHintNoFolder':
+    '「VSIX」是 VS Code 直接安装的扩展包：不用解压，装完就出现在扩展列表里。「ZIP」下载压缩包，任何系统都能解压到任意文件夹。当前浏览器不支持直接写文件夹（需要桌面版 Chrome 或 Edge）。',
+  'vscode.export.noteVsix': '下载 {filename} —— VS Code 的标准扩展安装包，装完出现在扩展列表里，无需解压。',
+  'vscode.export.notePairVsix': '{filename} 内含浅色与深色两套主题，安装一次就能在主题选择器里切换。',
   'vscode.export.howtoSummary': '安装方法',
   'vscode.export.howto1': '把导出的文件夹复制到 %USERPROFILE%\\.vscode\\extensions\\。',
   'vscode.export.howto2': '重启 VS Code（或对文件夹「以文件夹方式安装」调试）。',
   'vscode.export.howto3': 'Ctrl+K Ctrl+T 打开颜色主题选择器，选择「{name}」。',
+  'vscode.export.howtoVsix1': '在 VS Code 里打开扩展面板，点右上角「⋯」→「从 VSIX 安装…」，选中下载的 .vsix 文件。',
+  'vscode.export.howtoVsix2': '或者用命令行：code --install-extension {filename}',
   'settings.logo.adaptive': '自适应',
   'settings.logo.classic': '原始彩色',
   'settings.logo.hint':
@@ -349,6 +357,7 @@ export default {
   'export.outputLegend': '输出方式',
   'export.output.zip': 'ZIP',
   'export.output.folder': '文件夹',
+  'export.output.vsix': 'VSIX',
   'export.outputHint':
     '「文件夹」把主题直接写进你选的一个目录，不用解压就能「加载已解压的扩展程序」；「ZIP」则下载一个压缩包。',
   'export.folderUnsupported': '当前浏览器不支持直接写文件夹（需要桌面版 Chrome 或 Edge），请用 ZIP。',
@@ -402,6 +411,8 @@ export default {
   'toast.fieldsCleared': '已清空名称、文件夹名和摘要。',
   'toast.vscodeGenerated': 'VS Code 主题扩展包已生成。',
   'toast.vscodeGeneratedPair': '含浅色与深色两套主题的 VS Code 扩展包已生成。',
+  'toast.vscodeVsixGenerated': 'VS Code 扩展安装包（.vsix）已生成。',
+  'toast.vscodeVsixGeneratedPair': '含浅色与深色两套主题的 .vsix 已生成。',
   'toast.vscodeSchemeSwitched': '已按{scheme}方案重新解算整套配色。',
   'toast.vscodeFieldsCleared': '已清空名称和文件夹名。',
   'toast.undone': '已撤销上一步修改。',

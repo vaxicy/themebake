@@ -417,6 +417,77 @@ export function uiThemeFor(type) {
 /** Label suffix used when a package ships both schemes, per house convention. */
 const SCHEME_LABEL = { light: 'Light', dark: 'Dark' }
 
+/** Version of every generated extension. Bumped only on the user's say-so. */
+export const VSCODE_EXTENSION_VERSION = '1.0.0'
+
+/** Publisher id written into package.json and the VSIX identity. */
+const PUBLISHER = 'themebake'
+
+/** Minimal XML escaping — the values come from user text, so this is not optional. */
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * The two OPC metadata files a `.vsix` needs.
+ *
+ * A `.vsix` is a zip, but not one VS Code will install by accident: the root must
+ * carry `extension.vsixmanifest` (which points at the real `package.json` through
+ * its `Microsoft.VisualStudio.Code.Manifest` asset) plus `[Content_Types].xml`,
+ * and the extension itself lives under `extension/`. The layout is copied from a
+ * `vsce`-produced bundle, so `code --install-extension` and the Extensions view
+ * both accept it without complaint.
+ *
+ * @param {object} options
+ * @param {object} options.pkg the generated package.json contents
+ * @param {string} options.displayName
+ * @param {string} options.folderName
+ */
+function buildVsixMetadata({ pkg, displayName, folderName }) {
+  const tags = [...pkg.keywords, '__web_extension'].map(xmlEscape).join(',')
+
+  const manifest = [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">',
+    '  <Metadata>',
+    `    <Identity Language="en-US" Id="${xmlEscape(folderName)}" Version="${xmlEscape(pkg.version)}" Publisher="${xmlEscape(pkg.publisher)}" />`,
+    `    <DisplayName>${xmlEscape(displayName)}</DisplayName>`,
+    `    <Description xml:space="preserve">${xmlEscape(pkg.description)}</Description>`,
+    `    <Tags>${tags}</Tags>`,
+    `    <Categories>${pkg.categories.map(xmlEscape).join(',')}</Categories>`,
+    '    <GalleryFlags>Public</GalleryFlags>',
+    '    <Properties>',
+    `      <Property Id="Microsoft.VisualStudio.Code.Engine" Value="${xmlEscape(pkg.engines.vscode)}" />`,
+    '      <Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="ui,workspace" />',
+    `      <Property Id="Microsoft.VisualStudio.Services.Branding.Color" Value="${xmlEscape(pkg.galleryBanner.color)}" />`,
+    `      <Property Id="Microsoft.VisualStudio.Services.Branding.Theme" Value="${xmlEscape(pkg.galleryBanner.theme)}" />`,
+    '    </Properties>',
+    '  </Metadata>',
+    '  <Installation>',
+    '    <InstallationTarget Id="Microsoft.VisualStudio.Code"/>',
+    '  </Installation>',
+    '  <Dependencies/>',
+    '  <Assets>',
+    '    <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />',
+    '    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />',
+    '  </Assets>',
+    '</PackageManifest>',
+    '',
+  ].join('\n')
+
+  const contentTypes = [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension=".json" ContentType="application/json"/><Default Extension=".md" ContentType="text/markdown"/><Default Extension=".vsixmanifest" ContentType="text/xml"/></Types>',
+    '',
+  ].join('\n')
+
+  return { manifest, contentTypes }
+}
+
 /**
  * Build the full extension package.
  *
@@ -424,6 +495,13 @@ const SCHEME_LABEL = { light: 'Light', dark: 'Dark' }
  * which is the house convention of the hand-made reference themes: files named
  * `<slug>-{light,dark}-color-theme.json`, labels `"<Name> Light"` / `"<Name>
  * Dark"`, light listed first so the picker reads consistently across families.
+ *
+ * `format` decides which *hand-over* the returned file list describes, not what
+ * the theme contains:
+ *   - `'zip'` / `'folder'` — the extension itself, with `package.json` at the root
+ *     (what `Load unpacked` / copying into `extensions/` wants).
+ *   - `'vsix'` — the same extension wrapped the way VS Code installs it: metadata
+ *     at the archive root, the extension under `extension/`.
  *
  * @param {object} options
  * @param {string} options.name  Display name, written verbatim.
@@ -434,7 +512,9 @@ const SCHEME_LABEL = { light: 'Light', dark: 'Dark' }
  * @param {{type:string, colors:Record<string,string>}|null} [options.counterpart]
  *   The other scheme (`deriveCounterpart`). Ignored for `hc-black`, which is a
  *   rendering mode of its own rather than one half of a pair.
+ * @param {'zip'|'folder'|'vsix'} [options.format]  Which hand-over to lay out for.
  * @returns {{files:{path:string,data:string}[], folderName:string, zipName:string,
+ *   vsixName:string, fileName:string, format:string,
  *   themeJson:string, colorCount:number, tokenColorCount:number,
  *   themeCount:number, themes:{label:string,uiTheme:string,path:string}[]}}
  */
@@ -444,6 +524,7 @@ export function buildVscodePackage({
   type = DEFAULT_VSCODE_TYPE,
   colors,
   counterpart = null,
+  format = 'zip',
 }) {
   const master = buildMasterColors(colors)
   const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
@@ -492,8 +573,8 @@ export function buildVscodePackage({
     name: folderName,
     displayName: name,
     description: `${name} color theme for VS Code, generated with ThemeBake.`,
-    version: '1.0.0',
-    publisher: 'themebake',
+    version: VSCODE_EXTENSION_VERSION,
+    publisher: PUBLISHER,
     engines: { vscode: '^1.80.0' },
     categories: ['Themes'],
     galleryBanner: {
@@ -510,6 +591,9 @@ export function buildVscodePackage({
     license: 'MIT',
   }
 
+  const themeNames = themes.map((theme) => `**${theme.label}**`).join(' or ')
+  const vsixName = `${folderName}-${pkg.version}.vsix`
+
   const readme = [
     `# ${name}`,
     '',
@@ -520,27 +604,52 @@ export function buildVscodePackage({
       : []),
     '## Install',
     '',
-    '1. Copy this folder into your extensions directory (`%USERPROFILE%\\.vscode\\extensions`).',
-    '2. Restart VS Code.',
-    `3. Open the theme picker (\`Ctrl+K Ctrl+T\`) and choose ${themes
-      .map((theme) => `**${theme.label}**`)
-      .join(' or ')}.`,
+    // The instructions match the artefact the user actually holds: telling someone
+    // with a .vsix to copy a folder is how a theme ends up never installed.
+    ...(format === 'vsix'
+      ? [
+          '1. In VS Code, open **Extensions**, use the `…` menu → **Install from VSIX…** and pick this file.',
+          `2. Or from a terminal: \`code --install-extension ${vsixName}\`.`,
+          `3. Open the theme picker (\`Ctrl+K Ctrl+T\`) and choose ${themeNames}.`,
+        ]
+      : [
+          '1. Copy this folder into your extensions directory (`%USERPROFILE%\\.vscode\\extensions`).',
+          '2. Restart VS Code.',
+          `3. Open the theme picker (\`Ctrl+K Ctrl+T\`) and choose ${themeNames}.`,
+        ]),
     '',
   ].join('\n')
 
   const primary = themes[0]
 
-  const files = [
+  const extensionFiles = [
     { path: 'package.json', data: `${JSON.stringify(pkg, null, 2)}\n` },
     ...themes.map((theme) => theme.file),
     { path: 'README.md', data: `${readme}\n` },
     { path: '.vscodeignore', data: '.vscode/**\n.gitignore\n' },
   ]
 
+  // A `.vsix` keeps the extension in a subfolder and adds the OPC metadata the
+  // installer reads first. `createZip` is called with no wrapping folder for it,
+  // because these paths are already absolute within the archive.
+  const vsix = buildVsixMetadata({ pkg, displayName: name, folderName })
+  const files =
+    format === 'vsix'
+      ? [
+          { path: 'extension.vsixmanifest', data: vsix.manifest },
+          { path: '[Content_Types].xml', data: vsix.contentTypes },
+          ...extensionFiles.map((file) => ({ ...file, path: `extension/${file.path}` })),
+        ]
+      : extensionFiles
+
   return {
     files,
+    format,
     folderName,
     zipName: `${folderName}.zip`,
+    vsixName,
+    /** Whatever the chosen format downloads as (folder output ignores it). */
+    fileName: format === 'vsix' ? vsixName : `${folderName}.zip`,
     themeJson: primary.json ? `${JSON.stringify(primary.json, null, 2)}\n` : '',
     colorCount: Object.keys(primary.json.colors).length,
     tokenColorCount: primary.json.tokenColors.length,
