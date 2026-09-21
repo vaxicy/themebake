@@ -69,6 +69,10 @@ export default {
   'settings.description.placeholder': '一个安静的玫瑰色主题，适合长时间阅读。',
   'settings.description.hint':
     '可选，最多 {max} 个字符。它会写进 manifest.json 的 description —— 上传商店后就是「软件包中的摘要」，显示在详情页和搜索结果的标题下方。本地加载主题时 Chrome 不会显示它。',
+  'settings.clear': '清空',
+  'settings.clearTitle': '一键清空主题名称、文件夹名和摘要',
+  'settings.autoClear': '新主题自动清空',
+  'settings.autoClearTitle': '应用新主题（选预设、随机、智能配色、导入）时自动清空这三个输入框',
   'settings.group.browserChrome': '浏览器外观',
   'settings.group.addressBar': '地址栏',
   'settings.group.bookmarks': '书签栏',
@@ -313,6 +317,7 @@ export default {
   'toast.region': '通知',
   'toast.themeGenerated': '主题生成成功。',
   'toast.themeReset': '主题已重置。',
+  'toast.fieldsCleared': '已清空名称、文件夹名和摘要。',
   'toast.undone': '已撤销上一步修改。',
   'toast.presetApplied': '已应用预设「{name}」。',
   'toast.randomApplied': '已生成一套新的随机主题。',

@@ -34,6 +34,9 @@ export function ThemeSettings({
   logoStyle,
   nameError,
   aiPanel,
+  autoClear,
+  onAutoClearChange,
+  onClearFields,
   onNameChange,
   onFolderChange,
   onColorChange,
@@ -55,6 +58,32 @@ export function ThemeSettings({
             {t('settings.title')}
           </h2>
           <p className="panel__subtitle">{t('settings.subtitle')}</p>
+        </div>
+
+        {/*
+          One click empties the three identity fields (name, folder name,
+          summary); the checkbox makes the same clear happen automatically
+          whenever a new theme is applied — preset, random, smart palette or
+          import. The preference persists under its own key, so Reset and a
+          theme export never touch it.
+        */}
+        <div className="settings-actions">
+          <label className="auto-clear-toggle" title={t('settings.autoClearTitle')}>
+            <input
+              type="checkbox"
+              checked={autoClear}
+              onChange={(event) => onAutoClearChange(event.target.checked)}
+            />
+            <span>{t('settings.autoClear')}</span>
+          </label>
+          <button
+            type="button"
+            className="button button--ghost button--sm"
+            onClick={onClearFields}
+            title={t('settings.clearTitle')}
+          >
+            {t('settings.clear')}
+          </button>
         </div>
       </div>
 

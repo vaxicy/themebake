@@ -350,3 +350,52 @@
     font-size: var(--text-xs);
   }
 }
+
+/* ----------------------- Settings header actions -------------------------- */
+/* The one-click "clear" button and the auto-clear checkbox sit opposite the
+   panel title. Scoped to the settings panel so no other header is affected. */
+.settings-panel .panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.auto-clear-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.auto-clear-toggle input {
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.auto-clear-toggle:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 560px) {
+  .settings-panel .panel__header {
+    flex-direction: column;
+  }
+
+  .settings-actions {
+    align-self: flex-end;
+  }
+}
+

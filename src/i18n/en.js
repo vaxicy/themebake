@@ -76,6 +76,10 @@ export default {
   'settings.description.placeholder': 'A calm rose theme for long reading sessions.',
   'settings.description.hint':
     'Optional. Up to {max} characters. Written into manifest.json as description — the Chrome Web Store shows it as the package summary, under the title on the detail page and in search results. Chrome does not display it for a locally loaded theme.',
+  'settings.clear': 'Clear',
+  'settings.clearTitle': 'Clear the theme name, folder name and summary in one click',
+  'settings.autoClear': 'Auto-clear on new theme',
+  'settings.autoClearTitle': 'Clear these three fields whenever a new theme is applied (preset, random, smart palette, import)',
   'settings.group.browserChrome': 'Browser chrome',
   'settings.group.addressBar': 'Address bar',
   'settings.group.bookmarks': 'Bookmarks',
@@ -329,6 +333,7 @@ export default {
   'toast.region': 'Notifications',
   'toast.themeGenerated': 'Theme generated successfully.',
   'toast.themeReset': 'Theme reset.',
+  'toast.fieldsCleared': 'Name, folder name and summary cleared.',
   'toast.undone': 'Undid the last change.',
   'toast.presetApplied': 'Applied preset “{name}”.',
   'toast.randomApplied': 'Generated a new random theme.',

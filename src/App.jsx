@@ -49,6 +49,7 @@ import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS, OUTPUT_MODE_IDS } from './data/them
 import { useI18n } from './i18n/index.jsx'
 import { loadAiConfig, saveAiConfig } from './utils/aiConfig.js'
 import { describePalette, requestThemeDescription, requestThemeNames } from './utils/aiNaming.js'
+import { loadAutoClearNewTheme, saveAutoClearNewTheme } from './utils/appPrefs.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
 import { canWriteFolder, writeThemeFolder } from './utils/fsFolder.js'
@@ -151,6 +152,11 @@ export default function App() {
   // undo snapshot, and reset by Reset.
   const [logoStyle, setLogoStyle] = useState(INITIAL.state?.logoStyle ?? DEFAULT_LOGO_STYLE)
 
+  // Auto-clear the three identity fields whenever a new theme is applied. A user
+  // preference rather than part of the draft: it lives under its own localStorage
+  // key so Reset and a theme export never touch it (same rule as the AI settings).
+  const [autoClearOnNewTheme, setAutoClearOnNewTheme] = useState(() => loadAutoClearNewTheme())
+
   // ------------------------------------------------------- smart palette studio
   const [seed, setSeed] = useState(INITIAL.state?.seed ?? DEFAULT_COLORS.frame)
   const [smartMode, setSmartMode] = useState(INITIAL.state?.smartMode ?? 'auto')
@@ -171,6 +177,10 @@ export default function App() {
   useEffect(() => {
     saveAiConfig(aiConfig)
   }, [aiConfig])
+
+  useEffect(() => {
+    saveAutoClearNewTheme(autoClearOnNewTheme)
+  }, [autoClearOnNewTheme])
 
   const [nameError, setNameError] = useState('')
   const [descriptionError, setDescriptionError] = useState('')
@@ -371,6 +381,20 @@ export default function App() {
     [descriptionError],
   )
 
+  /**
+   * One click empties the three identity fields — theme name, folder name and
+   * the store summary. Colours are untouched: this only clears what describes
+   * the theme, not the theme itself.
+   */
+  const handleClearFields = useCallback(() => {
+    setName('')
+    setFolderInput('')
+    setDescription('')
+    setNameError('')
+    setDescriptionError('')
+    toast.info(t('toast.fieldsCleared'))
+  }, [toast, t])
+
   const handleInvalidColor = useCallback(
     (label) => {
       toast.error(t('colorField.invalidToast', { label }))
@@ -388,10 +412,13 @@ export default function App() {
       setColors(built)
       setName(autoName)
       setFolderInput(autoFolder)
+      // A new theme arrived: drop the previous theme's summary so it can never
+      // leak into the next one (name/folder are replaced by the auto name above).
+      if (autoClearOnNewTheme) setDescription('')
       setActivePresetId(preset.id)
       toast.success(t('toast.presetApplied', { name: t(`preset.${preset.id}.name`) }))
     },
-    [pushHistory, toast, t],
+    [autoClearOnNewTheme, pushHistory, toast, t],
   )
 
   const handleRandomize = useCallback(() => {
@@ -401,9 +428,10 @@ export default function App() {
     setColors(built)
     setName(autoName)
     setFolderInput(autoFolder)
+    if (autoClearOnNewTheme) setDescription('')
     setActivePresetId(null)
     toast.success(t('toast.randomApplied'))
-  }, [pushHistory, toast, t])
+  }, [autoClearOnNewTheme, pushHistory, toast, t])
 
   const handleResetConfirmed = useCallback(() => {
     pushHistory()
@@ -440,10 +468,11 @@ export default function App() {
       setColors(built)
       setName(autoName)
       setFolderInput(autoFolder)
+      if (autoClearOnNewTheme) setDescription('')
       setActivePresetId(null)
       return result
     },
-    [pushHistory, smartMode, smartIntensity, toast, t],
+    [autoClearOnNewTheme, pushHistory, smartMode, smartIntensity, toast, t],
   )
 
   const handleStudioGenerate = useCallback(() => {
@@ -474,6 +503,9 @@ export default function App() {
       pushHistory()
       const built = buildColors(importedColors)
       setColors(built)
+      // An imported theme is a new theme: clear the stale summary first, then
+      // let the source's own description (if any) take its place below.
+      if (autoClearOnNewTheme) setDescription('')
       if (importedName) {
         setName(importedName)
         setFolderInput(toThemeFolderName(importedName))
@@ -510,7 +542,7 @@ export default function App() {
 
       toast.success(t('toast.paletteApplied', { count: Object.keys(importedColors).length }))
     },
-    [pushHistory, toast, t],
+    [autoClearOnNewTheme, pushHistory, toast, t],
   )
 
   // --------------------------------------------------------------- AI naming
@@ -718,6 +750,9 @@ export default function App() {
               }
               onNameChange={handleNameChange}
               onFolderChange={setFolderInput}
+              autoClear={autoClearOnNewTheme}
+              onAutoClearChange={setAutoClearOnNewTheme}
+              onClearFields={handleClearFields}
               onColorChange={handleColorChange}
               onLogoStyleChange={handleLogoStyleChange}
               onInvalidColor={handleInvalidColor}
