@@ -105,24 +105,38 @@ export function resolveType(declaredType, colors) {
  *
  * Only lightness moves — hue and saturation are what make the colour *that*
  * colour, and a hue-preserving nudge is what keeps a derived light theme looking
- * like a sibling of its dark original instead of a different theme. The direction
- * is decided by the background, not by the theme type, because a background can
- * land mid-range and then only one direction has headroom.
+ * like a sibling of its dark original instead of a different theme.
+ *
+ * **Both directions are tried.** Guessing the direction from the background's
+ * luminance is right in the easy cases and wrong exactly where it matters: a
+ * surface at luminance 0.5 is a dead zone where only a *very* dark foreground
+ * clears 4.5:1, so the old "background is dark, lighten the text" rule walked the
+ * wrong way, ran out of headroom and gave up on a readable answer. The direction
+ * that reaches the bar in fewer steps wins; when neither does, the extreme of the
+ * side with more contrast is used.
  */
 function contrastAgainst(hex, background, min = 4.5) {
   if (contrastRatio(hex, background) >= min) return hex
 
   const hsl = hexToHsl(hex)
-  const towardsLight = relativeLuminance(background) < 0.5
-  for (let step = 1; step <= 44; step += 1) {
-    const l = clamp(hsl.l + (towardsLight ? step : -step) * 1.5, 0, 100)
-    const candidate = hslToHex({ ...hsl, l })
-    if (contrastRatio(candidate, background) >= min) return candidate
-    if (l <= 0 || l >= 100) break
+  const attempts = []
+  for (const up of [true, false]) {
+    for (let step = 1; step <= 60; step += 1) {
+      const l = clamp(hsl.l + (up ? step : -step) * 1.4, 0, 100)
+      const candidate = hslToHex({ ...hsl, l })
+      attempts.push({ color: candidate, ratio: contrastRatio(candidate, background), steps: step })
+      if (l <= 0 || l >= 100) break
+    }
   }
-  // No lightness on that axis can clear the bar — fall back to the extreme, which
-  // is the most readable this hue can get on that surface.
-  return hslToHex({ ...hsl, l: towardsLight ? 96 : 6 })
+
+  const passing = attempts.filter((attempt) => attempt.ratio >= min)
+  if (passing.length) {
+    passing.sort((a, b) => a.steps - b.steps)
+    return passing[0].color
+  }
+
+  const best = attempts.reduce((a, b) => (b.ratio > a.ratio ? b : a))
+  return best.ratio > contrastRatio(hex, background) ? best.color : hex
 }
 
 /**
@@ -730,7 +744,45 @@ export function masterFromPalette(solved) {
    */
   const ink = solved.tabText ?? solved.ntpText
   const dark = ink ? relativeLuminance(ink) > relativeLuminance(frame) : relativeLuminance(frame) < 0.5
-  const bg = dark ? mix(frame, '#131120', 0.74) : mix(frame, '#FFFFFF', 0.88)
+
+  /**
+   * How much of the frame survives into the editor surface.
+   *
+   * Fixed amounts here were the last place every randomise collapsed into the
+   * same theme: a light palette always produced a near-white editor (l≈96) and a
+   * dark one a near-black (l≈12), whatever the palette's own colour was, so the
+   * workbench never looked different even when the hue did. The amount now
+   * follows the frame's own chroma — a saturated frame keeps its tint in the
+   * surface, a near-grey one stays close to paper — which is how the hand-made
+   * themes read: a matcha theme's editor is warm off-white, not white.
+   */
+  const frameChroma = (() => {
+    const { r, g, b } = parseHex(frame)
+    return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
+  })()
+  const bgMix = dark
+    ? clamp(0.86 - frameChroma * 1.5, 0.45, 0.88)
+    : clamp(0.95 - frameChroma * 2.2, 0.62, 0.95)
+
+  /**
+   * Keep the editor surface on the correct side of the luminance range.
+   *
+   * A vivid frame (a saturated red, say) at 62% white still lands near luminance
+   * 0.5 — the dead zone where nothing but near-black text is readable, so the
+   * theme is neither a light one nor a dark one and every accent measured against
+   * it fails. The surface is pushed from a bad place rather than clamped, so the
+   * palette's own tint survives.
+   */
+  const confineBg = (hex, isDark) => {
+    let out = hex
+    for (let step = 0; step < 24; step += 1) {
+      const luminance = relativeLuminance(out)
+      if (isDark ? luminance <= 0.18 : luminance >= 0.6) break
+      out = mix(out, isDark ? '#000000' : '#FFFFFF', 0.06)
+    }
+    return out
+  }
+  const bg = confineBg(dark ? mix(frame, '#131120', bgMix) : mix(frame, '#FFFFFF', bgMix), dark)
   const surface = dark ? mix(bg, '#FFFFFF', 0.05) : mix(bg, '#000000', 0.04)
   const surface2 = dark ? mix(bg, '#FFFFFF', 0.09) : mix(bg, '#000000', 0.07)
 

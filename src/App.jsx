@@ -508,7 +508,16 @@ export default function App() {
   const handleImportPalette = useCallback(
     (seeds) => {
       const result = applySolvedTheme(seeds)
-      if (result) toast.success(t('toast.paletteApplied', { count: result.seedCount }))
+      if (!result) return
+      // Say how many of the card's own colours survived verbatim: an importer
+      // that quietly replaces everything is the reason a palette import can feel
+      // like it ignored the input.
+      toast.success(
+        t(result.distinctSeedsUsed > 0 ? 'toast.paletteAppliedUsed' : 'toast.paletteApplied', {
+          count: result.seedCount,
+          used: result.distinctSeedsUsed,
+        }),
+      )
     },
     [applySolvedTheme, toast, t],
   )

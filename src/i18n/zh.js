@@ -278,6 +278,8 @@ export default {
   'studio.noteSeedsUsed': '色卡里的 {total} 个颜色中，有 {used} 个被直接采用。',
   'studio.noteClash': '强调色取的是主色的对角色相（{hex}），表面色仍沿用主色自己的色相。',
   'studio.noteTriad': '三色搭配：强调色 {hex}，窗口按钮用第三个色相 {third}。',
+  'studio.noteMultiFamily':
+    '色卡里有 {count} 个色系：{accent} 用作强调色，{surfaces} 用到工具栏与页面上 —— 不再被平均成一种颜色。',
 
   // ----------------------------------------------------------------- ai naming
   'ai.title': 'AI 生成',
@@ -471,6 +473,7 @@ export default {
   'toast.randomApplied': '已生成一套新的随机主题。',
   'toast.smartApplied': '已根据你的颜色生成一整套主题。',
   'toast.paletteApplied': '已应用 {count} 个颜色的色卡。',
+  'toast.paletteAppliedUsed': '已应用 {count} 个颜色的色卡，其中 {used} 个被直接采用。',
   'toast.imageExtracted': '已从图片中提取 {count} 个颜色。',
   'toast.zipFailed': 'ZIP 生成失败：{error}',
   'toast.folderFailed': '写入文件夹失败：{error}',

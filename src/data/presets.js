@@ -241,12 +241,22 @@ export function generateRandomColors(seed) {
   }
 
   const baseHue = pick(0, 360)
-  const dark = maybe(0.24)
+  // A third of the themes are dark: at under a quarter, two randoms in a row
+  // landed on the same scheme often enough that the button felt broken.
+  const dark = maybe(0.34)
   const archetype = RANDOM_ARCHETYPES[Math.floor(rand() * RANDOM_ARCHETYPES.length)]
   // Quiet surfaces: the surfaces are pulled towards neutral so a single accent
   // carries the theme. This is the difference between "tinted paper" and "a wash
   // of one colour", and it is worth being deliberate about.
   const quietSurfaces = maybe(0.4)
+  /**
+   * A grey theme — no hue at all, only lightness.
+   *
+   * Worth having as an explicit outcome rather than an unlikely accident: an
+   * editor theme in pure greys is a real, popular look, and it is the one result
+   * that cannot be mistaken for "another tint of the last one".
+   */
+  const greyscale = maybe(0.12)
 
   /**
    * How many colour families the palette mixes.
@@ -261,8 +271,19 @@ export function generateRandomColors(seed) {
   const familyB = familyCount >= 2 ? away(baseHue, pick(35, 105)) : null
   const familyC = familyCount >= 3 ? away(baseHue, pick(105, 180)) : null
 
-  const primaryS = (dark ? pick(22, 42) : pick(42, 72)) * (quietSurfaces ? 0.7 : 1)
-  const primaryL = dark ? pick(22, 34) : pick(58, 74)
+  /**
+   * Frame weight and lightness.
+   *
+   * These were a narrow band (light `l` 58-74, `s` 42-72), so every randomise was
+   * the same theme in a different hue: a mid-weight pastel, always. The band is
+   * now wide enough for a pale wash, a deep saturated frame and a near-grey one to
+   * all turn up, which is what "random" has to mean for the button to be worth
+   * pressing twice.
+   */
+  const primaryS = greyscale
+    ? pick(2, 8)
+    : (dark ? pick(12, 46) : pick(18, 82)) * (quietSurfaces ? 0.72 : 1)
+  const primaryL = dark ? pick(12, 34) : pick(46, 80)
 
   /**
    * Surface hue: the base plus this role's own drift, or the second family.
@@ -324,11 +345,11 @@ export function generateRandomColors(seed) {
   if (dark) {
     // ---------------------------------- dark ----------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.85, l: primaryL + 6 })
-    palette.toolbar = tintAt(otherFamily('toolbar'), primaryL + 8, chroma(pick(0.08, 0.12)))
-    palette.backgroundTab = tintAt(tint('backgroundTab'), primaryL - 2, chroma(pick(0.08, 0.13)))
-    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(9, 15), chroma(pick(0.05, 0.09)))
-    palette.omniboxBackground = tintAt(otherFamily('omniboxBackground'), pick(15, 22), chroma(pick(0.05, 0.09)))
-    palette.buttonBackground = tintAt(buttonHue, primaryL + 12, chroma(pick(0.1, 0.16)))
+    palette.toolbar = tintAt(otherFamily('toolbar'), primaryL + pick(4, 16), chroma(pick(0.05, 0.14)))
+    palette.backgroundTab = tintAt(tint('backgroundTab'), primaryL - pick(0, 6), chroma(pick(0.05, 0.15)))
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(6, 20), chroma(pick(0.03, 0.11)))
+    palette.omniboxBackground = tintAt(otherFamily('omniboxBackground'), pick(11, 26), chroma(pick(0.03, 0.1)))
+    palette.buttonBackground = tintAt(buttonHue, primaryL + pick(6, 18), chroma(pick(0.07, 0.18)))
     palette.tabText = hslToHex({ h: baseHue, s: pick(10, 22), l: pick(92, 97) })
     palette.tabBackgroundText = hslToHex({ h: baseHue, s: pick(12, 26), l: pick(66, 78) })
     palette.toolbarButtonIcon = hslToHex({ h: baseHue, s: pick(10, 24), l: pick(84, 92) })
@@ -338,11 +359,18 @@ export function generateRandomColors(seed) {
   } else {
     // ---------------------------------- light ---------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.5, l: Math.min(primaryL + 9, 88) })
-    palette.toolbar = tintAt(otherFamily('toolbar'), pick(94, 97), chroma(pick(0.05, 0.09)))
-    palette.backgroundTab = tintAt(tint('backgroundTab'), pick(84, 90), chroma(pick(0.1, 0.16)))
-    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(96, 98.5), chroma(pick(0.06, 0.11)))
-    palette.omniboxBackground = '#FFFFFF'
-    palette.buttonBackground = tintAt(buttonHue, pick(86, 92), chroma(pick(0.1, 0.16)))
+    palette.toolbar = tintAt(otherFamily('toolbar'), pick(88, 97), chroma(pick(0.03, 0.11)))
+    palette.backgroundTab = tintAt(tint('backgroundTab'), pick(80, 92), chroma(pick(0.06, 0.18)))
+    // The page is not always white: a page at l 88 is a visible tint, which is
+    // what gives the light randoms distinct identities instead of all being
+    // "white with a coloured chrome".
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(88, 99), chroma(pick(0.04, 0.13)))
+    // The URL bar stays near-white most of the time — it carries typed text —
+    // but a tint now and then is what real light themes do.
+    palette.omniboxBackground = maybe(0.3)
+      ? tintAt(otherFamily('omniboxBackground'), pick(92, 98), chroma(pick(0.03, 0.08)))
+      : '#FFFFFF'
+    palette.buttonBackground = tintAt(buttonHue, pick(78, 92), chroma(pick(0.07, 0.18)))
     palette.tabText = hslToHex({ h: baseHue, s: pick(18, 36), l: pick(14, 24) })
     palette.tabBackgroundText = hslToHex({ h: baseHue, s: pick(12, 26), l: pick(34, 46) })
     palette.toolbarButtonIcon = palette.tabBackgroundText
@@ -352,11 +380,14 @@ export function generateRandomColors(seed) {
   }
 
   // A quieter surface palette gets a louder accent — otherwise the "quiet
-  // surfaces" half of the choice just produces a dull theme.
+  // surfaces" half of the choice just produces a dull theme. A greyscale theme
+  // keeps its accent grey too, or it would be a colour theme wearing a grey coat.
   const accentSatBoost = quietSurfaces ? 1.12 : 1
   palette.ntpLink = hslToHex({
     h: accentHue,
-    s: Math.min((dark ? pick(48, 70) : pick(52, 76)) * accentSatBoost, 92),
+    s: greyscale
+      ? pick(0, 8)
+      : Math.min((dark ? pick(48, 70) : pick(52, 76)) * accentSatBoost, 92),
     l: dark ? pick(70, 82) : pick(38, 50),
   })
 

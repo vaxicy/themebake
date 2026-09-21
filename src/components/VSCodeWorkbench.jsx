@@ -552,7 +552,13 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   const handleImportPalette = useCallback(
     (seeds) => {
       const result = applySolvedPalette(seeds)
-      if (result) toast.success(t('toast.paletteApplied', { count: result.seedCount }))
+      if (!result) return
+      toast.success(
+        t(result.distinctSeedsUsed > 0 ? 'toast.paletteAppliedUsed' : 'toast.paletteApplied', {
+          count: result.seedCount,
+          used: result.distinctSeedsUsed,
+        }),
+      )
     },
     [applySolvedPalette, toast, t],
   )

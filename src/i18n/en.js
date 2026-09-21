@@ -304,6 +304,8 @@ export default {
     'The accent sits on the opposite hue to your seed ({hex}); the surfaces keep the seed hue.',
   'studio.noteTriad':
     'Triadic result: accent {hex}, with the window buttons on the third hue {third}.',
+  'studio.noteMultiFamily':
+    'Your palette held {count} colour families: {accent} became the accent and {surfaces} the toolbar and page — no longer averaged into one colour.',
 
   // ----------------------------------------------------------------- ai naming
   'ai.title': 'AI generation',
@@ -504,6 +506,7 @@ export default {
   'toast.randomApplied': 'Generated a new random theme.',
   'toast.smartApplied': 'Built a full theme from your colour(s).',
   'toast.paletteApplied': 'Applied a {count}-colour palette.',
+  'toast.paletteAppliedUsed': 'Applied a {count}-colour palette — {used} of them used directly.',
   'toast.imageExtracted': 'Extracted {count} colour(s) from the image.',
   'toast.zipFailed': 'ZIP generation failed: {error}',
   'toast.folderFailed': 'Writing the folder failed: {error}',

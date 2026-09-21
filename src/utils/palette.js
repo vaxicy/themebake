@@ -321,10 +321,66 @@ function hueFamily(seeds) {
   return { hue, chroma: weight / chromatic.length, neutral: false, chromaticCount: chromatic.length }
 }
 
+/**
+ * Group the palette's chromatic seeds into distinct hue families.
+ *
+ * One family is the common case: a couple of pinks are one colour as far as
+ * anyone looking at the result is concerned. But the importer is handed *palette
+ * cards*, and those routinely hold two or three families — a rose for the shell,
+ * a cream for the page, an olive for the accent. Collapsing them into their
+ * average is what made an import feel conservative: the olive disappeared and the
+ * result was a monochrome tint of the first colour.
+ *
+ * Seeds are clustered greedily by hue distance (strongest first), and each
+ * family's hue is the chroma-weighted circular mean of its members.
+ *
+ * @param {{h:number, chroma:number}[]} seeds
+ * @param {number} [threshold] degrees; seeds further apart start separate families
+ * @returns {{hue:number, chroma:number, count:number}[]} strongest family first
+ */
+export function hueFamilies(seeds, threshold = 26) {
+  const families = []
+
+  for (const seed of [...seeds].sort((a, b) => b.chroma - a.chroma)) {
+    if (seed.chroma < 0.06) continue
+    const near = families.find((family) => hueDistance(family.hue, seed.h) <= threshold)
+    if (!near) {
+      families.push({ hue: seed.h, weight: seed.chroma, count: 1 })
+      continue
+    }
+
+    const cx = Math.cos((near.hue * Math.PI) / 180) * near.weight + Math.cos((seed.h * Math.PI) / 180) * seed.chroma
+    const cy = Math.sin((near.hue * Math.PI) / 180) * near.weight + Math.sin((seed.h * Math.PI) / 180) * seed.chroma
+    near.weight += seed.chroma
+    near.count += 1
+    let hue = (Math.atan2(cy / near.weight, cx / near.weight) * 180) / Math.PI
+    if (hue < 0) hue += 360
+    near.hue = hue
+  }
+
+  return families.map((family) => ({ hue: family.hue, chroma: family.weight / family.count, count: family.count }))
+}
+
 /** Shortest angular distance between two hues, 0-180. */
 function hueDistance(a, b) {
   const d = Math.abs(((a - b) % 360 + 360) % 360)
   return d > 180 ? 360 - d : d
+}
+
+/**
+ * The HSL saturation needed for a colour at lightness `l` to carry `chroma`
+ * (max-min over 255).
+ *
+ * HSL saturation cannot be scaled down to make a colour paler — near white it
+ * makes it *grey*: at l 96 a tint at s 12% is a 2/255 channel difference, while a
+ * real card's pale pink (`#FFDCDC`) is l 93 / s 98. Chroma is the stable axis, so
+ * a "this surface must still show its hue" floor is expressed in chroma and
+ * converted here.
+ */
+function chromaToSaturation(chroma, l) {
+  const denom = 1 - Math.abs(2 * (l / 100) - 1)
+  if (denom <= 0.02) return 100
+  return clamp((chroma / denom) * 100, 0, 100)
 }
 
 /**
@@ -369,9 +425,11 @@ function detectMode(seeds, requested) {
  * @param {number} [options.hue]      override the family hue (surface drift, accent)
  * @param {number} [options.minSat]   override the saturation floor
  * @param {number} [options.satScale] extra saturation multiplier (quiet surfaces)
+ * @param {number} [options.chroma]   minimum chroma the result must keep, so a
+ *   surface carrying a *second* hue family still shows it (see `chromaToSaturation`)
  */
 function derive(family, target, intensity, mode, options = {}) {
-  const { hue: hueOverride, minSat, satScale = 1 } = options
+  const { hue: hueOverride, minSat, satScale = 1, chroma } = options
   const scale = INTENSITY_SCALE[intensity] ?? 1
 
   if (family.neutral) {
@@ -386,7 +444,8 @@ function derive(family, target, intensity, mode, options = {}) {
   // floor on top of that, because chroma understates pale colours.
   const baseS = clamp(family.chroma * 100 * BASE_SATURATION_MULTIPLIER, 16, 78)
   const floor = minSat ?? target.minSat ?? (target.cat === 'accent' ? ACCENT_SATURATION_FLOOR : 0)
-  const s = clamp(Math.max(baseS, floor) * target.s * scale * satScale, 0, 88)
+  const scaled = Math.max(baseS, floor) * target.s * scale * satScale
+  const s = clamp(chroma ? Math.max(scaled, chromaToSaturation(chroma, target.l)) : scaled, 0, 100)
   return hslToHex({ h: hue, s, l: target.l })
 }
 
@@ -693,18 +752,55 @@ export function solveTheme({
 
   // --------------------------- accent hue ----------------------------------
   // A hue the user actually gave us always wins: if their palette holds a
-  // genuinely different colour at usable chroma, that *is* their accent, and
-  // overriding it with a computed one would throw their input away. Only when
-  // there is no such colour does the chosen relationship decide.
+  // genuinely different colour, that *is* their accent, and overriding it with a
+  // computed one would throw their input away.
+  //
+  // Which seed wins the accent is scored by chroma *times* distance rather than
+  // by chroma alone. On a palette card the interesting colour is the one that
+  // clashes — scoring by chroma alone picks whichever family happens to be most
+  // saturated, which is often the one already carrying the shell, so the clash is
+  // lost and the theme comes back monochrome.
+  //
+  // Rivals are measured against the **frame's** hue, not the mean of all the
+  // seeds: the frame comes from one seed, and a palette whose mean sits between
+  // families (rose + cream + olive) otherwise counts the frame's own family as a
+  // rival — the "second colour" ends up being the first one again.
+  const families = family.neutral ? [] : hueFamilies(parsed)
+  const frameHue = hexToHsl(frame).h
+  const rivals = family.neutral
+    ? []
+    : families
+        .filter((entry) => hueDistance(entry.hue, frameHue) > 26)
+        .sort(
+          (a, b) =>
+            b.chroma * hueDistance(b.hue, frameHue) - a.chroma * hueDistance(a.hue, frameHue),
+        )
+
+  /**
+   * The other family that gets to colour the page-side surfaces — the *second*
+   * rival, so that on a three-family card the punchiest family can take the
+   * accent while this one still shows up in the surfaces.
+   */
+  const secondaryFamily = rivals[1] ?? null
+
   let accentHue = null
   let accentFromSeeds = false
   if (!family.neutral) {
-    const outliers = parsed
-      .filter((s) => s.chroma >= 0.1 && hueDistance(s.h, family.hue) > 35)
-      .sort((a, b) => b.chroma - a.chroma)
-    accentFromSeeds = outliers.length > 0
-    accentHue = accentFromSeeds ? outliers[0].h : accentHueFor(family.hue, strategy)
+    accentFromSeeds = rivals.length > 0
+    accentHue = accentFromSeeds ? rivals[0].hue : accentHueFor(frameHue, strategy)
   }
+
+  /**
+   * Chroma floor for an accent taken from the user's palette.
+   *
+   * Their clash colour is often *muted* on purpose (a sage, a dusty olive): used
+   * verbatim as the accent it lands next to a pastel surface and reads as "one
+   * more muted colour", which is the conservative result the importer kept
+   * producing. Pushing it to a clearly-colourful chroma keeps the hue — the part
+   * the user chose — while letting it do the job an accent does. A palette that
+   * already supplied a vivid clash is untouched.
+   */
+  const accentChroma = accentFromSeeds ? Math.max(rivals[0].chroma, 0.3) : undefined
   /** Set when the accent role itself was filled by one of the user's colours. */
   let accentSnapped = false
 
@@ -734,12 +830,28 @@ export function solveTheme({
   const buttonFloor = strategy === 'harmony' ? undefined : 30
 
   /**
-   * Hue for one role: the accent, the third corner, a drifted surface, or the
-   * family itself (`undefined` lets `derive` use `family.hue`).
+   * Roles that carry the palette's *second* colour family.
+   *
+   * The toolbar and the page surfaces are where a second colour reads as part of
+   * the design rather than as a mistake: the window frame stays the seed's own
+   * colour, so the theme keeps its identity while the other family shows up in
+   * the strips around it. These are exactly the roles a palette card's second
+   * colour is asking to become — without them the card's olive or cream is
+   * averaged away and the import comes back monochrome.
+   */
+  const SECOND_FAMILY_ROLES = new Set(['toolbar', 'ntpBackground', 'omniboxBackground'])
+
+  /**
+   * Hue for one role: the accent, the third corner, a second-family surface, a
+   * drifted surface, or the family itself (`undefined` lets `derive` use
+   * `family.hue`).
    */
   const hueFor = (fieldId) => {
     if (fieldId === 'ntpLink') return accentHue ?? undefined
     if (fieldId === 'buttonBackground') return buttonHue
+    if (secondaryFamily && SECOND_FAMILY_ROLES.has(fieldId)) {
+      return secondaryFamily.hue + (SURFACE_HUE_DRIFT[fieldId] ?? 0)
+    }
     const drift = SURFACE_HUE_DRIFT[fieldId]
     return drift ? family.hue + drift : undefined
   }
@@ -772,7 +884,31 @@ export function solveTheme({
       // Quiet surfaces are what let a contrasting accent be the loudest thing on
       // screen; text and accent roles keep their own saturation.
       satScale: BACKGROUND_CATS.has(target.cat) ? surfaceSatScale : 1,
+      // A second family has to be *visible*: the base saturation comes from the
+      // first family's chroma, so a soft seed would render the other colour as
+      // grey, and the imported card would again read as one colour.
+      chroma: target.cat === 'accent'
+        ? accentChroma
+        : secondaryFamily && SECOND_FAMILY_ROLES.has(fieldId)
+          ? 0.08
+          : undefined,
     })
+  }
+
+  /**
+   * Let a user-supplied accent be an accent.
+   *
+   * A snapped accent is the user's colour verbatim, which is right — but those
+   * clash colours are often muted on purpose (a sage, a dusty olive). Next to a
+   * pastel surface a muted clash reads as one more muted colour, and that is the
+   * conservative result the importer kept producing: the hue is theirs, only the
+   * colourfulness of it is turned up, keeping hue and lightness (the contrast
+   * pass below still has the last word on legibility).
+   */
+  if ((accentFromSeeds || accentSnapped) && !family.neutral && colors.ntpLink) {
+    const hsl = hexToHsl(colors.ntpLink)
+    const floor = chromaToSaturation(0.34, hsl.l)
+    if (hsl.s < floor) colors.ntpLink = hslToHex({ ...hsl, s: floor })
   }
 
   // ----------------------------- contrast pass -----------------------------
@@ -784,7 +920,13 @@ export function solveTheme({
 
   const usedHexes = new Set(parsed.map((s) => s.hex))
   const seedsUsed = Object.values(colors).filter((c) => usedHexes.has(c)).length
-  const distinctSeedsUsed = usedSeedHexes(colors, parsed).length
+  // `usedSeedHexes` normalises its input, so it needs the hex strings — passing
+  // the parsed records made it return 0 for every palette, and the panel then
+  // claimed "0 of 4 colours were used directly" on perfectly good imports.
+  const distinctSeedsUsed = usedSeedHexes(
+    colors,
+    parsed.map((seed) => seed.hex),
+  ).length
 
   // Only worth saying when the user actually supplied a palette.
   if (parsed.length > 1) {
@@ -803,6 +945,16 @@ export function solveTheme({
     })
   }
 
+  // …and which of the user's own colours went where, when the palette held more
+  // than one family. Turning a card into a theme is the point of the importer, so
+  // the result should be traceable back to the card.
+  if (secondaryFamily) {
+    notes.push({
+      key: 'studio.noteMultiFamily',
+      vars: { count: families.length, surfaces: colors.ntpBackground, accent: colors.ntpLink },
+    })
+  }
+
   return {
     ok: true,
     colors,
@@ -812,6 +964,8 @@ export function solveTheme({
     seedCount: parsed.length,
     neutral: family.neutral,
     accentStrategy: strategy,
+    /** The palette's hue families, strongest first (importers show them). */
+    families,
     notes,
   }
 }

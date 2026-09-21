@@ -101,6 +101,8 @@ import {
   INTENSITIES,
   SOLVER_MODES,
   SURFACE_HUE_DRIFT,
+  hueFamilies,
+  normalizeSeeds,
   solveTheme,
   usedSeedHexes,
 } from '../src/utils/palette.js'
@@ -2267,6 +2269,103 @@ ok('the derived theme inherits from its own colours instead',
   pinnedDerived.colors['panel.background'])
 ok('a package without pins is unaffected',
   buildVscodeThemeJson({ name: 'Plain', colors: MASTER }).colors['panel.background'] === MASTER.sidebarBg)
+
+// ---------------------------------------------------------------------------
+section('25. Variety: multi-family imports and a randomiser that differs')
+// ---------------------------------------------------------------------------
+/** Chroma (max-min over 255) — the axis HSL saturation cannot express near white. */
+const hexToChroma = (hex) => {
+  const { r, g, b } = parseHex(hex)
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
+}
+
+// The palette card the user pointed at: two pinks, a cream and an olive.
+const CARD_COOLORS = ['#D8A2A2', '#FFDCDC', '#FFF9D6', '#8EA66B']
+const coolorSeeds = normalizeSeeds(CARD_COOLORS)
+const coolorFamilies = hueFamilies(coolorSeeds)
+const coolor = solveTheme({ seeds: CARD_COOLORS })
+
+ok('a palette card is seen as three colour families, not one average',
+  coolorFamilies.length === 3,
+  coolorFamilies.map((f) => `${f.hue.toFixed(0)}deg x${f.count}`).join(', '))
+ok('two pinks in one card are one family',
+  coolorFamilies.some((f) => f.count === 2))
+ok('greys are not a family',
+  hueFamilies(normalizeSeeds(['#808080', '#4A4A4A'])).length === 0)
+ok('a single-hue palette stays one family',
+  hueFamilies(normalizeSeeds(['#B1B2FF', '#C9CAF2'])).length === 1)
+
+const coolorAccent = hexToHsl(coolor.colors.ntpLink)
+const coolorPage = hexToHsl(coolor.colors.ntpBackground)
+const coolorFrameHue = hexToHsl(coolor.colors.frame).h
+const hueGapTo = (hue) => {
+  const d = Math.abs(((hue - coolorFrameHue) % 360 + 360) % 360)
+  return d > 180 ? 360 - d : d
+}
+
+ok('the card\'s own clashing hue becomes the accent',
+  hueGapTo(coolorAccent.h) >= 60,
+  `${hueGapTo(coolorAccent.h).toFixed(0)}deg`)
+ok('the card keeps a second family on its page surface',
+  hueGapTo(coolorPage.h) >= 25,
+  `${hueGapTo(coolorPage.h).toFixed(0)}deg`)
+ok('an imported accent is pushed to a chroma that reads as an accent',
+  hexToChroma(coolor.colors.ntpLink) >= 0.25,
+  hexToChroma(coolor.colors.ntpLink).toFixed(3))
+ok('the import reports how many of the card\'s colours it used',
+  coolor.distinctSeedsUsed >= 3 && coolor.seedsUsed >= 3,
+  `${coolor.distinctSeedsUsed}/${coolor.seedCount}`)
+ok('and says which family went where',
+  coolor.notes.some((note) => note.key === 'studio.noteMultiFamily'))
+ok('a multi-family import is still contrast-clean', auditContrast(coolor.colors).length === 0,
+  JSON.stringify(auditContrast(coolor.colors)))
+
+// The count of reused seeds was always 0: the parser hands `usedSeedHexes` records
+// while it normalises hex strings, so every import claimed "0 of 4 used directly".
+ok('the card reports all four colours used directly', card.distinctSeedsUsed === 4,
+  String(card.distinctSeedsUsed))
+
+// ---------------------------------------------------------------------------
+// Randomiser spread. The complaint was that two randoms looked like the same
+// theme in a different hue, so the axes that used to be fixed are measured.
+let darkRandom = 0
+let greyRandom = 0
+const frameLightness = new Set()
+const frameChroma = new Set()
+const editorLightness = new Set()
+let randomMasterBad = 0
+for (let seed = 1; seed <= 200; seed += 1) {
+  const palette = generateRandomColors(seed)
+  const frame = hexToHsl(palette.frame)
+  frameLightness.add(Math.floor(frame.l / 10))
+  frameChroma.add(Math.floor(hexToChroma(palette.frame) * 10))
+  if (frame.l < 50) darkRandom += 1
+  if (hexToChroma(palette.frame) < 0.05) greyRandom += 1
+
+  const master = masterFromPalette(palette)
+  editorLightness.add(Math.floor(hexToHsl(master.editorBg).l / 10))
+  if (
+    ['editorFg', 'accent', 'errorFg', 'warningFg'].some(
+      (key) => contrastRatio(master[key], master.editorBg) < 4.5,
+    )
+  ) {
+    randomMasterBad += 1
+  }
+}
+
+console.log(`  frame lightness bands: ${frameLightness.size}, chroma bands: ${frameChroma.size}, `
+  + `${darkRandom}/200 dark, ${greyRandom}/200 greyscale, editor bands: ${editorLightness.size}`)
+ok('random frames span the lightness range, not one pastel band',
+  frameLightness.size >= 4, [...frameLightness].sort().join(','))
+ok('random frames span the chroma range', frameChroma.size >= 4, [...frameChroma].sort().join(','))
+ok('a third of the randoms are dark themes', darkRandom >= 30, `${darkRandom}/200`)
+ok('greyscale randoms actually happen', greyRandom >= 8, `${greyRandom}/200`)
+// The VS Code surface was the last place everything converged: a fixed mix made
+// every light random a near-white editor whatever the palette was.
+ok('the VS Code editor surface follows the palette', editorLightness.size >= 4,
+  [...editorLightness].sort().join(','))
+ok('every random palette survives the VS Code conversion readable',
+  randomMasterBad === 0, `${randomMasterBad}/200`)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
