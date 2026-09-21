@@ -100,7 +100,7 @@ export default {
   'vscode.type.light': '浅色',
   'vscode.type.hc': '高对比',
   'vscode.type.hint':
-    '深色 / 浅色由你的配色自动判断，当前是{scheme}，theme JSON 的 type 也随之写入。点另一张卡片会把整套配色换算成那个方案；高对比是渲染模式，仍需手动选。',
+    '深色 / 浅色由主配色的明暗自动判断，当前是{scheme}，theme JSON 的 type 也随之写入。点另一张卡片会把主配色换算成那个方案（另一套不受影响）；高对比是渲染模式，仍需手动选。',
   'vscode.pair.label': '同时生成相反的色调',
   'vscode.pair.hint': '由当前配色推导出{other}方案，一个扩展包里同时包含两套主题；预览上方可随时切换。',
   'vscode.pair.hcUnsupported': '高对比没有对应的浅色/深色方案，无法成对生成。',
@@ -155,6 +155,8 @@ export default {
   'vscode.override.section': '单独控制',
   'vscode.override.sectionHint':
     '下面这些区域默认跟随上面的基准色。它们在 VS Code 里本来是各自独立的颜色（浅色侧边栏配深色状态栏是很常见的搭配），需要时在这里单独指定，预览和导出都会同步。',
+  'vscode.override.otherPairNote':
+    '单独控制是绝对颜色，只属于你刚才编辑的那套（{scheme}）配色。切回那套配色就能修改。',
   'vscode.override.enable': '单独设置',
   'vscode.override.inherits': '跟随{source}',
   'vscode.override.panelBg': '面板背景',
@@ -177,9 +179,9 @@ export default {
   'vscode.preview.subtitle': '按当前配色实时渲染工作台与语法高亮。',
   'vscode.preview.aria': 'VS Code 界面预览',
   'vscode.preview.derived': '派生 {colors} 个工作台颜色键 + {tokens} 条语法高亮规则。',
-  'vscode.preview.variantLegend': '预览配色',
-  'vscode.preview.pairNote': '当前预览的是{shown}主题（由{base}配色自动派生）。导出的扩展包会同时包含两套主题。',
-  'vscode.preview.pairNoteBase': '正在编辑{base}主题，{other}主题由它自动派生。导出的扩展包会同时包含两套主题。',
+  'vscode.preview.variantLegend': '正在编辑的配色',
+  'vscode.preview.pairNote':
+    '正在编辑{shown}配色。两套互相独立、各自保存自己的颜色，可以分别调整；导出时会同时包含两套。',
   'vscode.export.title': '导出 VS Code 主题',
   'vscode.export.subtitle': '生成可安装的扩展包 {filename}（package.json + themes/ 主题 JSON + README）。',
   'vscode.export.subtitleFolder': '直接写一个扩展包文件夹 {folder}/，无需解压即可安装。',

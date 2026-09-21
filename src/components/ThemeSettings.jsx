@@ -33,6 +33,8 @@ export function ThemeSettings({
   groupExtra,
   onAutoClearChange,
   onClearFields,
+  onUndo,
+  canUndo = false,
   onNameChange,
   onFolderChange,
   onColorChange,
@@ -64,8 +66,24 @@ export function ThemeSettings({
           clear happen automatically whenever a new theme is applied. Only
           rendered when the workspace asks for them.
         */}
-        {onClearFields ? (
+        {onClearFields || onUndo ? (
           <div className="settings-actions">
+            {/*
+              Undo is passed in by a workspace that owns its own draft (the VS Code
+              one): the Chrome workbench keeps its undo in the site header instead,
+              and would otherwise show two of them.
+            */}
+            {onUndo ? (
+              <button
+                type="button"
+                className="button button--ghost button--sm"
+                onClick={onUndo}
+                disabled={!canUndo}
+                title={t('header.undoTitle')}
+              >
+                {t('header.undo')}
+              </button>
+            ) : null}
             {onAutoClearChange ? (
               <label className="auto-clear-toggle" title={autoClearTitle}>
                 <input

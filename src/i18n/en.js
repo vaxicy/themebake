@@ -108,7 +108,7 @@ export default {
   'vscode.type.light': 'Light',
   'vscode.type.hc': 'High contrast',
   'vscode.type.hint':
-    'Dark and light follow your own colours — {scheme} right now, which is also the type written into the theme JSON. Picking the other card re-solves the whole palette for it; high contrast is a rendering mode, so it stays a manual choice.',
+    'Dark and light follow the primary palette — {scheme} right now, which is also the type written into the theme JSON. Picking the other card re-solves the primary palette for it (the other half is untouched); high contrast is a rendering mode, so it stays a manual choice.',
   'vscode.pair.label': 'Also generate the opposite scheme',
   'vscode.pair.hint':
     'Derives the {other} palette from your colours and exports both themes from one package. The preview switch flips between them.',
@@ -166,6 +166,8 @@ export default {
   'vscode.override.section': 'Pin a region',
   'vscode.override.sectionHint':
     'These regions follow the master palette above. In VS Code they are separate surfaces — a light sidebar with a dark status bar is a completely normal pairing — so pin one here and both the preview and the export follow.',
+  'vscode.override.otherPairNote':
+    'Pinned regions are absolute colours, so they belong to the {scheme} palette you were editing. Switch back to it to change them.',
   'vscode.override.enable': 'Pin',
   'vscode.override.inherits': 'Follows {source}',
   'vscode.override.panelBg': 'Panel background',
@@ -190,11 +192,9 @@ export default {
   'vscode.preview.subtitle': 'The workbench and syntax colours rendered from your palette.',
   'vscode.preview.aria': 'VS Code interface preview',
   'vscode.preview.derived': 'Derives {colors} workbench colour keys + {tokens} syntax rules.',
-  'vscode.preview.variantLegend': 'Previewed scheme',
+  'vscode.preview.variantLegend': 'Edited palette',
   'vscode.preview.pairNote':
-    'Showing the {shown} theme, derived from your {base} colours. The exported package contains both.',
-  'vscode.preview.pairNoteBase':
-    'Editing the {base} theme; the {other} theme is derived from it. The exported package contains both.',
+    'Editing the {shown} palette. The two halves are independent — each keeps its own colours, so tune them separately — and the export contains both.',
   'vscode.export.title': 'Export VS Code Theme',
   'vscode.export.subtitle': 'Builds an installable extension package {filename} (package.json + themes/ JSON + README).',
   'vscode.export.subtitleFolder': 'Writes the extension folder {folder}/ directly — no unzipping needed.',
