@@ -11,7 +11,7 @@
 ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Node 18+](https://img.shields.io/badge/Node-18%2B-339933?logo=node.js&logoColor=white)
 
-![ThemeBake：左边是颜色控件，右边是实时 Chrome 预览和对比度体检](docs/screenshot.png)
+![ThemeBake：左边是颜色控件，右边是实时 Chrome 预览和对比度体检](docs/screenshot-zh-CN.png)
 
 ThemeBake 让你直接在浏览器里做 Chrome 主题：不用注册，没有后端，也不用安装任何东西。
 挑好颜色、看着实时预览，几秒钟就能拿到一个解压即用的主题文件夹。所有计算都在你自己的
@@ -481,10 +481,12 @@ themebake/
 ├── README.zh-CN.md             # 简体中文说明（本文件）
 ├── LICENSE                     # 非商业使用许可证 v1.0（中英双语）
 ├── docs/
-│   └── screenshot.png          # README 截图
+│   ├── screenshot-en.png       # 上面那张截图（英文界面）
+│   └── screenshot-zh-CN.png    # 同一视角的简体中文版
 ├── scripts/
 │   ├── verify.mjs              # 自检脚本（npm run verify）
-│   └── inspect-palette.mjs     # 这套配色到底是怎么解出来的？
+│   ├── inspect-palette.mjs     # 这套配色到底是怎么解出来的？
+│   └── capture-docs.py         # 重新抓这两个 README 截图
 └── src/
     ├── main.jsx                # 入口，引入全局 CSS
     ├── App.jsx                 # 应用外壳 + 全部状态、派生出的 manifest

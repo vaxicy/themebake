@@ -11,7 +11,7 @@
 ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Node 18+](https://img.shields.io/badge/Node-18%2B-339933?logo=node.js&logoColor=white)
 
-![ThemeBake: colour controls on the left, a live Chrome mockup and the contrast audit on the right](docs/screenshot.png)
+![ThemeBake: colour controls on the left, a live Chrome mockup and the contrast audit on the right](docs/screenshot-en.png)
 
 ThemeBake is a Chrome theme generator with no account, no backend and no build
 step. Pick your colors, preview the theme live in a browser mockup, and download a
@@ -564,10 +564,12 @@ themebake/
 ├── README.zh-CN.md             # 简体中文 README
 ├── LICENSE                     # Non-Commercial License v1.0 (bilingual)
 ├── docs/
-│   └── screenshot.png          # README screenshot
+│   ├── screenshot-en.png       # Screenshot used above (English UI)
+│   └── screenshot-zh-CN.png    # Same view in 简体中文
 ├── scripts/
 │   ├── verify.mjs              # Headless self-check (npm run verify)
-│   └── inspect-palette.mjs     # Why did this palette solve that way?
+│   ├── inspect-palette.mjs     # Why did this palette solve that way?
+│   └── capture-docs.py         # Re-shoots both README screenshots
 └── src/
     ├── main.jsx                # Entry point, global CSS imports
     ├── App.jsx                 # App shell + all state, derived manifest
