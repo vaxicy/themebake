@@ -118,34 +118,74 @@ export default {
   'vscode.group.shell': 'Shell',
   'vscode.group.controls': 'Controls',
   'vscode.group.semantic': 'Semantic',
+  // Each hint names the VS Code keys it actually drives: "what can I even
+  // colour here?" is the question this panel exists to answer.
   'vscode.field.editorBg': 'Editor background',
-  'vscode.field.editorBg.hint': 'The editor surface; also the active tab and terminal background.',
+  'vscode.field.editorBg.hint':
+    'The editing surface, and the backdrop of the active tab and the terminal (editor.background, tab.activeBackground, terminal.background).',
   'vscode.field.editorFg': 'Editor text',
-  'vscode.field.editorFg.hint': 'Default code colour; also the global foreground.',
+  'vscode.field.editorFg.hint':
+    'Default code colour and the global foreground — sidebar, panel and status-bar labels use it too (editor.foreground, foreground, sideBar.foreground).',
   'vscode.field.accent': 'Accent',
-  'vscode.field.accent.hint': 'Cursor, focus borders, links, badges and highlights.',
+  'vscode.field.accent.hint':
+    'Cursor, focus borders, links and badges (editorCursor.foreground, focusBorder, textLink.foreground, badge.background).',
   'vscode.field.selectionBg': 'Selection',
-  'vscode.field.selectionBg.hint': 'Background of selected text and selected list items.',
+  'vscode.field.selectionBg.hint':
+    'Selected text, selected list rows and the suggestion highlight (editor.selectionBackground, list.activeSelectionBackground, editorSuggestWidget.selectedBackground).',
   'vscode.field.lineHighlightBg': 'Current line',
-  'vscode.field.lineHighlightBg.hint': 'Background of the line the cursor sits on.',
+  'vscode.field.lineHighlightBg.hint':
+    'Background of the line the cursor sits on (editor.lineHighlightBackground).',
   'vscode.field.mutedFg': 'Muted text',
-  'vscode.field.mutedFg.hint': 'Line numbers, descriptions, inactive tabs.',
+  'vscode.field.mutedFg.hint':
+    'Line numbers, descriptions, inactive tabs and input placeholders (editorLineNumber.foreground, descriptionForeground, tab.inactiveForeground).',
   'vscode.field.activityBg': 'Activity bar',
-  'vscode.field.activityBg.hint': 'Background of the leftmost icon bar.',
+  'vscode.field.activityBg.hint':
+    'The leftmost icon bar (activityBar.background); its icons follow the editor text colour.',
   'vscode.field.sidebarBg': 'Sidebar background',
-  'vscode.field.sidebarBg.hint': 'Explorer, panels, status bar and popups.',
+  'vscode.field.sidebarBg.hint':
+    'The Explorer sidebar (sideBar.background). The panel, the status bar and popups follow it by default — pin them separately under “Pin a region” below.',
   'vscode.field.titleBg': 'Title bar / inactive tabs',
-  'vscode.field.titleBg.hint': 'Title bar, inactive tabs and the tab strip.',
+  'vscode.field.titleBg.hint':
+    'Title bar and the unselected tabs (titleBar.activeBackground, tab.inactiveBackground, editorGroupHeader.tabsBackground).',
   'vscode.field.border': 'Borders',
-  'vscode.field.border.hint': 'Separators for sidebar, panels and inputs.',
+  'vscode.field.border.hint':
+    'Separators for sidebar, panel, inputs and tabs, plus the scrollbar slider (sideBar.border, panel.border, input.border, tab.border, scrollbarSlider.background).',
   'vscode.field.buttonBg': 'Button background',
-  'vscode.field.buttonBg.hint': 'Primary buttons; also used for badges.',
+  'vscode.field.buttonBg.hint':
+    'Primary buttons, activity-bar badges and the debugging status bar (button.background, activityBarBadge.background, statusBar.debuggingBackground).',
   'vscode.field.buttonFg': 'Button text',
-  'vscode.field.buttonFg.hint': 'Text on primary buttons.',
+  'vscode.field.buttonFg.hint': 'Text on those buttons and badges (button.foreground, activityBarBadge.foreground).',
   'vscode.field.errorFg': 'Error colour',
-  'vscode.field.errorFg.hint': 'Error squiggles and error messages.',
+  'vscode.field.errorFg.hint':
+    'Error squiggles and messages, plus the git-deleted marker (editorError.foreground, errorForeground, gitDecoration.deletedResourceForeground).',
   'vscode.field.warningFg': 'Warning colour',
-  'vscode.field.warningFg.hint': 'Warning squiggles; also steers string/number token colours.',
+  'vscode.field.warningFg.hint':
+    'Warning squiggles; it also steers the string and number token colours (editorWarning.foreground, terminal.ansiYellow).',
+
+  // ------------------------------------------------------- pinned regions
+  'vscode.override.section': 'Pin a region',
+  'vscode.override.sectionHint':
+    'These regions follow the master palette above. In VS Code they are separate surfaces — a light sidebar with a dark status bar is a completely normal pairing — so pin one here and both the preview and the export follow.',
+  'vscode.override.enable': 'Pin',
+  'vscode.override.inherits': 'Follows {source}',
+  'vscode.override.panelBg': 'Panel background',
+  'vscode.override.panelBg.hint':
+    'The Problems / Output / Terminal strip (panel.background). Follows the sidebar by default.',
+  'vscode.override.statusBarBg': 'Status bar background',
+  'vscode.override.statusBarBg.hint':
+    'The bottom status bar (statusBar.background, statusBar.noFolderBackground). Follows the sidebar by default.',
+  'vscode.override.inactiveTabBg': 'Inactive tab background',
+  'vscode.override.inactiveTabBg.hint':
+    'Unselected tabs and the tab strip (tab.inactiveBackground, editorGroupHeader.tabsBackground). Follows the title bar by default.',
+  'vscode.override.widgetBg': 'Popup and widget background',
+  'vscode.override.widgetBg.hint':
+    'Command palette, suggestions, hover tooltips, notifications, inputs and dropdowns (quickInput.background, editorSuggestWidget.background, editorHoverWidget.background, notifications.background, input.background, dropdown.background). Follows the sidebar by default.',
+  'vscode.override.lineNumberFg': 'Line number colour',
+  'vscode.override.lineNumberFg.hint':
+    'Editor line numbers (editorLineNumber.foreground). Follows the muted text colour by default.',
+  'vscode.override.indentGuideFg': 'Indent guides',
+  'vscode.override.indentGuideFg.hint':
+    'Indent guides and whitespace markers (editorIndentGuide.background1, editorWhitespace.foreground). Follows the border colour, with transparency, by default.',
   'vscode.preview.title': 'VS Code Preview',
   'vscode.preview.subtitle': 'The workbench and syntax colours rendered from your palette.',
   'vscode.preview.aria': 'VS Code interface preview',

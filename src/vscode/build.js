@@ -28,7 +28,13 @@ import {
 } from '../utils/color.js'
 import { toSafeName } from '../utils/slug.js'
 import { toThemeFolderName } from '../utils/package.js'
-import { DEFAULT_VSCODE_COLORS, DEFAULT_VSCODE_TYPE, VSCODE_TYPES, VSCODE_FIELD_IDS } from './fields.js'
+import {
+  DEFAULT_VSCODE_COLORS,
+  DEFAULT_VSCODE_TYPE,
+  VSCODE_FIELD_IDS,
+  VSCODE_TYPES,
+  buildOverrides,
+} from './fields.js'
 
 /** Attach an alpha byte: `#RRGGBB` + `'99'` -> `#RRGGBB99` (VS Code hex8). */
 function fade(hex, alpha) {
@@ -190,11 +196,38 @@ export function buildMasterColors(input) {
  * reused by panels/widgets/status bar, a title/tab surface and a border tone.
  * @param {Record<string,string>} m master colours
  */
-export function buildVscodeColors(m) {
+export function buildVscodeColors(m, overrides = {}) {
   const dark = isDarkTheme(m)
   const onAccent = readableTextOn(m.accent)
   const hoverSurface = mix(m.titleBg, m.editorBg, 0.5)
   const findMatch = mix(m.selectionBg, m.accent, 0.45)
+
+  /**
+   * An overridden surface, or the master field it inherits from.
+   *
+   * Only the six regions in `VSCODE_OVERRIDE_FIELDS` can be pinned; every other
+   * key keeps following the master palette, so the "90 keys from 14" promise is
+   * intact and an override is a deliberate, narrow exception.
+   */
+  const pick = (id, fallback) => (typeof overrides[id] === 'string' ? overrides[id] : fallback)
+
+  /**
+   * Text for a surface: the palette's own ink when it still clears 4.5:1 on the
+   * new colour, Chrome's white/near-black fallback when it does not.
+   *
+   * Overriding a surface is how a user says "this strip is a different colour";
+   * it is not how they say "and let the labels disappear". A light panel on a
+   * dark theme would otherwise keep the theme's light text and be unreadable.
+   */
+  const inkOn = (background, preferred) =>
+    contrastRatio(preferred, background) >= 4.5 ? preferred : readableTextOn(background)
+
+  const panelBg = pick('panelBg', m.sidebarBg)
+  const statusBarBg = pick('statusBarBg', m.sidebarBg)
+  const inactiveTabBg = pick('inactiveTabBg', m.titleBg)
+  const widgetBg = pick('widgetBg', m.sidebarBg)
+  const lineNumberFg = pick('lineNumberFg', m.mutedFg)
+  const indentGuideFg = pick('indentGuideFg', fade(m.border, '66'))
 
   const ansi = {
     black: dark ? mix(m.editorBg, '#000000', 0.35) : mix(m.editorFg, '#000000', 0.25),
@@ -219,11 +252,11 @@ export function buildVscodeColors(m) {
     'editor.inactiveSelectionBackground': fade(m.selectionBg, '99'),
     'editor.lineHighlightBackground': m.lineHighlightBg,
     'editorCursor.foreground': m.accent,
-    'editorLineNumber.foreground': m.mutedFg,
+    'editorLineNumber.foreground': lineNumberFg,
     'editorLineNumber.activeForeground': m.accent,
-    'editorIndentGuide.background1': fade(m.border, '66'),
+    'editorIndentGuide.background1': indentGuideFg,
     'editorIndentGuide.activeBackground1': m.mutedFg,
-    'editorWhitespace.foreground': m.border,
+    'editorWhitespace.foreground': indentGuideFg,
     'editor.findMatchBackground': findMatch,
     'editor.findMatchHighlightBackground': fade(findMatch, '77'),
     'editorBracketMatch.border': m.accent,
@@ -232,10 +265,10 @@ export function buildVscodeColors(m) {
     'tab.activeBackground': m.editorBg,
     'tab.activeForeground': m.editorFg,
     'tab.activeBorderTop': m.accent,
-    'tab.inactiveBackground': m.titleBg,
-    'tab.inactiveForeground': m.mutedFg,
+    'tab.inactiveBackground': inactiveTabBg,
+    'tab.inactiveForeground': inkOn(inactiveTabBg, m.mutedFg),
     'tab.border': m.border,
-    'editorGroupHeader.tabsBackground': m.titleBg,
+    'editorGroupHeader.tabsBackground': inactiveTabBg,
 
     'list.activeSelectionBackground': m.selectionBg,
     'list.activeSelectionForeground': m.editorFg,
@@ -263,45 +296,45 @@ export function buildVscodeColors(m) {
     'sideBar.background': m.sidebarBg,
     'sideBar.foreground': m.editorFg,
     'sideBar.border': m.border,
-    'panel.background': m.sidebarBg,
-    'panel.foreground': m.editorFg,
+    'panel.background': panelBg,
+    'panel.foreground': inkOn(panelBg, m.editorFg),
     'panel.border': m.border,
 
-    'statusBar.background': m.sidebarBg,
-    'statusBar.foreground': m.editorFg,
+    'statusBar.background': statusBarBg,
+    'statusBar.foreground': inkOn(statusBarBg, m.editorFg),
     'statusBar.debuggingBackground': m.accent,
     'statusBar.debuggingForeground': onAccent,
-    'statusBar.noFolderBackground': m.sidebarBg,
-    'statusBar.noFolderForeground': m.editorFg,
+    'statusBar.noFolderBackground': statusBarBg,
+    'statusBar.noFolderForeground': inkOn(statusBarBg, m.editorFg),
 
     'titleBar.activeBackground': m.titleBg,
     'titleBar.activeForeground': m.editorFg,
     'titleBar.inactiveBackground': m.editorBg,
     'titleBar.inactiveForeground': m.mutedFg,
 
-    'input.background': m.sidebarBg,
-    'input.foreground': m.editorFg,
+    'input.background': widgetBg,
+    'input.foreground': inkOn(widgetBg, m.editorFg),
     'input.border': m.border,
     'input.placeholderForeground': m.mutedFg,
-    'dropdown.background': m.sidebarBg,
-    'dropdown.foreground': m.editorFg,
+    'dropdown.background': widgetBg,
+    'dropdown.foreground': inkOn(widgetBg, m.editorFg),
     'dropdown.border': m.border,
 
-    'editorWidget.background': m.sidebarBg,
-    'editorWidget.foreground': m.editorFg,
+    'editorWidget.background': widgetBg,
+    'editorWidget.foreground': inkOn(widgetBg, m.editorFg),
     'editorWidget.border': m.border,
-    'editorHoverWidget.background': m.sidebarBg,
-    'editorHoverWidget.foreground': m.editorFg,
+    'editorHoverWidget.background': widgetBg,
+    'editorHoverWidget.foreground': inkOn(widgetBg, m.editorFg),
     'editorHoverWidget.border': m.border,
-    'editorSuggestWidget.background': m.sidebarBg,
-    'editorSuggestWidget.foreground': m.editorFg,
+    'editorSuggestWidget.background': widgetBg,
+    'editorSuggestWidget.foreground': inkOn(widgetBg, m.editorFg),
     'editorSuggestWidget.border': m.border,
     'editorSuggestWidget.selectedBackground': m.selectionBg,
-    'notifications.background': m.sidebarBg,
-    'notifications.foreground': m.editorFg,
+    'notifications.background': widgetBg,
+    'notifications.foreground': inkOn(widgetBg, m.editorFg),
     'notifications.border': m.border,
-    'quickInput.background': m.sidebarBg,
-    'quickInput.foreground': m.editorFg,
+    'quickInput.background': widgetBg,
+    'quickInput.foreground': inkOn(widgetBg, m.editorFg),
 
     'textLink.foreground': m.accent,
     'textLink.activeForeground': m.accent,
@@ -394,7 +427,7 @@ export function buildTokenColors(m) {
 }
 
 /** Assemble the colour-theme JSON (the file inside `themes/`). */
-export function buildVscodeThemeJson({ name, type = DEFAULT_VSCODE_TYPE, colors }) {
+export function buildVscodeThemeJson({ name, type = DEFAULT_VSCODE_TYPE, colors, overrides = {} }) {
   const master = buildMasterColors(colors)
   const { tokenColors, semanticTokenColors } = buildTokenColors(master)
   return {
@@ -402,7 +435,7 @@ export function buildVscodeThemeJson({ name, type = DEFAULT_VSCODE_TYPE, colors 
     // Normalised here, at the single point every theme JSON is created, so no
     // caller can emit a theme whose `type` contradicts its own colours.
     type: resolveType(type, master),
-    colors: buildVscodeColors(master),
+    colors: buildVscodeColors(master, buildOverrides(overrides)),
     semanticHighlighting: true,
     semanticTokenColors,
     tokenColors,
@@ -512,6 +545,9 @@ function buildVsixMetadata({ pkg, displayName, folderName }) {
  * @param {{type:string, colors:Record<string,string>}|null} [options.counterpart]
  *   The other scheme (`deriveCounterpart`). Ignored for `hc-black`, which is a
  *   rendering mode of its own rather than one half of a pair.
+ * @param {Record<string,string>} [options.overrides]  Pinned regions
+ *   (`VSCODE_OVERRIDE_FIELDS`). They apply to the edited palette only; the
+ *   derived half of a pair inherits from its own colours.
  * @param {'zip'|'folder'|'vsix'} [options.format]  Which hand-over to lay out for.
  * @returns {{files:{path:string,data:string}[], folderName:string, zipName:string,
  *   vsixName:string, fileName:string, format:string,
@@ -524,9 +560,11 @@ export function buildVscodePackage({
   type = DEFAULT_VSCODE_TYPE,
   colors,
   counterpart = null,
+  overrides = {},
   format = 'zip',
 }) {
   const master = buildMasterColors(colors)
+  const pinned = buildOverrides(overrides)
   const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
   const folderName = (typedFolderName || toThemeFolderName(name)).toLowerCase()
   // The declared type decides only *whether* a pair is possible; which side each
@@ -535,9 +573,21 @@ export function buildVscodePackage({
   const declaredType = resolveType(type, master)
   const paired = Boolean(counterpart) && counterpartTypeFor(declaredType) !== null
 
-  /** One contributed theme: its JSON payload plus the package.json entry. */
-  const makeTheme = (label, themeType, themeColors, fileName) => {
-    const json = buildVscodeThemeJson({ name: label, type: themeType, colors: themeColors })
+  /**
+   * One contributed theme: its JSON payload plus the package.json entry.
+   *
+   * `isPrimary` decides whether the pinned regions apply. An override is an
+   * absolute colour chosen against *this* palette — a pale panel picked for a
+   * light theme would be wrong on the derived dark one — so the derived theme
+   * inherits from its own master colours instead.
+   */
+  const makeTheme = (label, themeType, themeColors, fileName, isPrimary = true) => {
+    const json = buildVscodeThemeJson({
+      name: label,
+      type: themeType,
+      colors: themeColors,
+      overrides: isPrimary ? pinned : {},
+    })
     return {
       label,
       json,
@@ -551,14 +601,16 @@ export function buildVscodePackage({
     const other = buildMasterColors(counterpart.colors)
     const masterIsLight = schemeOf(master) === 'light'
     // Light first, then dark — the order the reference families use.
-    themes = ['light', 'dark'].map((scheme) =>
-      makeTheme(
+    themes = ['light', 'dark'].map((scheme) => {
+      const isPrimary = (scheme === 'light') === masterIsLight
+      return makeTheme(
         `${name} ${SCHEME_LABEL[scheme]}`,
         scheme,
-        scheme === 'light' ? (masterIsLight ? master : other) : (masterIsLight ? other : master),
+        isPrimary ? master : other,
         `${folderName}-${scheme}-color-theme.json`,
-      ),
-    )
+        isPrimary,
+      )
+    })
   } else {
     themes = [makeTheme(name, declaredType, master, `${folderName}-color-theme.json`)]
   }

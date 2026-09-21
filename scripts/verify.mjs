@@ -105,6 +105,7 @@ import {
   usedSeedHexes,
 } from '../src/utils/palette.js'
 import {
+  buildVscodeColors,
   buildVscodePackage,
   buildVscodeThemeJson,
   counterpartTypeFor,
@@ -113,7 +114,14 @@ import {
   resolveType,
   schemeOf,
 } from '../src/vscode/build.js'
-import { DEFAULT_VSCODE_COLORS, VSCODE_OUTPUT_MODES } from '../src/vscode/fields.js'
+import {
+  DEFAULT_VSCODE_COLORS,
+  VSCODE_FIELD_IDS,
+  VSCODE_OVERRIDE_FIELDS,
+  VSCODE_OVERRIDE_IDS,
+  VSCODE_OUTPUT_MODES,
+  buildOverrides,
+} from '../src/vscode/fields.js'
 import { VSCODE_PRESETS } from '../src/data/vscodePresets.js'
 import { extractColors, looksLikeJson, looksLikePaletteUrl } from '../src/utils/parseColors.js'
 import { exportThemeJson, importThemeJson } from '../src/utils/importTheme.js'
@@ -364,6 +372,9 @@ let minTabText = Infinity
 let minNtp = Infinity
 let allValid = true
 const hues = new Set()
+const randomIssues = []
+/** How many colour families each seed mixed, bucketed by surface hue spread. */
+const familySpread = { one: 0, two: 0, three: 0 }
 
 for (let seed = 1; seed <= 300; seed += 1) {
   const palette = generateRandomColors(seed)
@@ -376,12 +387,40 @@ for (let seed = 1; seed <= 300; seed += 1) {
   hues.add(String(palette.frame).slice(0, 4))
   minTabText = Math.min(minTabText, contrastRatio(palette.tabText, palette.frame))
   minNtp = Math.min(minNtp, contrastRatio(palette.ntpText, palette.ntpBackground))
+
+  // The palette has to survive the app's own audit — a randomise that lights up
+  // the contrast panel is a bug report waiting to happen.
+  const issues = auditContrast(palette)
+  if (issues.length) randomIssues.push(`seed ${seed}: ${issues.map((i) => `${i.fg}/${i.bg}`).join(' ')}`)
+
+  // Distinct hues among the surfaces, ignoring near-identical ones: this is the
+  // "one family or several" axis, measured rather than assumed.
+  const surfaceHues = ['frame', 'toolbar', 'ntpBackground', 'buttonBackground'].map(
+    (id) => hexToHsl(palette[id]).h,
+  )
+  const distinct = []
+  for (const hue of surfaceHues) {
+    const gaps = distinct.map((seen) => Math.abs(((hue - seen) % 360 + 360) % 360))
+    if (!gaps.some((gap) => Math.min(gap, 360 - gap) < 18)) distinct.push(hue)
+  }
+  if (distinct.length >= 3) familySpread.three += 1
+  else if (distinct.length === 2) familySpread.two += 1
+  else familySpread.one += 1
 }
 
 ok('every generated field is a valid hex colour', allValid)
 ok('tab text vs frame contrast >= 4.5', minTabText >= 4.5, `min ${minTabText.toFixed(2)}`)
 ok('NTP text vs NTP background contrast >= 4.5', minNtp >= 4.5, `min ${minNtp.toFixed(2)}`)
 ok('generator actually varies (>50 distinct frames)', hues.size > 50, `${hues.size} distinct`)
+ok('every random palette passes the contrast audit', randomIssues.length === 0,
+  `${randomIssues.length}: ${randomIssues.slice(0, 3).join(' | ')}`)
+console.log(`  family spread: ${familySpread.one} single, ${familySpread.two} two-hue, ${familySpread.three} multi-hue`)
+ok('randomise produces all three family counts',
+  familySpread.one > 0 && familySpread.two > 0 && familySpread.three > 0,
+  JSON.stringify(familySpread))
+ok('two- and three-family palettes are common, not a rare accident',
+  familySpread.two + familySpread.three >= 90,
+  `${familySpread.two + familySpread.three} of 300`)
 
 // ---------------------------------------------------------------------------
 section('9. Unpacked package + ZIP layout')
@@ -2127,6 +2166,107 @@ ok('a neutral seed stays greyscale even in clash mode',
   greyClash.colors.ntpLink)
 ok('and no strategy note is emitted for it',
   !greyClash.notes.some((note) => note.key === 'studio.noteClash'))
+
+// ---------------------------------------------------------------------------
+section('24. Pinned regions (regions VS Code keeps separate)')
+// ---------------------------------------------------------------------------
+const MASTER = DEFAULT_VSCODE_COLORS
+const plain = buildVscodeColors(MASTER)
+
+// Default state: every pin follows its master field, so the derived map is
+// byte-for-byte what it was before pinning existed.
+ok('panel follows the sidebar by default', plain['panel.background'] === MASTER.sidebarBg)
+ok('status bar follows the sidebar by default',
+  plain['statusBar.background'] === MASTER.sidebarBg && plain['statusBar.noFolderBackground'] === MASTER.sidebarBg)
+ok('inactive tabs follow the title bar by default',
+  plain['tab.inactiveBackground'] === MASTER.titleBg &&
+    plain['editorGroupHeader.tabsBackground'] === MASTER.titleBg)
+ok('widgets follow the sidebar by default',
+  plain['input.background'] === MASTER.sidebarBg &&
+    plain['dropdown.background'] === MASTER.sidebarBg &&
+    plain['editorWidget.background'] === MASTER.sidebarBg &&
+    plain['editorHoverWidget.background'] === MASTER.sidebarBg &&
+    plain['editorSuggestWidget.background'] === MASTER.sidebarBg &&
+    plain['notifications.background'] === MASTER.sidebarBg &&
+    plain['quickInput.background'] === MASTER.sidebarBg)
+ok('line numbers follow the muted text by default',
+  plain['editorLineNumber.foreground'] === MASTER.mutedFg)
+ok('indent guides follow the border, with transparency, by default',
+  plain['editorIndentGuide.background1'] === `${MASTER.border}66`.toUpperCase() &&
+    plain['editorWhitespace.foreground'] === `${MASTER.border}66`.toUpperCase(),
+  plain['editorIndentGuide.background1'])
+
+const pinnedMap = buildVscodeColors(MASTER, { panelBg: '#F6E7D8', statusBarBg: '#3A2A16' })
+ok('a pinned panel wins over the sidebar', pinnedMap['panel.background'] === '#F6E7D8')
+ok('pinning a region leaves its neighbour alone',
+  pinnedMap['sideBar.background'] === MASTER.sidebarBg &&
+    pinnedMap['statusBar.background'] === '#3A2A16')
+ok('pinning the status bar covers the no-folder state too',
+  pinnedMap['statusBar.noFolderBackground'] === '#3A2A16')
+// A light strip on a dark theme would otherwise keep the theme's light labels.
+ok('text on a pinned surface is legible, not carried over',
+  contrastRatio(pinnedMap['panel.foreground'], '#F6E7D8') >= 4.5,
+  `${contrastRatio(pinnedMap['panel.foreground'], '#F6E7D8').toFixed(2)}`)
+ok('and the theme ink is kept when it still works',
+  pinnedMap['statusBar.foreground'] === MASTER.editorFg,
+  pinnedMap['statusBar.foreground'])
+
+const rest = buildVscodeColors(MASTER, {
+  inactiveTabBg: '#101010',
+  widgetBg: '#FFFFFF',
+  lineNumberFg: '#FF0000',
+  indentGuideFg: '#00FF00',
+})
+ok('pinned inactive tabs cover the tab strip too',
+  rest['tab.inactiveBackground'] === '#101010' && rest['editorGroupHeader.tabsBackground'] === '#101010')
+ok('pinned widgets cover every widget surface',
+  ['input.background', 'dropdown.background', 'editorWidget.background', 'editorHoverWidget.background',
+    'editorSuggestWidget.background', 'notifications.background', 'quickInput.background'].every(
+    (key) => rest[key] === '#FFFFFF',
+  ))
+ok('pinned line numbers land on the line-number key only',
+  rest['editorLineNumber.foreground'] === '#FF0000' &&
+    rest['editorLineNumber.activeForeground'] === MASTER.accent)
+ok('pinned indent guides cover the guides and the whitespace markers',
+  rest['editorIndentGuide.background1'] === '#00FF00' && rest['editorWhitespace.foreground'] === '#00FF00')
+
+// Sanitising: a draft can carry anything a previous build wrote.
+ok('unknown pin ids are dropped', Object.keys(buildOverrides({ nonsense: '#FFFFFF' })).length === 0)
+ok('malformed colours are dropped, not written',
+  Object.keys(buildOverrides({ panelBg: 'red' })).length === 0 &&
+    Object.keys(buildOverrides({ panelBg: '#FFF' })).length === 0)
+ok('valid pins are normalised to uppercase',
+  buildOverrides({ panelBg: '#abcdef' }).panelBg === '#ABCDEF')
+ok('a missing overrides object means "all follow"', Object.keys(buildOverrides(undefined)).length === 0)
+ok('every pinnable id is declared once',
+  new Set(VSCODE_OVERRIDE_IDS).size === VSCODE_OVERRIDE_FIELDS.length &&
+    VSCODE_OVERRIDE_FIELDS.every((field) => VSCODE_FIELD_IDS.includes(field.inherits)),
+  VSCODE_OVERRIDE_FIELDS.map((field) => `${field.id}<-${field.inherits}`).join(','))
+
+// The theme JSON and the package must honour the pins, and a pair must not copy
+// one palette's pins onto the other.
+ok('the theme JSON honours pins',
+  buildVscodeThemeJson({ name: 'Pinned', colors: MASTER, overrides: { panelBg: '#123456' } }).colors[
+    'panel.background'
+  ] === '#123456')
+const pinnedPkg = buildVscodePackage({
+  name: 'Pinned Pair',
+  folderName: 'pinned-pair',
+  type: 'dark',
+  colors: MASTER,
+  counterpart: { type: 'light', colors: lightDerived },
+  overrides: { panelBg: '#123456' },
+})
+const pinnedThemes = JSON.parse(readFileFrom(pinnedPkg, 'package.json')).contributes.themes
+const pinnedPrimary = JSON.parse(readFileFrom(pinnedPkg, `themes/pinned-pair-dark-color-theme.json`))
+const pinnedDerived = JSON.parse(readFileFrom(pinnedPkg, `themes/pinned-pair-light-color-theme.json`))
+ok('a package declares two themes here', pinnedThemes.length === 2)
+ok('the edited theme carries its pins', pinnedPrimary.colors['panel.background'] === '#123456')
+ok('the derived theme inherits from its own colours instead',
+  pinnedDerived.colors['panel.background'] === lightDerived.sidebarBg,
+  pinnedDerived.colors['panel.background'])
+ok('a package without pins is unaffected',
+  buildVscodeThemeJson({ name: 'Plain', colors: MASTER }).colors['panel.background'] === MASTER.sidebarBg)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

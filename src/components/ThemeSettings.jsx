@@ -29,6 +29,7 @@ export function ThemeSettings({
   titleKey = 'settings.title',
   subtitleKey = 'settings.subtitle',
   headerSlot = null,
+  footerSlot = null,
   groupExtra,
   onAutoClearChange,
   onClearFields,
@@ -177,6 +178,13 @@ export function ThemeSettings({
           </fieldset>
         ))}
       </div>
+
+      {/*
+        Per-workspace extras that belong *after* the colour groups — the VS Code
+        workbench appends its "pin a region" list there, because those controls
+        only make sense once the master palette above is settled.
+      */}
+      {footerSlot}
     </section>
   )
 }

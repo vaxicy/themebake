@@ -284,6 +284,28 @@
   font-family: inherit;
 }
 
+/* Panel strip — the bottom tab row (Problems / Output / Terminal). Its own
+   surface in VS Code, and separately pinnable in the settings panel. */
+.vsc__panel {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid transparent;
+}
+
+.vsc__panel-tab {
+  padding: 5px 12px;
+  border-bottom: 1px solid transparent;
+  font-size: 9.5px;
+  font-weight: 620;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.vsc__panel-tab.is-active {
+  opacity: 1;
+}
+
 .vsc__status {
   display: flex;
   justify-content: space-between;

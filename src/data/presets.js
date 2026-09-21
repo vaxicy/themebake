@@ -202,19 +202,25 @@ const ARCHETYPE_ACCENT = {
 /**
  * Generate a *coordinated* random palette rather than 14 independent RGB values.
  *
- * Strategy — one archetype, one accent, surfaces tinted around the base:
- *   1. Pick a base hue, an archetype (monochrome .. triadic) and how loud the
- *      surfaces should be. Some themes are tinted throughout, others are quiet
- *      paper with one vivid accent — the second is what the hand-made reference
- *      themes mostly do, so it is a first-class outcome, not noise.
- *   2. Build the surfaces by pulling luminance up and saturation down from the
- *      base hue, each layer a few degrees off it so they read as depth rather
- *      than one flat wash.
+ * Strategy — a colour-relationship archetype, one to three colour families, and
+ * surfaces tinted around them:
+ *   1. Pick a base hue, an archetype (monochrome .. triadic), how many families
+ *      the palette mixes (one, two or three) and how loud the surfaces should be.
+ *      Some themes are tinted throughout, others are quiet paper with one vivid
+ *      accent — the second is what the hand-made reference themes mostly do, so
+ *      it is a first-class outcome, not noise.
+ *   2. Build the surfaces by pulling luminance up and saturation down from their
+ *      family's hue, each layer a few degrees off so they read as depth rather
+ *      than one flat wash. With two or three families the toolbar and the New Tab
+ *      page carry the other colour, which is what makes a randomise look like a
+ *      designer's palette card instead of a tint of one colour.
  *   3. Derive the deep text colour from the base hue with low saturation so it
  *      reads as "tinted ink" instead of pure black.
- *   4. Place the accent at the archetype's distance, choosing the side of the
- *      wheel that is further from the muddy orange-olive band.
- *   5. Let auto-contrast fix any pair that ends up too close.
+ *   4. Place the accent: the third family when there is one, otherwise the
+ *      archetype's distance from the base hue, choosing the side of the wheel
+ *      that is further from the muddy orange-olive band.
+ *   5. Let auto-contrast fix any pair that ends up too close — including the
+ *      pairs introduced by a second surface family.
  *
  * @param {number} [seed] optional PRNG seed (used by tests)
  * @returns {ThemeColors}
@@ -241,38 +247,88 @@ export function generateRandomColors(seed) {
   // carries the theme. This is the difference between "tinted paper" and "a wash
   // of one colour", and it is worth being deliberate about.
   const quietSurfaces = maybe(0.4)
-  const surfaceTintScale = quietSurfaces ? pick(0.25, 0.55) : 1
+
+  /**
+   * How many colour families the palette mixes.
+   *
+   * One family is the safe, monochrome answer; two is what a designer's palette
+   * card usually is (a rose family for the shell, an olive one for the page);
+   * three is an outright multi-colour card. The second family lands 35-105° away
+   * — close enough to belong to the same picture, far enough to read as a
+   * second colour — and the third takes a corner of its own.
+   */
+  const familyCount = maybe(0.3) ? 3 : maybe(0.72) ? 2 : 1
+  const familyB = familyCount >= 2 ? away(baseHue, pick(35, 105)) : null
+  const familyC = familyCount >= 3 ? away(baseHue, pick(105, 180)) : null
 
   const primaryS = (dark ? pick(22, 42) : pick(42, 72)) * (quietSurfaces ? 0.7 : 1)
   const primaryL = dark ? pick(22, 34) : pick(58, 74)
 
-  /** Surface hue: the base plus this role's own drift. */
-  const tint = (id) => baseHue + (SURFACE_HUE_DRIFT[id] ?? 0)
-  /** Surface saturation: the base scaled down, then by this role's own factor. */
-  const sat = (factor) => primaryS * factor * surfaceTintScale
+  /**
+   * Surface hue: the base plus this role's own drift, or the second family.
+   *
+   * `second` marks the roles that carry the palette's other colour — the toolbar
+   * and the New Tab page, which is where a second family is visible without
+   * fighting the window frame.
+   */
+  const tint = (id, family = null) =>
+    (family ?? baseHue) + (SURFACE_HUE_DRIFT[id] ?? 0)
+
+  /**
+   * A tint of `hue` at lightness `l` with **chroma** (max-min over 255) at least
+   * `chroma`.
+   *
+   * ---------------------------------------------------------------------------
+   * WHY NOT HSL SATURATION
+   * ---------------------------------------------------------------------------
+   * Multiplying an HSL saturation down is not "make it paler" — near white it is
+   * "make it grey". A tint at l 96 with s 12% is a 2/255 channel difference, i.e.
+   * indistinguishable from white, while the pale pink of a real palette card
+   * (`#FFDCDC`) is l 93 / s 98. Chroma is the stable axis across the whole
+   * lightness range, which is exactly why the palette solver ranks by it too, so
+   * the surfaces are specified in chroma and converted here.
+   */
+  const tintAt = (hue, l, chroma) => {
+    const denom = 1 - Math.abs(2 * (l / 100) - 1)
+    const s = denom <= 0.02 ? 0 : Math.min(100, (chroma / denom) * 100)
+    return hslToHex({ h: hue, s, l })
+  }
+
+  /**
+   * Surface colourfulness. Quiet palettes are pulled towards paper — but not to
+   * nothing, and a palette with a second family keeps a floor, because a second
+   * colour at 3% chroma is a grey with extra steps.
+   */
+  const quietScale = quietSurfaces ? pick(0.5, 0.75) : 1
+  const chromaFloor = familyB !== null ? 0.05 : 0
+  const chroma = (budget) => Math.max(budget * quietScale, chromaFloor)
 
   const frame = hslToHex({ h: baseHue, s: primaryS, l: primaryL })
   const palette = {}
   palette.frame = frame
 
   // --------------------------- accent placement ------------------------------
+  // Where the loud colour goes, in order of preference: the third family (a real
+  // multi-colour card), the second family, or the archetype's distance from the
+  // base hue. `split` and `triadic` additionally give the window buttons the
+  // mirror corner, which is what makes three hues read as intentional rather
+  // than as one hue plus a stray.
   const rule = ARCHETYPE_ACCENT[archetype]
   const accentDistance = pick(rule.distance[0], rule.distance[1])
-  const accentHue = away(baseHue, accentDistance)
-  // `split` and `triadic` also give the window buttons their own hue on the
-  // opposite side, which is what makes three hues read as intentional rather
-  // than as one hue plus a stray.
-  const secondHue = rule.second === 'mirror' ? away(baseHue, -accentDistance) : null
-  const buttonHue = secondHue ?? tint('buttonBackground')
+  const mirrorHue = rule.second === 'mirror' ? away(baseHue, -accentDistance) : null
+  const accentHue = familyC ?? familyB ?? away(baseHue, accentDistance)
+  const buttonHue = familyC !== null ? familyB : (mirrorHue ?? familyB ?? tint('buttonBackground'))
+  /** Roles that carry the palette's *other* colour family, when there is one. */
+  const otherFamily = (id) => tint(id, familyB)
 
   if (dark) {
     // ---------------------------------- dark ----------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.85, l: primaryL + 6 })
-    palette.toolbar = hslToHex({ h: tint('toolbar'), s: sat(0.7), l: primaryL + 8 })
-    palette.backgroundTab = hslToHex({ h: tint('backgroundTab'), s: sat(0.8), l: primaryL - 2 })
-    palette.ntpBackground = hslToHex({ h: tint('ntpBackground'), s: sat(0.6), l: pick(9, 15) })
-    palette.omniboxBackground = hslToHex({ h: tint('omniboxBackground'), s: sat(0.6), l: pick(15, 22) })
-    palette.buttonBackground = hslToHex({ h: buttonHue, s: sat(0.9), l: primaryL + 12 })
+    palette.toolbar = tintAt(otherFamily('toolbar'), primaryL + 8, chroma(pick(0.08, 0.12)))
+    palette.backgroundTab = tintAt(tint('backgroundTab'), primaryL - 2, chroma(pick(0.08, 0.13)))
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(9, 15), chroma(pick(0.05, 0.09)))
+    palette.omniboxBackground = tintAt(otherFamily('omniboxBackground'), pick(15, 22), chroma(pick(0.05, 0.09)))
+    palette.buttonBackground = tintAt(buttonHue, primaryL + 12, chroma(pick(0.1, 0.16)))
     palette.tabText = hslToHex({ h: baseHue, s: pick(10, 22), l: pick(92, 97) })
     palette.tabBackgroundText = hslToHex({ h: baseHue, s: pick(12, 26), l: pick(66, 78) })
     palette.toolbarButtonIcon = hslToHex({ h: baseHue, s: pick(10, 24), l: pick(84, 92) })
@@ -282,11 +338,11 @@ export function generateRandomColors(seed) {
   } else {
     // ---------------------------------- light ---------------------------------
     palette.frameInactive = hslToHex({ h: tint('frameInactive'), s: primaryS * 0.5, l: Math.min(primaryL + 9, 88) })
-    palette.toolbar = hslToHex({ h: tint('toolbar'), s: sat(pick(0.18, 0.36)), l: pick(94, 97) })
-    palette.backgroundTab = hslToHex({ h: tint('backgroundTab'), s: sat(pick(0.34, 0.55)), l: pick(84, 90) })
-    palette.ntpBackground = hslToHex({ h: tint('ntpBackground'), s: sat(pick(0.26, 0.5)), l: pick(96, 98.5) })
+    palette.toolbar = tintAt(otherFamily('toolbar'), pick(94, 97), chroma(pick(0.05, 0.09)))
+    palette.backgroundTab = tintAt(tint('backgroundTab'), pick(84, 90), chroma(pick(0.1, 0.16)))
+    palette.ntpBackground = tintAt(otherFamily('ntpBackground'), pick(96, 98.5), chroma(pick(0.06, 0.11)))
     palette.omniboxBackground = '#FFFFFF'
-    palette.buttonBackground = hslToHex({ h: buttonHue, s: sat(pick(0.45, 0.7)), l: pick(86, 92) })
+    palette.buttonBackground = tintAt(buttonHue, pick(86, 92), chroma(pick(0.1, 0.16)))
     palette.tabText = hslToHex({ h: baseHue, s: pick(18, 36), l: pick(14, 24) })
     palette.tabBackgroundText = hslToHex({ h: baseHue, s: pick(12, 26), l: pick(34, 46) })
     palette.toolbarButtonIcon = palette.tabBackgroundText
@@ -306,11 +362,17 @@ export function generateRandomColors(seed) {
 
   // ------------------------- contrast correction pass -------------------------
   // Guarantee legibility on the pairs that matter most, without flattening the
-  // palette: nudge the *foreground* only, and only as far as necessary.
+  // palette: nudge the *foreground* only, and only as far as necessary. The
+  // toolbar pairs are included because a second surface family is a *new*
+  // background for text that was chosen against the frame.
   palette.tabText = ensureContrast(palette.tabText, palette.frame, 4.5, dark)
-  palette.tabBackgroundText = ensureContrast(palette.tabBackgroundText, palette.frame, 3.5, dark)
+  // This one sits on the frame *and* on the inactive tab, and the audited pair is
+  // the tighter of the two, so both are honoured at once.
+  palette.tabBackgroundText = ensureContrastAll(palette.tabBackgroundText, [palette.frame, palette.backgroundTab], 3.5, dark)
   palette.ntpText = ensureContrast(palette.ntpText, palette.ntpBackground, 4.5, dark)
   palette.omniboxText = ensureContrast(palette.omniboxText, palette.omniboxBackground, 4.5, dark)
+  palette.bookmarkText = ensureContrast(palette.bookmarkText, palette.toolbar, 3.5, dark)
+  palette.toolbarButtonIcon = ensureContrast(palette.toolbarButtonIcon, palette.toolbar, 3, dark)
   palette.ntpLink = ensureContrast(palette.ntpLink, palette.ntpBackground, 3, dark)
 
   return palette
@@ -321,12 +383,22 @@ export function generateRandomColors(seed) {
  * Stops after 30 steps so it can never loop forever on an impossible pair.
  */
 function ensureContrast(fg, bg, min, dark) {
+  return ensureContrastAll(fg, [bg], min, dark)
+}
+
+/**
+ * Same, against the *worst* of several backgrounds — a colour that has to be
+ * legible on two surfaces is only as good as its worst pair.
+ */
+function ensureContrastAll(fg, backgrounds, min, dark) {
+  const worst = (candidate) => Math.min(...backgrounds.map((bg) => contrastRatio(candidate, bg)))
   let out = fg
   for (let i = 0; i < 30; i += 1) {
-    if (contrastRatio(out, bg) >= min) return out
+    if (worst(out) >= min) return out
     out = adjustL(out, dark ? 3 : -3)
   }
-  return readableTextOn(bg)
+  const worstBg = backgrounds.reduce((a, b) => (contrastRatio(out, a) <= contrastRatio(out, b) ? a : b))
+  return readableTextOn(worstBg)
 }
 
 /**

@@ -68,12 +68,15 @@ const CODE_LINES = [
   ],
 ]
 
-export function VSCodeMockup({ colors }) {
+export function VSCodeMockup({ colors, overrides = {} }) {
   const { t } = useI18n()
   const master = Object.fromEntries(
     Object.entries(colors).map(([id, value]) => [id, normalizeHex(value) ?? '#000000']),
   )
-  const derived = buildVscodeColors(master)
+  // Overrides are part of the palette being previewed, so the mockup takes them
+  // too: a user who pins the status bar must see it move in here, not only in
+  // the exported file.
+  const derived = buildVscodeColors(master, overrides)
   const tokens = buildTokenColors(master).palette
 
   return (
@@ -180,6 +183,33 @@ export function VSCodeMockup({ colors }) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/*
+        Panel strip. VS Code colours this independently of the sidebar, and the
+        editor can pin it separately — a preview that never showed the panel would
+        hide that whole control.
+      */}
+      <div
+        className="vsc__panel"
+        style={{ backgroundColor: derived['panel.background'], borderTopColor: derived['panel.border'] }}
+      >
+        <span
+          className="vsc__panel-tab is-active"
+          style={{
+            backgroundColor: derived['editor.background'],
+            color: derived['panel.foreground'],
+            borderBottomColor: derived['focusBorder'],
+          }}
+        >
+          PROBLEMS
+        </span>
+        <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
+          OUTPUT
+        </span>
+        <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
+          TERMINAL
+        </span>
       </div>
 
       {/* ------------------------------ status bar ----------------------------- */}

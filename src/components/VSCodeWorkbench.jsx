@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AiNamingPanel } from './AiNamingPanel.jsx'
+import { ColorField } from './ColorField.jsx'
 import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
@@ -45,12 +46,15 @@ import { createZip, downloadBlob } from '../utils/zip.js'
 import {
   VSCODE_FIELDS,
   VSCODE_FIELD_GROUPS,
+  VSCODE_OVERRIDE_FIELDS,
   VSCODE_TYPES,
   VSCODE_OUTPUT_MODES,
   VSCODE_OUTPUT_MODE_IDS,
   DEFAULT_VSCODE_COLORS,
   DEFAULT_VSCODE_OUTPUT_MODE,
   DEFAULT_VSCODE_TYPE,
+  buildOverrides,
+  vscodeFieldById,
 } from '../vscode/fields.js'
 import {
   VSCODE_EXTENSION_VERSION,
@@ -84,6 +88,59 @@ const VSCODE_STRIP_ITEMS = [
 
 const isPairableType = (type) => counterpartTypeFor(type) !== null
 
+/**
+ * One pinnable region.
+ *
+ * Two states and only two: *follows* a master field (the default, and what the
+ * hint spells out with the colour it currently resolves to) or *pinned* to its
+ * own colour. A third "half-set" state would leave the exported theme — and the
+ * person reading the panel — guessing.
+ */
+function OverrideField({ field, value, inherited, onChange, onInvalid }) {
+  const { t } = useI18n()
+  const source = vscodeFieldById(field.inherits)
+  const sourceLabel = t(source ? source.labelKey : 'vscode.field.sidebarBg')
+  const pinned = typeof value === 'string'
+
+  return (
+    <div className={`override-field${pinned ? ' is-active' : ''}`}>
+      {pinned ? (
+        <ColorField
+          id={`override-${field.id}`}
+          label={t(field.labelKey)}
+          hint={t(field.hintKey)}
+          value={value}
+          onChange={onChange}
+          onInvalid={onInvalid}
+        />
+      ) : (
+        <div className="override-field__inherited">
+          <span
+            className="override-field__swatch"
+            style={{ backgroundColor: normalizeHex(inherited) ?? '#000000' }}
+            aria-hidden="true"
+          />
+          <span className="override-field__meta">
+            <span className="override-field__label">{t(field.labelKey)}</span>
+            <span className="override-field__hint" id={`override-${field.id}-hint`}>
+              {t('vscode.override.inherits', { source: sourceLabel })} · <code>{inherited}</code>
+            </span>
+          </span>
+        </div>
+      )}
+
+      <label className="override-field__switch" title={t(field.hintKey)}>
+        <input
+          type="checkbox"
+          checked={pinned}
+          onChange={(event) => onChange(event.target.checked ? inherited : null)}
+        />
+        <span>{t('vscode.override.enable')}</span>
+      </label>
+    </div>
+  )
+}
+
 /** Read the persisted VS Code draft exactly once. */
 function readInitialState() {
   const result = loadVscodeTheme()
@@ -101,6 +158,9 @@ function readInitialState() {
       // state that used to render a light theme dark.
       type: resolveType(declared, colors),
       colors,
+      // Pinned regions travel with the draft like the colours do; anything
+      // unknown or malformed is dropped, which means "inherit".
+      overrides: buildOverrides(saved.overrides),
       outputMode: VSCODE_OUTPUT_MODE_IDS.includes(saved.outputMode)
         ? saved.outputMode
         : DEFAULT_VSCODE_OUTPUT_MODE,
@@ -141,6 +201,8 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   const [folderInput, setFolderInput] = useState(INITIAL.state?.folderInput ?? '')
   const [type, setType] = useState(INITIAL.state?.type ?? DEFAULT_VSCODE_TYPE)
   const [colors, setColors] = useState(INITIAL.state?.colors ?? { ...DEFAULT_VSCODE_COLORS })
+  // Regions pinned to their own colour instead of following the master palette.
+  const [overrides, setOverrides] = useState(INITIAL.state?.overrides ?? {})
   const [outputMode, setOutputMode] = useState(() => {
     const saved = INITIAL.state?.outputMode
     if (!VSCODE_OUTPUT_MODE_IDS.includes(saved)) return DEFAULT_VSCODE_OUTPUT_MODE
@@ -182,6 +244,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
         folderInput,
         type,
         colors,
+        overrides,
         outputMode,
         pair,
         seed,
@@ -195,7 +258,19 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
       }
     }, 250)
     return () => window.clearTimeout(timer)
-  }, [name, folderInput, type, colors, outputMode, pair, seed, smartMode, smartIntensity, smartAccent])
+  }, [
+    name,
+    folderInput,
+    type,
+    colors,
+    overrides,
+    outputMode,
+    pair,
+    seed,
+    smartMode,
+    smartIntensity,
+    smartAccent,
+  ])
 
   // ------------------------------------------------------------------ derived
   const master = useMemo(() => buildMasterColors(colors), [colors])
@@ -253,6 +328,20 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
 
   const handleColorChange = useCallback((fieldId, next) => {
     setColors((current) => ({ ...current, [fieldId]: next }))
+  }, [])
+
+  /**
+   * Pin or release one region. `null` means "follow the master palette again",
+   * which is the same state a fresh draft is in — the override is deleted rather
+   * than stored as an empty string, so `buildOverrides` has nothing to sanitise.
+   */
+  const handleOverrideChange = useCallback((fieldId, next) => {
+    setOverrides((current) => {
+      const copy = { ...current }
+      if (typeof next === 'string' && normalizeHex(next)) copy[fieldId] = normalizeHex(next)
+      else delete copy[fieldId]
+      return copy
+    })
   }, [])
 
   /**
@@ -402,6 +491,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
         counterpart: counterpart
           ? { type: counterpartTypeFor(exportedType), colors: counterpart }
           : null,
+        overrides,
         format: outputMode,
       })
       if (outputMode === 'folder') {
@@ -437,7 +527,19 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
     } finally {
       setGenerating(false)
     }
-  }, [colors, counterpart, exportedType, folderName, generating, master, name, outputMode, toast, t])
+  }, [
+    colors,
+    counterpart,
+    exportedType,
+    folderName,
+    generating,
+    master,
+    name,
+    outputMode,
+    overrides,
+    toast,
+    t,
+  ])
 
   // ------------------------------------------------------------------- render
   return (
@@ -536,6 +638,26 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
               </label>
             </fieldset>
           }
+          footerSlot={
+            <div className="settings-groups">
+              <fieldset className="settings-group">
+                <legend className="settings-group__legend">{t('vscode.override.section')}</legend>
+                <p className="settings-group__hint">{t('vscode.override.sectionHint')}</p>
+                <div className="settings-group__fields">
+                  {VSCODE_OVERRIDE_FIELDS.map((field) => (
+                    <OverrideField
+                      key={field.id}
+                      field={field}
+                      value={overrides[field.id]}
+                      inherited={master[field.inherits]}
+                      onChange={(next) => handleOverrideChange(field.id, next)}
+                      onInvalid={(label) => toast.error(t('colorField.invalidToast', { label }))}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          }
           onNameChange={(value) => {
             setName(value)
             if (nameError) setNameError('')
@@ -616,7 +738,7 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
             ) : null}
           </div>
 
-          <VSCodeMockup colors={previewColors} />
+          <VSCodeMockup colors={previewColors} overrides={previewIsCounterpart ? {} : overrides} />
 
           <p className="export-panel__note">
             {t('vscode.preview.derived', {

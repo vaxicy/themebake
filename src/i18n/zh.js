@@ -109,34 +109,70 @@ export default {
   'vscode.group.shell': '外壳',
   'vscode.group.controls': '控件',
   'vscode.group.semantic': '语义色',
+  // 每条说明都直接列出它真正控制的 VS Code 键名 ——「这里到底能调什么颜色」正是这个面板要回答的问题。
   'vscode.field.editorBg': '编辑器背景',
-  'vscode.field.editorBg.hint': '编辑区背景，也用于活动标签页与终端。',
+  'vscode.field.editorBg.hint':
+    '编辑区底色，同时是活动标签页与终端的背景（editor.background、tab.activeBackground、terminal.background）。',
   'vscode.field.editorFg': '编辑器文字',
-  'vscode.field.editorFg.hint': '默认代码文字颜色，也用于全局前景色。',
+  'vscode.field.editorFg.hint':
+    '默认代码文字，也是全局前景色：侧边栏、面板、状态栏的文字都用它（editor.foreground、foreground、sideBar.foreground）。',
   'vscode.field.accent': '强调色',
-  'vscode.field.accent.hint': '光标、选中边框、链接、徽标等高亮元素。',
+  'vscode.field.accent.hint':
+    '光标、焦点边框、链接与徽标（editorCursor.foreground、focusBorder、textLink.foreground、badge.background）。',
   'vscode.field.selectionBg': '选中背景',
-  'vscode.field.selectionBg.hint': '选中文本与列表选中项的背景。',
+  'vscode.field.selectionBg.hint':
+    '选中文本、列表选中项与自动补全高亮（editor.selectionBackground、list.activeSelectionBackground、editorSuggestWidget.selectedBackground）。',
   'vscode.field.lineHighlightBg': '当前行高亮',
-  'vscode.field.lineHighlightBg.hint': '光标所在行的背景色。',
+  'vscode.field.lineHighlightBg.hint': '光标所在行的底色（editor.lineHighlightBackground）。',
   'vscode.field.mutedFg': '弱化文字',
-  'vscode.field.mutedFg.hint': '行号、说明文字、非活动标签等。',
+  'vscode.field.mutedFg.hint':
+    '行号、说明文字、非活动标签与输入框占位文字（editorLineNumber.foreground、descriptionForeground、tab.inactiveForeground）。',
   'vscode.field.activityBg': '活动栏背景',
-  'vscode.field.activityBg.hint': '最左侧图标栏的背景。',
+  'vscode.field.activityBg.hint':
+    '最左侧图标栏的底色（activityBar.background）；图标本身跟随编辑器文字色。',
   'vscode.field.sidebarBg': '侧边栏背景',
-  'vscode.field.sidebarBg.hint': '资源管理器、面板、状态栏和弹窗的背景。',
+  'vscode.field.sidebarBg.hint':
+    '资源管理器侧边栏（sideBar.background）。面板、状态栏和弹窗默认跟着它 —— 想分开就在下面的「单独控制」里指定。',
   'vscode.field.titleBg': '标题栏 / 非活动标签',
-  'vscode.field.titleBg.hint': '标题栏、非活动标签页与标签栏底色。',
+  'vscode.field.titleBg.hint':
+    '标题栏与未选中的标签页（titleBar.activeBackground、tab.inactiveBackground、editorGroupHeader.tabsBackground）。',
   'vscode.field.border': '边框',
-  'vscode.field.border.hint': '侧边栏、面板、输入框的分隔线颜色。',
+  'vscode.field.border.hint':
+    '侧边栏、面板、输入框与标签的分隔线，以及滚动条滑块（sideBar.border、panel.border、input.border、tab.border、scrollbarSlider.background）。',
   'vscode.field.buttonBg': '按钮背景',
-  'vscode.field.buttonBg.hint': '主按钮背景，也用作徽标背景。',
+  'vscode.field.buttonBg.hint':
+    '主按钮、活动栏徽标与调试状态下的状态栏（button.background、activityBarBadge.background、statusBar.debuggingBackground）。',
   'vscode.field.buttonFg': '按钮文字',
-  'vscode.field.buttonFg.hint': '主按钮上的文字颜色。',
+  'vscode.field.buttonFg.hint': '上面这些按钮与徽标上的文字（button.foreground、activityBarBadge.foreground）。',
   'vscode.field.errorFg': '错误色',
-  'vscode.field.errorFg.hint': '错误波浪线与错误提示文字。',
+  'vscode.field.errorFg.hint':
+    '错误波浪线与错误提示，以及 git 的删除标记（editorError.foreground、errorForeground、gitDecoration.deletedResourceForeground）。',
   'vscode.field.warningFg': '警告色',
-  'vscode.field.warningFg.hint': '警告波浪线，也影响字符串与数字的派生色。',
+  'vscode.field.warningFg.hint':
+    '警告波浪线，并参与字符串、数字等语法色的推导（editorWarning.foreground、terminal.ansiYellow）。',
+
+  // ------------------------------------------------------- 单独控制
+  'vscode.override.section': '单独控制',
+  'vscode.override.sectionHint':
+    '下面这些区域默认跟随上面的基准色。它们在 VS Code 里本来是各自独立的颜色（浅色侧边栏配深色状态栏是很常见的搭配），需要时在这里单独指定，预览和导出都会同步。',
+  'vscode.override.enable': '单独设置',
+  'vscode.override.inherits': '跟随{source}',
+  'vscode.override.panelBg': '面板背景',
+  'vscode.override.panelBg.hint': '问题 / 输出 / 终端那条面板（panel.background）。默认跟随侧边栏背景。',
+  'vscode.override.statusBarBg': '状态栏背景',
+  'vscode.override.statusBarBg.hint':
+    '最底部那条状态栏（statusBar.background、statusBar.noFolderBackground）。默认跟随侧边栏背景。',
+  'vscode.override.inactiveTabBg': '非活动标签页背景',
+  'vscode.override.inactiveTabBg.hint':
+    '未选中的标签与标签栏底色（tab.inactiveBackground、editorGroupHeader.tabsBackground）。默认跟随标题栏。',
+  'vscode.override.widgetBg': '弹窗与提示背景',
+  'vscode.override.widgetBg.hint':
+    '命令面板、自动补全、悬浮提示、通知、输入框与下拉（quickInput.background、editorSuggestWidget.background、editorHoverWidget.background、notifications.background、input.background、dropdown.background）。默认跟随侧边栏背景。',
+  'vscode.override.lineNumberFg': '行号颜色',
+  'vscode.override.lineNumberFg.hint': '编辑器行号（editorLineNumber.foreground）。默认跟随弱化文字。',
+  'vscode.override.indentGuideFg': '缩进参考线',
+  'vscode.override.indentGuideFg.hint':
+    '缩进参考线与空白字符标记（editorIndentGuide.background1、editorWhitespace.foreground）。默认跟随边框，带透明度。',
   'vscode.preview.title': 'VS Code 预览',
   'vscode.preview.subtitle': '按当前配色实时渲染工作台与语法高亮。',
   'vscode.preview.aria': 'VS Code 界面预览',

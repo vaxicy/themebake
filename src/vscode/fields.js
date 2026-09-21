@@ -73,6 +73,92 @@ export const VSCODE_FIELDS = [
 
 export const VSCODE_FIELD_IDS = VSCODE_FIELDS.map((field) => field.id)
 
+/** Look one master field up by id (the UI needs its label for "follows X"). */
+export function vscodeFieldById(id) {
+  return VSCODE_FIELDS.find((field) => field.id === id) ?? null
+}
+
+/**
+ * Regions VS Code treats as their *own* surfaces, which the 14 master fields
+ * deliberately merge.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS EXISTS
+ * ---------------------------------------------------------------------------
+ * Merging them is what makes the editor usable: nobody wants to name 90 colours
+ * by hand. But the merge is also the one place the model can feel wrong — the
+ * panel, the status bar and the sidebar are three distinct strips on screen, and
+ * real themes (including this project's own hand-made ones) colour them
+ * differently. A theme whose sidebar is light and whose status bar is brown is
+ * perfectly normal in VS Code and simply not expressible through one field.
+ *
+ * So each of these starts out *inheriting* a master field and can be pinned to
+ * its own colour. `inherits` is the master field id, which is what the UI shows
+ * as "follows …" and what an empty override falls back to.
+ *
+ * @type {{id:string, labelKey:string, hintKey:string, inherits:string}[]}
+ */
+export const VSCODE_OVERRIDE_FIELDS = [
+  {
+    id: 'panelBg',
+    labelKey: 'vscode.override.panelBg',
+    hintKey: 'vscode.override.panelBg.hint',
+    inherits: 'sidebarBg',
+  },
+  {
+    id: 'statusBarBg',
+    labelKey: 'vscode.override.statusBarBg',
+    hintKey: 'vscode.override.statusBarBg.hint',
+    inherits: 'sidebarBg',
+  },
+  {
+    id: 'inactiveTabBg',
+    labelKey: 'vscode.override.inactiveTabBg',
+    hintKey: 'vscode.override.inactiveTabBg.hint',
+    inherits: 'titleBg',
+  },
+  {
+    id: 'widgetBg',
+    labelKey: 'vscode.override.widgetBg',
+    hintKey: 'vscode.override.widgetBg.hint',
+    inherits: 'sidebarBg',
+  },
+  {
+    id: 'lineNumberFg',
+    labelKey: 'vscode.override.lineNumberFg',
+    hintKey: 'vscode.override.lineNumberFg.hint',
+    inherits: 'mutedFg',
+  },
+  {
+    id: 'indentGuideFg',
+    labelKey: 'vscode.override.indentGuideFg',
+    hintKey: 'vscode.override.indentGuideFg.hint',
+    inherits: 'border',
+  },
+]
+
+export const VSCODE_OVERRIDE_IDS = VSCODE_OVERRIDE_FIELDS.map((field) => field.id)
+
+/**
+ * Keep only the overrides a caller actually asked for: a known id with a valid
+ * hex colour. An empty or broken entry must mean "inherit", never "write the
+ * literal string into the theme".
+ *
+ * @param {Record<string,string>|null|undefined} input
+ * @returns {Record<string,string>} possibly empty
+ */
+export function buildOverrides(input) {
+  const out = {}
+  if (!input || typeof input !== 'object') return out
+  for (const id of VSCODE_OVERRIDE_IDS) {
+    const value = input[id]
+    if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value.trim())) {
+      out[id] = value.trim().toUpperCase()
+    }
+  }
+  return out
+}
+
 /**
  * The palette the VS Code workbench opens with: a calm dark violet scheme in
  * the house style. Every value is a master field id -> `#RRGGBB`.
