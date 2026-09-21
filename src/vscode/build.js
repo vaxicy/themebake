@@ -163,26 +163,49 @@ export function deriveCounterpart(colors, targetType) {
 
   const dark = target === 'dark'
 
-  // The background family's tint, by its most colourful member. Chroma (not HSL
-  // saturation) is the ranking axis — a pale surface at l 97 with s 40 is a real
-  // tint, while a dark one at l 13 with s 30 carries the same amount of colour.
-  const surfaceChroma = (hex) => {
-    const { s, l } = hexToHsl(hex)
-    return (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100)
+  /** How colourful a colour is, as its channel spread (0-1). */
+  const chromaOf = (hex) => {
+    const { r, g, b } = parseHex(hex)
+    return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
   }
-  const tintSource = [
-    source.editorBg,
-    source.sidebarBg,
-    source.titleBg,
-    source.activityBg,
-    source.lineHighlightBg,
-  ].reduce((best, hex) => (surfaceChroma(hex) > surfaceChroma(best) ? hex : best))
-  const tint = hexToHsl(tintSource)
 
-  // Only a whisper of the background's saturation goes into the new surfaces, so
-  // the accent itself stays the loudest colour on screen.
-  const bg = hslToHex({ h: tint.h, s: Math.min(tint.s, dark ? 24 : 28), l: dark ? 13 : 97 })
-  const fg = hslToHex({ h: tint.h, s: Math.min(tint.s, 24), l: dark ? 93 : 16 })
+  /**
+   * A tint of `hue` at lightness `l` that actually carries `chroma`.
+   *
+   * Never express these surfaces as "l 97 at s 25": near white an HSL saturation
+   * is a 4/255 channel difference, i.e. white — which is why the flipped light
+   * half used to read as a grey theme next to a clearly coloured dark twin. The
+   * chroma budget is converted back into whatever saturation delivers it.
+   */
+  const tintAt = (hue, l, chroma) => {
+    const denom = 1 - Math.abs(2 * (l / 100) - 1)
+    const s = denom <= 0.02 ? 0 : Math.min(100, (chroma / denom) * 100)
+    return hslToHex({ h: hue, s, l })
+  }
+
+  /**
+   * The tint the flip is built on: the editor background's own colour when it has
+   * any, otherwise the most colourful of the other background surfaces.
+   *
+   * Ranked by chroma rather than HSL saturation, because the two disagree exactly
+   * where a surface is near white or near black.
+   */
+  const tintSource =
+    chromaOf(source.editorBg) >= 0.015
+      ? source.editorBg
+      : [source.sidebarBg, source.titleBg, source.activityBg, source.lineHighlightBg].reduce(
+          (best, hex) => (chromaOf(hex) > chromaOf(best) ? hex : best),
+        )
+  const tint = hexToHsl(tintSource)
+  const tintChroma = chromaOf(tintSource)
+
+  // A strongly coloured background pulls the flip further off paper/near-black, so
+  // the two halves stay recognisably the same family. The budget is the background's
+  // own amount of colour (nudged up, since a surface loses perceived colour as it
+  // approaches either end of the range) — a neutral background still flips neutral.
+  const bgL = dark ? 13 : 97 - Math.min(tintChroma, 0.15) * 20
+  const bg = tintAt(tint.h, bgL, Math.min(tintChroma * (dark ? 1.15 : 1.1), dark ? 0.13 : 0.09))
+  const fg = tintAt(tint.h, dark ? 93 : 16, 0.03)
   const accent = contrastAgainst(source.accent, bg)
 
   /** A surface one step away from `bg`, in the direction that adds depth. */

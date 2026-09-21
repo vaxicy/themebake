@@ -1906,6 +1906,42 @@ ok('the flipped surfaces follow the background hue, not the accent',
   gap(sageFlippedHue, 120) <= 40 && gap(sageFlippedHue, 320) >= 40,
   `flipped h=${sageFlippedHue.toFixed(0)}`)
 
+// The other half of that bug: a tinted background used to flip into a *grey*
+// surface, because "l 97 at s 28" is a 4/255 channel difference — white with a
+// hint of hue. The flip has to carry the background's colour visibly.
+const spread = (hex) => {
+  const [r, g, b] = hexToRgbArray(hex)
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
+}
+const purpleDark = {
+  editorBg: '#3D2145',
+  sidebarBg: '#351B3C',
+  titleBg: '#472A50',
+  activityBg: '#2E1635',
+  lineHighlightBg: '#4A2C53',
+  accent: '#DD86DC',
+}
+const purpleLight = deriveCounterpart(purpleDark, 'light')
+ok('a tinted dark background flips into a visibly tinted light one',
+  spread(purpleLight.editorBg) >= 0.03,
+  `spread=${spread(purpleLight.editorBg).toFixed(3)} ${purpleLight.editorBg}`)
+ok('the flipped light background keeps the background hue',
+  gap(hexToHsl(purpleLight.editorBg).h, hexToHsl(purpleDark.editorBg).h) <= 20,
+  `${hexToHsl(purpleLight.editorBg).h.toFixed(0)} vs ${hexToHsl(purpleDark.editorBg).h.toFixed(0)}`)
+ok('the flipped dark background keeps the light background\u2019s tint',
+  spread(deriveCounterpart(purpleLight, 'dark').editorBg) >= 0.04,
+  `spread=${spread(deriveCounterpart(purpleLight, 'dark').editorBg).toFixed(3)}`)
+const neutralLight = {
+  editorBg: '#FFFFFF',
+  sidebarBg: '#F3F3F3',
+  titleBg: '#ECECEC',
+  activityBg: '#F0F0F0',
+  lineHighlightBg: '#F7F7F7',
+}
+const neutralDark = deriveCounterpart(neutralLight, 'dark')
+ok('a neutral background still flips neutral',
+  spread(neutralDark.editorBg) <= 0.02, `${spread(neutralDark.editorBg).toFixed(3)} ${neutralDark.editorBg}`)
+
 // A derived light palette must survive the rest of the derivation chain — this is
 // what the exported JSON runs through.
 const lightDerived = deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light')

@@ -437,20 +437,21 @@ export function VSCodeWorkbench({ aiConfig, onAiConfigChange }) {
   )
 
   /**
-   * Refresh the other half of the pair from a palette that just arrived.
+   * Rebuild the other half of the pair from the palette that just arrived.
    *
    * Only *new* themes go through here: a hand edit must never rewrite the other
-   * side, or the "two independent palettes" promise is broken. The stored half is
-   * kept when it is already the opposite scheme, so switching a preset on and off
-   * does not throw away a hand-tuned light theme.
+   * side, or the "two independent palettes" promise is broken. Everywhere a new
+   * theme actually lands (studio, random, import, preset, scheme switch) the flip
+   * is regenerated, always from the colours on screen — keeping a stored half
+   * merely because it *was* the opposite scheme is how a fresh palette ended up
+   * beside the previous theme's other side: a new purple dark theme paired with
+   * the grey light half of whatever came before it.
    */
   const reseedPair = useCallback(
     (palette) => {
       const opposite = counterpartTypeFor(schemeOf(palette))
       if (!pair || !opposite) return
-      setPairedColors((current) =>
-        current && schemeOf(current) === opposite ? current : deriveCounterpart(palette, opposite),
-      )
+      setPairedColors(deriveCounterpart(palette, opposite))
     },
     [pair],
   )
