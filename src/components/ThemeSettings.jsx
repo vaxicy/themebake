@@ -76,6 +76,16 @@ export function ThemeSettings({
         */}
         {onClearFields || onUndo ? (
           <div className="settings-actions">
+            {onAutoClearChange ? (
+              <label className="auto-clear-toggle" title={autoClearTitle ?? t('settings.autoClearTitle')}>
+                <input
+                  type="checkbox"
+                  checked={autoClear}
+                  onChange={(event) => onAutoClearChange(event.target.checked)}
+                />
+                <span>{t('settings.autoClear')}</span>
+              </label>
+            ) : null}
             {/*
               Undo is passed in by a workspace that owns its own draft (the VS Code
               one): the Chrome workbench keeps its undo in the site header instead,
@@ -91,16 +101,6 @@ export function ThemeSettings({
               >
                 {t('header.undo')}
               </button>
-            ) : null}
-            {onAutoClearChange ? (
-              <label className="auto-clear-toggle" title={autoClearTitle ?? t('settings.autoClearTitle')}>
-                <input
-                  type="checkbox"
-                  checked={autoClear}
-                  onChange={(event) => onAutoClearChange(event.target.checked)}
-                />
-                <span>{t('settings.autoClear')}</span>
-              </label>
             ) : null}
             <button
               type="button"
