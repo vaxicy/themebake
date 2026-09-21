@@ -77,12 +77,16 @@ import {
 } from '../src/data/aiProviders.js'
 import { sanitizeAiConfig } from '../src/utils/aiConfig.js'
 import {
+  buildDescriptionMessages,
   buildNamingMessages,
   describePalette,
   normalizeFolder,
+  parseDescriptionResponse,
   parseNamingResponse,
+  requestThemeDescription,
   requestThemeNames,
 } from '../src/utils/aiNaming.js'
+import { MAX_DESCRIPTION_LENGTH } from '../src/utils/manifest.js'
 import {
   EXTENDED_DERIVATIONS,
   deriveExtendedColors,
@@ -1538,7 +1542,7 @@ ok('distinct hues produce a spread of names (not one label)',
   Object.keys(hueSamples).length > 8, `${Object.keys(hueSamples).length} distinct`)
 
 // ---------------------------------------------------------------------------
-section('20. AI naming — prompt, parsing, error mapping')
+section('20. AI naming & description — prompt, parsing, error mapping')
 // ---------------------------------------------------------------------------
 // No network here. `describePalette` / `buildNamingMessages` are pure builders,
 // `parseNamingResponse` is pure, and `requestThemeNames` takes an injectable
@@ -1635,6 +1639,45 @@ ok('an unreadable reply maps to a parse error',
     'ai.errorParse')
 ok('a missing key fails before any network call',
   (await keyFor(recordingFetch, { ...stubConfig, apiKey: '' })) === 'ai.errorNoKey')
+
+// The description shares the transport, so only its own seams are asserted here:
+// the prompt's contract, the tolerant parser, and the manifest-length clamp.
+const descMessages = buildDescriptionMessages({ palette: described, name: 'Sky Frost Theme', language: 'en' })
+ok('the description prompt carries the theme name', descMessages.user.includes('Sky Frost Theme'))
+ok('the description prompt states the 132-character limit', descMessages.user.includes('132'))
+ok('the description prompt states the JSON contract', descMessages.user.includes('{"description":"..."}'))
+ok('the Chinese description prompt switches the writing rules',
+  buildDescriptionMessages({ palette: described, name: '', language: 'zh' }).user.includes('中文写一句话'))
+
+ok('parses a bare JSON description',
+  parseDescriptionResponse('{"description":"A calm periwinkle wash for reading."}') ===
+    'A calm periwinkle wash for reading.')
+ok('parses a fenced JSON description',
+  parseDescriptionResponse('```json\n{"description":"Soft dusk blues."}\n```') === 'Soft dusk blues.')
+ok('accepts a bare sentence as a description',
+  parseDescriptionResponse('A calm periwinkle wash.') === 'A calm periwinkle wash.')
+ok('a quoted JSON string also reads as a description',
+  parseDescriptionResponse('"Soft dusk blues."') === 'Soft dusk blues.')
+ok('an empty description reply yields nothing', parseDescriptionResponse('') === '')
+ok('a JSON object without a description yields nothing', parseDescriptionResponse('{"candidates":[]}') === '')
+ok('descriptions are clamped to the manifest limit',
+  parseDescriptionResponse(`{"description":"${'x'.repeat(300)}"}`).length === MAX_DESCRIPTION_LENGTH)
+
+const descText = await requestThemeDescription(
+  stubConfig,
+  { palette: described, name: 'Sky Frost Theme', language: 'en' },
+  {
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: '{"description":"Quiet periwinkle for long reading sessions."}' } }],
+      }),
+    }),
+  },
+)
+ok('request returns the clamped description',
+  descText === 'Quiet periwinkle for long reading sessions.', descText)
 
 const cleaned = sanitizeAiConfig({ providerId: 'nope', temperature: 9, candidates: 99, style: 'zzz', language: 'zzz' })
 ok('an unknown provider falls back to the default',

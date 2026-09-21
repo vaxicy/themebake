@@ -1133,6 +1133,11 @@
   color: var(--text-primary);
 }
 
+.ai__actions {
+  display: grid;
+  gap: 8px;
+}
+
 .ai__generate {
   width: 100%;
 }

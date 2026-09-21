@@ -18,6 +18,7 @@
  */
 
 import { hexToHsl } from './color.js'
+import { MAX_DESCRIPTION_LENGTH } from './manifest.js'
 import { toThemeFolderName } from './package.js'
 
 /** 12 hue sectors, used only to give the model a word for the dominant colour. */
@@ -251,32 +252,20 @@ function httpErrorKey(status) {
 }
 
 /**
- * Ask the model for names.
+ * The one network call both features share. Everything about the transport —
+ * validation, timeout, abort, and the HTTP-status → i18n-key mapping — lives
+ * here so the naming and description paths cannot drift apart.
  *
- * @param {object} config AI config (baseURL/model/apiKey/temperature/candidates/style/language)
- * @param {object} context naming context (see `buildNamingMessages`)
- * @param {object} [options]
- * @param {typeof fetch} [options.fetchImpl] injectable for tests
- * @param {AbortSignal} [options.signal] caller cancellation
- * @param {number} [options.timeoutMs=30000]
- * @returns {Promise<{name:string, folder:string, vibe:string, reason:string}[]>}
+ * @returns {Promise<string>} the assistant message content
  * @throws {AiNamingError} `.key` is an i18n key
  */
-export async function requestThemeNames(config, context, options = {}) {
+async function chatCompletion(config, { system, user, maxTokens }, options = {}) {
   const { fetchImpl = fetch, signal, timeoutMs = 30000 } = options
 
   const base = String(config?.baseURL ?? '').trim().replace(/\/+$/, '')
   if (!base) throw new AiNamingError('ai.errorNoBase')
   if (!String(config?.model ?? '').trim()) throw new AiNamingError('ai.errorNoModel')
   if (!String(config?.apiKey ?? '').trim()) throw new AiNamingError('ai.errorNoKey')
-
-  const { system, user } = buildNamingMessages({
-    palette: context.palette,
-    style: context.style,
-    language: context.language,
-    candidates: context.candidates,
-    exclude: context.exclude,
-  })
 
   const controller = new AbortController()
   let timedOut = false
@@ -301,7 +290,7 @@ export async function requestThemeNames(config, context, options = {}) {
       body: JSON.stringify({
         model: String(config.model).trim(),
         temperature: Number.isFinite(config.temperature) ? config.temperature : 1,
-        max_tokens: 900,
+        max_tokens: maxTokens,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -329,8 +318,123 @@ export async function requestThemeNames(config, context, options = {}) {
   }
 
   const content = payload?.choices?.[0]?.message?.content
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new AiNamingError('ai.errorParse')
+  }
+  return content
+}
+
+/**
+ * Ask the model for names.
+ *
+ * @param {object} config AI config (baseURL/model/apiKey/temperature/candidates/style/language)
+ * @param {object} context naming context (see `buildNamingMessages`)
+ * @param {object} [options]
+ * @param {typeof fetch} [options.fetchImpl] injectable for tests
+ * @param {AbortSignal} [options.signal] caller cancellation
+ * @param {number} [options.timeoutMs=30000]
+ * @returns {Promise<{name:string, folder:string, vibe:string, reason:string}[]>}
+ * @throws {AiNamingError} `.key` is an i18n key
+ */
+export async function requestThemeNames(config, context, options = {}) {
+  const { system, user } = buildNamingMessages({
+    palette: context.palette,
+    style: context.style,
+    language: context.language,
+    candidates: context.candidates,
+    exclude: context.exclude,
+  })
+
+  const content = await chatCompletion(config, { system, user, maxTokens: 900 }, options)
   const names = parseNamingResponse(content, { limit: config.candidates || 6 })
   if (!names.length) throw new AiNamingError('ai.errorParse')
 
   return names
+}
+
+/**
+ * Build the messages for the store description. Same palette facts as naming,
+ * plus the theme name the description should agree with.
+ *
+ * @param {object} context
+ * @param {ReturnType<typeof describePalette>} context.palette
+ * @param {string} context.name the current theme name
+ * @param {'en'|'zh'} context.language language of the description text
+ * @returns {{system: string, user: string}}
+ */
+export function buildDescriptionMessages({ palette, name, language }) {
+  const system = [
+    'You are ThemeBake\'s description assistant. You write the one-line store description that goes',
+    'into a Chrome theme manifest. You always answer with a single JSON object and nothing else —',
+    'no markdown fence, no commentary, no trailing text.',
+  ].join(' ')
+
+  const lines = []
+  lines.push('Palette')
+  lines.push(`- mode: ${palette.mode}`)
+  lines.push(
+    `- dominant colour: ${palette.dominant.hue} (hue ${palette.dominant.hueDegrees}°, ${palette.dominant.saturation} saturation, ${palette.dominant.lightness})`,
+  )
+  if (palette.accent) lines.push(`- link/accent colour: ${palette.accent}`)
+  lines.push('- swatches:')
+  for (const swatch of palette.swatches) lines.push(`    ${swatch}`)
+  if (name) lines.push(`- theme name: ${name}`)
+  lines.push('')
+
+  if (language === 'zh') {
+    lines.push('Writing rules (Chinese):')
+    lines.push('- 用中文写一句话描述这套配色的氛围和适合的场景，不超过 132 个字符。')
+    lines.push('- 纯文本：不要引号、不要 emoji、不要夸张的营销词，"主题"一词最多出现一次。')
+  } else {
+    lines.push('Writing rules (English):')
+    lines.push('- Write ONE sentence in English describing the mood of these colours and what the theme suits, at most 132 characters.')
+    lines.push('- Plain text: no quotes, no emoji, no marketing superlatives, and the word "theme" at most once.')
+  }
+
+  lines.push('')
+  lines.push('Return exactly this JSON shape:')
+  lines.push('{"description":"..."}')
+
+  return { system, user: lines.join('\n') }
+}
+
+/**
+ * Parse the description out of the model's reply. JSON is preferred, but a bare
+ * sentence is accepted too — a model that ignores the JSON contract still wrote
+ * something usable, and throwing would only make the user click again.
+ *
+ * @param {string} text
+ * @param {{limit?: number}} [options]
+ * @returns {string} '' when nothing usable was said
+ */
+export function parseDescriptionResponse(text, { limit = MAX_DESCRIPTION_LENGTH } = {}) {
+  const raw = String(text ?? '').trim()
+  if (!raw) return ''
+
+  const data = extractJson(raw)
+  let description = ''
+  if (typeof data === 'string') description = data
+  else if (data && typeof data.description === 'string') description = data.description
+  else if (!data) description = raw // plain prose, no JSON anywhere
+
+  description = description.replace(/^["'\s]+/, '').replace(/["'\s]+$/, '').replace(/\s+/g, ' ').trim()
+  if (!description) return ''
+  return description.slice(0, limit)
+}
+
+/**
+ * Ask the model for the store description.
+ *
+ * @param {object} config AI config (see `requestThemeNames`)
+ * @param {object} context description context (see `buildDescriptionMessages`)
+ * @param {object} [options] fetchImpl / signal / timeoutMs
+ * @returns {Promise<string>} the description, already clamped to the manifest limit
+ * @throws {AiNamingError} `.key` is an i18n key
+ */
+export async function requestThemeDescription(config, context, options = {}) {
+  const { system, user } = buildDescriptionMessages(context)
+  const content = await chatCompletion(config, { system, user, maxTokens: 200 }, options)
+  const description = parseDescriptionResponse(content)
+  if (!description) throw new AiNamingError('ai.errorParse')
+  return description
 }

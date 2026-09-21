@@ -37,6 +37,8 @@ export function AiNamingPanel({
   busy,
   candidates,
   appliedName,
+  onDescribe,
+  descBusy,
 }) {
   const { t } = useI18n()
   const hasKey = Boolean(config.apiKey)
@@ -67,16 +69,31 @@ export function AiNamingPanel({
         </span>
       </div>
 
-      <button
-        type="button"
-        className="button button--soft ai__generate"
-        onClick={onSuggest}
-        disabled={busy}
-        aria-busy={busy ? true : undefined}
-      >
-        <StarIcon size={16} />
-        {busy ? t('ai.generating') : t('ai.generate')}
-      </button>
+      {/* Two one-click actions: the names (theme + folder) and the store
+          description. The description button sits directly above the summary
+          field it fills. */}
+      <div className="ai__actions">
+        <button
+          type="button"
+          className="button button--soft ai__generate"
+          onClick={onSuggest}
+          disabled={busy}
+          aria-busy={busy ? true : undefined}
+        >
+          <StarIcon size={16} />
+          {busy ? t('ai.generating') : t('ai.generate')}
+        </button>
+        <button
+          type="button"
+          className="button button--soft ai__generate"
+          onClick={onDescribe}
+          disabled={descBusy}
+          aria-busy={descBusy ? true : undefined}
+        >
+          <StarIcon size={16} />
+          {descBusy ? t('ai.generatingDesc') : t('ai.generateDesc')}
+        </button>
+      </div>
 
       {candidates.length ? (
         <div className="ai__candidates">

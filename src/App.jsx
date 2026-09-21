@@ -48,7 +48,7 @@ import {
 import { DEFAULT_LOGO_STYLE, LOGO_STYLE_IDS, OUTPUT_MODE_IDS } from './data/themeFields.js'
 import { useI18n } from './i18n/index.jsx'
 import { loadAiConfig, saveAiConfig } from './utils/aiConfig.js'
-import { describePalette, requestThemeNames } from './utils/aiNaming.js'
+import { describePalette, requestThemeDescription, requestThemeNames } from './utils/aiNaming.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
 import { canWriteFolder, writeThemeFolder } from './utils/fsFolder.js'
@@ -128,7 +128,10 @@ function pick(value, allowed, fallback) {
 
 export default function App() {
   const toast = useToast()
-  const { t } = useI18n()
+  // The description follows the interface language — it is store prose written
+  // for the user's own audience, unlike the *names*, whose language is an
+  // explicit setting (English by default).
+  const { t, lang } = useI18n()
 
   const [name, setName] = useState(INITIAL.state?.name ?? DEFAULT_THEME_NAME)
   const [description, setDescription] = useState(INITIAL.state?.description ?? '')
@@ -162,6 +165,7 @@ export default function App() {
   // theme export can never leak one.
   const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
   const [aiBusy, setAiBusy] = useState(false)
+  const [aiDescBusy, setAiDescBusy] = useState(false)
   const [aiCandidates, setAiCandidates] = useState([])
   const [aiAppliedName, setAiAppliedName] = useState('')
   // Names applied this session, sent back to the model as "avoid these" so a
@@ -565,6 +569,34 @@ export default function App() {
     }
   }, [aiConfig, aiAppliedName, colors, handleApplyAiCandidate, toast, t])
 
+  /**
+   * One click writes the store description. It shares the naming request path
+   * (same key, same endpoint, same error toasts) and clamps to the manifest's
+   * 132-character limit inside `parseDescriptionResponse`, so an over-talkative
+   * model can never produce an invalid manifest.
+   */
+  const handleAiDescribe = useCallback(async () => {
+    if (!String(aiConfig.apiKey).trim()) {
+      toast.error(t('ai.errorNoKey'))
+      return
+    }
+    setAiDescBusy(true)
+    try {
+      const text = await requestThemeDescription(aiConfig, {
+        palette: describePalette(colors),
+        name,
+        language: lang,
+      })
+      setDescription(text)
+      setDescriptionError('')
+      toast.success(t('ai.descGenerated'))
+    } catch (error) {
+      toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+    } finally {
+      setAiDescBusy(false)
+    }
+  }, [aiConfig, colors, name, lang, toast, t])
+
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
     if (changed > 0) {
@@ -700,6 +732,8 @@ export default function App() {
                   busy={aiBusy}
                   candidates={aiCandidates}
                   appliedName={aiAppliedName}
+                  onDescribe={handleAiDescribe}
+                  descBusy={aiDescBusy}
                 />
               }
               onNameChange={handleNameChange}
