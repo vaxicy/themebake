@@ -70,7 +70,6 @@ const KEEP = new Set([
   'jade-veil',
   'lavender-mist',
   'peach-sorbet',
-  'soft-sky',
 ])
 
 for (const entry of readdirSync(root, { withFileTypes: true })) {

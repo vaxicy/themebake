@@ -177,26 +177,5 @@ export const VSCODE_PRESETS = [
       "errorFg": "#E69DA8",
       "warningFg": "#EAC18C"
     }
-  },
-  {
-    "id": "soft-sky",
-    "name": "Soft Sky",
-    "description": "A premium pastel blue VS Code theme inspired by a soft morning sky, gentle clouds, and calm ocean horizons. Soft blue-gray layers with warm cream accents for relaxed, elegant coding.",
-    "colors": {
-      "editorBg": "#141D2A",
-      "editorFg": "#C6D2E0",
-      "mutedFg": "#8FA2B8",
-      "accent": "#FFE3B0",
-      "selectionBg": "#4A6B9D",
-      "lineHighlightBg": "#1A2534",
-      "activityBg": "#0E1621",
-      "sidebarBg": "#111A26",
-      "titleBg": "#0E1621",
-      "border": "#1A2534",
-      "buttonBg": "#3D5A8A",
-      "buttonFg": "#EAF2FB",
-      "errorFg": "#E58FA2",
-      "warningFg": "#E8C47A"
-    }
   }
 ]
