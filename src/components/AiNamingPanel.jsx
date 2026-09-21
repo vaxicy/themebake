@@ -61,18 +61,9 @@ export function AiNamingPanel({
   }
 
   return (
-    <section className="ai" aria-labelledby="ai-heading">
-      <div className="ai__head">
-        <h3 className="ai__label" id="ai-heading">
-          {t('ai.title')}
-        </h3>
-        <span className={`status-chip ${hasKey ? 'status-chip--ok' : 'status-chip--error'}`}>
-          {hasKey ? t('ai.statusReady') : t('ai.statusNoKey')}
-        </span>
-      </div>
-
-      {/* The summary field now lives inside this panel, directly above the one
-          click that fills it along with the names. */}
+    <>
+      {/* The summary field sits above the AI section itself: the one-click
+          generate button below still fills it together with the names. */}
       <div className="field">
         <label className="field__label" htmlFor="theme-description">
           {t('settings.description.label')}
@@ -101,6 +92,16 @@ export function AiNamingPanel({
             {t('settings.description.hint', { max: MAX_DESCRIPTION_LENGTH })}
           </p>
         )}
+      </div>
+
+      <section className="ai" aria-labelledby="ai-heading">
+      <div className="ai__head">
+        <h3 className="ai__label" id="ai-heading">
+          {t('ai.title')}
+        </h3>
+        <span className={`status-chip ${hasKey ? 'status-chip--ok' : 'status-chip--error'}`}>
+          {hasKey ? t('ai.statusReady') : t('ai.statusNoKey')}
+        </span>
       </div>
 
       <div className="ai__actions">
@@ -307,6 +308,7 @@ export function AiNamingPanel({
           <p className="ai__note">{t('ai.privacyNote')}</p>
         </div>
       </details>
-    </section>
+      </section>
+    </>
   )
 }
