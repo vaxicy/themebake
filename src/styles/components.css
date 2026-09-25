@@ -162,6 +162,15 @@
   color: var(--text-muted);
 }
 
+/* A retired-key note: it explains an absence rather than describing a control, so
+   it reads as a footnote of the group instead of another label. */
+.field__hint--note {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  line-height: 1.5;
+}
+
 .field__error {
   margin-top: 6px;
   font-size: var(--text-sm);

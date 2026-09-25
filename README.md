@@ -105,7 +105,7 @@ into your browser.
 
 | Starting point | What you give it | What it does |
 | --- | --- | --- |
-| **By hand** | 14 colour controls | Direct editing, live preview |
+| **By hand** | 13 colour controls | Direct editing, live preview |
 | **One colour** | A single hex | *Solves* the other 13 roles from that colour's hue and lightness |
 | **Something you already have** | Palette card, colour-picker link, `manifest.json`, or an image | Auto-detects the input and either solves it onto Chrome roles or applies the roles it already names |
 
@@ -115,7 +115,7 @@ into your browser.
 
 | Feature | Description |
 | --- | --- |
-| **14 editable colors** | Frame, toolbar, tab background, tab text, address bar, bookmarks, New Tab Page and more — the 10 keys Chrome also accepts are derived rather than asked for |
+| **13 editable colors** | Frame, toolbar, tab background, tab text, address bar, bookmarks, New Tab Page and more — the keys Chrome also accepts are derived rather than asked for, and one (`ntp_link`) is no longer a control at all: current Chrome derives the New Tab Page's link colour from the background, so the key is written but not offered (see **Always complete**) |
 | **Live preview** | A Chrome-style browser mockup repaints on every edit |
 | **"Show keys" overlay** | Labels each preview region with its real `theme.colors` manifest key |
 | **Color picker + HEX input** | Native picker and text field stay in sync in both directions |
@@ -125,14 +125,14 @@ into your browser.
 | **Removable swatches** | Every detected colour is a chip you can strike out before applying — no guessing at "which one is the background" |
 | **Contrast audit** | Every text/background pair is checked against WCAG thresholds, always visible, with a one-click repair |
 | **6 preset themes** | Soft Sky, Cozy Vintage, Dusty Petal, Periwinkle Dream, Berry Dusk, Pink Soufflé |
-| **Randomize** | Generates a *coordinated* palette (analogous + accent) with automatic contrast correction, not 14 random RGB values |
+| **Randomize** | Generates a *coordinated* palette (analogous + accent) with automatic contrast correction, not 13 random RGB values |
 | **Undo (Ctrl+Z)** | Every edit is undoable. A whole colour drag collapses into a single step, and the toast names what was undone |
 | **Preview Manifest** | Inspect the exact JSON before downloading, with a live "valid JSON" check and Copy JSON |
 | **Export theme JSON** | One click saves the whole theme — name, summary, logo choice, colour format and palette — as a JSON file. The Import panel reads it back, so a theme can be backed up or handed to someone else with nothing dropped |
 | **Theme name and folder name are separate** | The name Chrome displays is free text (`Blush Matcha Theme`); the folder and file name is its own field, used **exactly as typed** — capitals and spaces included, with only the characters a filesystem rejects removed. Neither is derived from the other, and an empty folder field derives one from the theme name |
 | **Folder output** | On desktop Chrome/Edge, Generate writes `<folder>/manifest.json` straight into a directory you pick, so nothing needs unzipping before **Load unpacked**. ZIP stays: it works everywhere, and it is the only form the Chrome Web Store accepts |
 | **Loadable package** | Either output wraps everything in one `<folder>/` folder holding exactly `manifest.json` — Chrome never displays a theme's icon, so no `icon.png` is shipped (the rendering capability stays in `utils/icon.js` if ever wanted) |
-| **Always complete** | Every export writes all **24** Chrome colour keys (14 you choose plus 10 derived: incognito frame, inactive/incognito tab states, NTP header, toolbar text) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
+| **Always complete** | Every export writes all **24** Chrome colour keys (13 you choose, 10 derived — incognito frame, inactive/incognito tab states, NTP header, toolbar text — plus `ntp_link`, carried from the palette's accent for older Chrome) and the 6 HSL `tints`. There is no toggle. The one `theme.properties` key that does something for a colour-only theme — `ntp_logo_alternate` — is also always written, driven by the New Tab Page logo control |
 | **New Tab Page logo** | Adaptive (`1`) or Original (`0`). Adaptive is the default: it lets Chrome derive the wordmark from your `ntp_background`, so it reads correctly on light *and* dark themes |
 | **Two color formats** | RGB int arrays (the only format Chrome loads) or `#RRGGBB` strings for Firefox — the latter is flagged, because Chrome rejects it outright |
 | **English / 简体中文** | Full interface translation, auto-detected from the browser and persisted |
@@ -443,8 +443,9 @@ landed in the orange-olive mud band at low saturation.
 ### `npm run verify` — 304 assertions, no browser
 
 `scripts/verify.mjs` runs in pure Node and covers colour parsing, field-map
-integrity (including that the 14 editable fields plus the 10 derived ones cover
-Chromium's 24-key table with no gap and no dead key), manifest validity in both
+integrity (including that the editable fields plus the derived ones cover
+Chromium's 24-key table with no gap and no dead key, and that exactly one field —
+`ntp_link` — is retired from the panel while still being exported), manifest validity in both
 colour formats, the hex-is-not-Chrome-loadable guard, input hardening, filename
 sanitisation, preset completeness, the randomiser's contrast guarantees across 300
 seeds, unpacked-package assembly and ZIP layout, 24-key coverage across every

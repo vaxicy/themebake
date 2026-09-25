@@ -798,6 +798,16 @@ export default function App() {
             ))}
           </div>
           <p className="field__hint">{t('settings.logo.hint')}</p>
+
+          {/*
+            The group used to hold a fifth control (`ntp_link`). It is gone from the
+            panel because current Chrome paints nothing with it — the New Tab Page
+            WebUI reads only the background colour and derives text/link from it — so
+            the row would be a control with no visible effect. The key is still
+            written to the manifest, which is why this note stays: someone reading
+            `manifest.json` should not have to guess where the colour went.
+          */}
+          <p className="field__hint field__hint--note">{t('settings.ntpLinkRetired')}</p>
         </div>
       ) : null,
     [handleLogoStyleChange, logoStyle, t],

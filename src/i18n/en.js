@@ -262,8 +262,14 @@ export default {
   'field.ntpBackground.hint': 'Full-page background of a newly opened tab.',
   'field.ntpText.label': 'New Tab Page text',
   'field.ntpText.hint': 'Headings and text on the New Tab Page.',
-  'field.ntpLink.label': 'New Tab Page link',
-  'field.ntpLink.hint': 'Links and interactive shortcuts on the New Tab Page.',
+  // The field itself is hidden (current Chrome paints nothing with ntp_link); the
+  // label survives only for the studio strip, which previews it as the palette's
+  // accent, and the hint documents why the control is gone.
+  'field.ntpLink.label': 'Accent (ntp_link)',
+  'field.ntpLink.hint':
+    'The palette’s accent colour. It is written to the manifest as ntp_link, but the current Chrome New Tab Page derives its link colour from the background — only older Chrome renders this key.',
+  'settings.ntpLinkRetired':
+    'The New Tab Page link colour (ntp_link) is no longer a separate control: current Chrome derives the page’s text and link colours from the New Tab Page background. The key is still written to the manifest (older Chrome shows it), it just no longer takes a control of its own.',
 
   // --------------------------------------------------------------- colour field
   'colorField.pickerAria': '{label} colour picker',

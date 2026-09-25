@@ -52,10 +52,13 @@ export function ThemeSettings({
 }) {
   const { t } = useI18n()
 
+  // `hidden` fields stay in the data table (it drives the manifest writer, whose
+  // 24-key coverage is an invariant) but never render: a field whose Chrome
+  // counterpart paints nothing is noise in the panel. See `ntpLink`.
   const grouped = fieldGroups
     .map((group) => ({
       group,
-      groupFields: fields.filter((field) => field.group === group.id),
+      groupFields: fields.filter((field) => field.group === group.id && !field.hidden),
     }))
     .filter((entry) => entry.groupFields.length > 0)
 

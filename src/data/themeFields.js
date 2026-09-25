@@ -86,6 +86,9 @@
  * @property {string}  groupKey    i18n key for the UI group this field renders under.
  * @property {string}  role        Semantic role, drives the palette solver + preview.
  * @property {string}  [preview]   Where this colour shows up in the mockup.
+ * @property {boolean} [hidden]    Kept in the table (it is the manifest writer, and
+ *   its 24-key coverage is checked) but not offered as a control — a current Chrome
+ *   build paints nothing with it. See `ntpLink`.
  */
 
 /**
@@ -239,6 +242,23 @@ export const THEME_FIELDS = [
     preview: 'New Tab Page heading',
   },
   {
+    /**
+     * Hidden: current Chrome no longer paints this key.
+     *
+     * The New Tab Page is a WebUI now and reads exactly one theme colour —
+     * `kColorNewTabPageBackground` (`new_tab_page_ui.cc`); its text, link and
+     * heading colours are derived from that background. `ntp_link` was the link
+     * colour of the pre-WebUI NTP (it also coloured the shortcut labels), which is
+     * why setting it makes no visible difference today.
+     *
+     * The field stays in this table because the table *is* the manifest writer and
+     * its 24-key coverage is a checked invariant: dropping the row would leave a
+     * gap in `kOverwritableColorTable`. So the key is still written — older Chrome
+     * and other key-consuming builds render it — but it is no longer offered as a
+     * control nobody could see the effect of. It remains the palette's `accent`
+     * role, so the solver, the preview mark and the AI palette facts keep working.
+     */
+    hidden: true,
     id: 'ntpLink',
     labelKey: 'field.ntpLink.label',
     hintKey: 'field.ntpLink.hint',
@@ -246,7 +266,7 @@ export const THEME_FIELDS = [
     group: 'New Tab Page',
     groupKey: 'settings.group.newTabPage',
     role: 'accent',
-    preview: 'New Tab Page shortcut label',
+    preview: 'Palette accent (legacy NTP link)',
   },
 ]
 

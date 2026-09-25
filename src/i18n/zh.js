@@ -241,8 +241,14 @@ export default {
   'field.ntpBackground.hint': '新建标签页的整页背景色。',
   'field.ntpText.label': '新标签页文字',
   'field.ntpText.hint': '新标签页上的标题与正文颜色。',
-  'field.ntpLink.label': '新标签页链接',
-  'field.ntpLink.hint': '新标签页上的链接与快捷方式标签颜色。',
+  // The field itself is hidden (current Chrome paints nothing with ntp_link); the
+  // label survives only for the studio strip, which previews it as the palette's
+  // accent, and the hint documents why the control is gone.
+  'field.ntpLink.label': '强调色（ntp_link）',
+  'field.ntpLink.hint':
+    '配色里的强调色。它以 ntp_link 写进 manifest，但现行 Chrome 的新标签页已按背景色推导链接色，只有旧版 Chrome 会渲染它。',
+  'settings.ntpLinkRetired':
+    '新标签页的链接色（ntp_link）已不再单独提供：现行 Chrome 会依据「新标签页背景」自动推导新标签页的文字与链接色。这个键仍然会写进 manifest（旧版 Chrome 可见），只是不再占用一个控件。',
 
   // --------------------------------------------------------------- colour field
   'colorField.pickerAria': '{label} 取色器',

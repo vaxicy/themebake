@@ -181,6 +181,21 @@ const unknownKeys = THEME_FIELDS.filter((f) => !CHROME_COLOR_KEY_ALLOWLIST.has(f
 ok('every chromeKey is allow-listed', unknownKeys.length === 0, unknownKeys.map((f) => f.chromeKey).join(', '))
 ok('default colors cover every field', FIELD_IDS.every((id) => isValidHex(DEFAULT_COLORS[id])))
 
+// Exactly one field is retired from the panel: `ntp_link`. Current Chrome's New
+// Tab Page WebUI reads only the background colour and derives text/link from it,
+// so the control could not be seen to do anything. The row stays in this table
+// because the table writes the manifest and its 24-key coverage is asserted
+// below — so the key is still exported, and the palette keeps its accent role.
+const hiddenFields = THEME_FIELDS.filter((f) => f.hidden)
+ok('exactly one field is hidden from the panel', hiddenFields.length === 1,
+  hiddenFields.map((f) => f.id).join(', '))
+ok('the hidden field is ntp_link, and it stays the palette accent',
+  hiddenFields[0]?.id === 'ntpLink' && hiddenFields[0]?.chromeKey === 'ntp_link' &&
+    hiddenFields[0]?.role === 'accent',
+  `${hiddenFields[0]?.id}/${hiddenFields[0]?.chromeKey}/${hiddenFields[0]?.role}`)
+ok('a retired field still gets a value and a place in the field list',
+  FIELD_IDS.includes('ntpLink') && isValidHex(DEFAULT_COLORS.ntpLink))
+
 // The 24-key table is a verbatim copy of kOverwritableColorTable. If it is edited
 // without editing the source of truth, these assertions are the tripwire.
 ok('allow-list holds exactly 24 keys', CHROME_COLOR_KEY_ALLOWLIST.size === 24,

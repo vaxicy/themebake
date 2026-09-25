@@ -199,14 +199,21 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
                     className="mockup__shortcut-tile"
                     style={{ backgroundColor: derived.ntpCard, borderColor: derived.ntpCardBorder }}
                   />
-                  <span className="mockup__shortcut-label" style={{ color: safe.ntpLink }}>
+                  {/*
+                    Labels take the NTP text colour, not `ntp_link`: current Chrome
+                    derives the New Tab Page's text and link colours from
+                    `ntp_background` (its WebUI reads only that one theme colour), so
+                    painting these in the link colour showed a hue the browser never
+                    renders. See the `ntpLink` note in `data/themeFields.js`.
+                  */}
+                  <span className="mockup__shortcut-label" style={{ color: safe.ntpText }}>
                     {label}
                   </span>
                 </div>
               ))}
             </div>
 
-            {showKeys ? <KeyBadge position="bottom-right">ntp_text / ntp_link</KeyBadge> : null}
+            {showKeys ? <KeyBadge position="bottom-right">ntp_text</KeyBadge> : null}
           </div>
         </div>
       </div>
