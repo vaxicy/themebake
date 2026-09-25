@@ -47,11 +47,18 @@ import {
   paletteDistance,
 } from './data/presets.js'
 import { DEFAULT_LOGO_STYLE, FIELD_GROUPS, LOGO_STYLES, LOGO_STYLE_IDS, OUTPUT_MODE_IDS, THEME_FIELDS } from './data/themeFields.js'
+import { RefreshIcon } from './components/Icons.jsx'
 import { ModeSwitcher } from './components/ModeSwitcher.jsx'
 import { VSCodeWorkbench } from './components/VSCodeWorkbench.jsx'
 import { useI18n } from './i18n/index.jsx'
 import { loadAiConfig, saveAiConfig } from './utils/aiConfig.js'
-import { describePalette, requestThemeDescription, requestThemeNames } from './utils/aiNaming.js'
+import {
+  describePalette,
+  folderFollowsName,
+  normalizeFolder,
+  requestThemeDescription,
+  requestThemeNames,
+} from './utils/aiNaming.js'
 import { loadAutoClearNewTheme, saveAutoClearNewTheme, loadEditorMode, saveEditorMode } from './utils/appPrefs.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
@@ -187,6 +194,13 @@ export default function App() {
   // theme export can never leak one.
   const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
   const [aiBusy, setAiBusy] = useState(false)
+  /**
+   * Which single field a request is re-generating: `'name'`, `'description'`, or
+   * `null`. Only the button that was pressed spins; every AI control is blocked
+   * while any request is in flight, so two replies can never race for the same
+   * field.
+   */
+  const [aiBusyField, setAiBusyField] = useState(null)
   const [aiCandidates, setAiCandidates] = useState([])
   const [aiAppliedName, setAiAppliedName] = useState('')
   // Names applied this session, sent back to the model as "avoid these" so a
@@ -261,6 +275,11 @@ export default function App() {
   const auditIssues = useMemo(() => auditContrast(colors), [colors])
 
   const storageWarning = storageWarningKey ? t(storageWarningKey) : null
+
+  /** Is the AI usable at all? Every AI action needs a key on the shared path. */
+  const aiConfigured = Boolean(String(aiConfig.apiKey ?? '').trim())
+  /** One AI request at a time, whichever button started it. */
+  const aiRequestInFlight = aiBusy || aiBusyField !== null
 
   // ---------------------------------------------------------------------------
   // Persistence — debounced so typing in a hex field does not hammer storage
@@ -667,6 +686,97 @@ export default function App() {
     }
   }, [aiConfig, aiAppliedName, colors, handleApplyAiCandidate, name, toast, t])
 
+  /**
+   * Ask for one more name — the field-level counterpart to 一键生成.
+   *
+   * Name and summary are written together, on purpose: the reply carries the
+   * description written *for that name*, and a sentence left over from the previous
+   * name describes the wrong theme (that is what made the summary feel stuck). The
+   * folder only follows while it still *is* the slug of the old name — a folder the
+   * user typed themselves is theirs, not ours to overwrite.
+   */
+  const handleRegenerateName = useCallback(async () => {
+    if (!String(aiConfig.apiKey).trim()) {
+      toast.error(t('ai.errorNoKey'))
+      return
+    }
+    setAiBusyField('name')
+    try {
+      const exclude = [...new Set([name.trim(), aiAppliedName, ...aiSeenRef.current].filter(Boolean))]
+      let chosen = null
+      // A model asked for a single name sometimes hands back one it already gave;
+      // two retries is enough to make that rare, and each retry is one short call.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const [candidate] = await requestThemeNames(aiConfig, {
+          palette: describePalette(colors),
+          style: aiConfig.style,
+          language: aiConfig.language,
+          candidates: 1,
+          exclude,
+        })
+        if (!candidate) break
+        chosen = candidate
+        if (candidate.name !== name.trim()) break
+        exclude.push(candidate.name)
+      }
+      if (!chosen) return
+
+      pushHistory()
+      const folderStillFollows = folderFollowsName(name, folderInput)
+      setName(chosen.name)
+      setNameError('')
+      if (folderStillFollows) setFolderInput(chosen.folder)
+      if (chosen.description) {
+        setDescription(chosen.description)
+        setDescriptionError('')
+      }
+      setAiAppliedName(chosen.name)
+      if (!aiSeenRef.current.includes(chosen.name)) {
+        aiSeenRef.current = [chosen.name, ...aiSeenRef.current].slice(0, 20)
+      }
+      toast.success(t('ai.nameRegenerated'))
+    } catch (error) {
+      toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+    } finally {
+      setAiBusyField(null)
+    }
+  }, [aiAppliedName, aiConfig, colors, folderInput, name, pushHistory, toast, t])
+
+  /** The folder's own re-generate: a slug of the name in the field, no request. */
+  const handleRegenerateFolder = useCallback(() => {
+    const derived = normalizeFolder('', name)
+    if (!derived) return
+    pushHistory()
+    setFolderInput(derived)
+  }, [name, pushHistory])
+
+  /**
+   * Rewrite the summary and nothing else — the name stays, so someone who likes
+   * the name but not the sentence is not forced to change both.
+   */
+  const handleRegenerateDescription = useCallback(async () => {
+    if (!String(aiConfig.apiKey).trim()) {
+      toast.error(t('ai.errorNoKey'))
+      return
+    }
+    setAiBusyField('description')
+    try {
+      const text = await requestThemeDescription(aiConfig, {
+        palette: describePalette(colors),
+        name,
+        language: aiConfig.language,
+      })
+      pushHistory()
+      setDescription(text)
+      setDescriptionError('')
+      toast.success(t('ai.descGenerated'))
+    } catch (error) {
+      toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+    } finally {
+      setAiBusyField(null)
+    }
+  }, [aiConfig, colors, name, pushHistory, toast, t])
+
   const handleFixContrast = useCallback(() => {
     const { colors: repaired, changed } = repairContrast(colors)
     if (changed > 0) {
@@ -867,7 +977,37 @@ export default function App() {
                       description={description}
                       descriptionError={descriptionError}
                       onDescriptionChange={handleDescriptionChange}
+                      onRegenerateDescription={handleRegenerateDescription}
+                      descriptionBusy={aiBusyField === 'description'}
+                      // One request at a time: every AI control shares this flag.
+                      networkBusy={aiRequestInFlight}
                     />
+                  }
+                  nameAction={
+                    <button
+                      type="button"
+                      className={`field-action${aiBusyField === 'name' ? ' is-busy' : ''}`}
+                      onClick={handleRegenerateName}
+                      disabled={!aiConfigured || aiRequestInFlight}
+                      title={t('ai.regenerateName')}
+                      aria-label={t('ai.regenerateName')}
+                    >
+                      <RefreshIcon size={15} />
+                    </button>
+                  }
+                  folderAction={
+                    <button
+                      type="button"
+                      className="field-action"
+                      onClick={handleRegenerateFolder}
+                      // Nothing to slugify without a name, and no request is made,
+                      // so this one stays available without an API key.
+                      disabled={!name.trim() || aiRequestInFlight}
+                      title={t('ai.regenerateFolder')}
+                      aria-label={t('ai.regenerateFolder')}
+                    >
+                      <RefreshIcon size={15} />
+                    </button>
                   }
                   onNameChange={handleNameChange}
                   onFolderChange={setFolderInput}

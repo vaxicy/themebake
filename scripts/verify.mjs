@@ -81,6 +81,7 @@ import {
   buildDescriptionMessages,
   buildNamingMessages,
   describePalette,
+  folderFollowsName,
   normalizeFolder,
   parseDescriptionResponse,
   parseNamingResponse,
@@ -1707,6 +1708,16 @@ ok('garbage yields no candidates', parseNamingResponse('not json at all').length
 ok('an empty reply yields no candidates', parseNamingResponse('').length === 0)
 ok('normalizeFolder appends the -theme tail',
   normalizeFolder('lemon-soda', 'x') === 'lemon-soda-theme', normalizeFolder('lemon-soda', 'x'))
+
+// The folder only travels with a new name while it still *follows* that name: an
+// empty field or the exact slug of the old name. A hand-typed folder is the
+// user's, so a name re-generate must leave it alone.
+ok('an empty folder follows any name', folderFollowsName('Misty Fog Theme', ''))
+ok('a folder that is the name\u2019s own slug follows it',
+  folderFollowsName('Misty Fog Theme', 'misty-fog-theme'))
+ok('a hand-typed folder does not follow a new name',
+  !folderFollowsName('Misty Fog Theme', 'my-own-folder'))
+ok('a folder cannot follow an empty name', !folderFollowsName('', 'misty-fog-theme'))
 
 const stubConfig = {
   baseURL: 'https://api.siliconflow.cn/v1/',

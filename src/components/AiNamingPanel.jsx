@@ -29,7 +29,7 @@ import {
 } from '../data/aiProviders.js'
 import { useI18n } from '../i18n/index.jsx'
 import { MAX_DESCRIPTION_LENGTH } from '../utils/manifest.js'
-import { StarIcon } from './Icons.jsx'
+import { RefreshIcon, StarIcon } from './Icons.jsx'
 
 export function AiNamingPanel({
   config,
@@ -37,17 +37,31 @@ export function AiNamingPanel({
   onGenerateAll,
   onApply,
   busy,
+  /**
+   * "Some AI request is already running" — the whole panel blocks on it, so
+   * 一键生成 and a field re-generate can never overwrite each other's answer.
+   * `busy` only says which button should show its own working state. A workspace
+   * that has no field-level buttons passes nothing, and its own `busy` is then the
+   * whole story.
+   */
+  networkBusy = null,
   candidates,
   appliedName,
   description,
   descriptionError,
   onDescriptionChange,
+  // Rewrites the summary for the current name; absent in workspaces with no
+  // summary field, which hides the button with it.
+  onRegenerateDescription = null,
+  descriptionBusy = false,
   // The VS Code workbench has no store summary — hide the field entirely and
   // the one-click generate only fills the two name fields.
   showDescription = true,
 }) {
   const { t } = useI18n()
   const hasKey = Boolean(config.apiKey)
+  /** Everything on the shared AI path is disabled while any request is running. */
+  const aiBlocked = networkBusy ?? busy
 
   // A preset that blocks browser requests warns until the URL is actually
   // changed — so the message disappears the moment a proxy is filled in, rather
@@ -69,9 +83,28 @@ export function AiNamingPanel({
       {/* The summary field sits above the AI section itself: the one-click
           generate button below still fills it together with the names. */}
       <div className="field" hidden={!showDescription}>
-        <label className="field__label" htmlFor="theme-description">
-          {t('settings.description.label')}
-        </label>
+        <div className="field__label-row">
+          <label className="field__label" htmlFor="theme-description">
+            {t('settings.description.label')}
+          </label>
+          {/*
+            Its own re-generate, separate from the one next to 主题名称: the name
+            button asks for a new name *and* the summary written for it, while this
+            one keeps the name and rewrites only the sentence.
+          */}
+          {onRegenerateDescription ? (
+            <button
+              type="button"
+              className={`field-action${descriptionBusy ? ' is-busy' : ''}`}
+              onClick={onRegenerateDescription}
+              disabled={aiBlocked}
+              aria-label={t('ai.regenerateDescription')}
+              title={t('ai.regenerateDescription')}
+            >
+              <RefreshIcon size={15} />
+            </button>
+          ) : null}
+        </div>
         <input
           id="theme-description"
           type="text"
@@ -113,7 +146,7 @@ export function AiNamingPanel({
           type="button"
           className="button button--soft ai__generate"
           onClick={onGenerateAll}
-          disabled={busy}
+          disabled={aiBlocked}
           aria-busy={busy ? true : undefined}
         >
           <StarIcon size={16} />

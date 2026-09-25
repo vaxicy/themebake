@@ -244,6 +244,25 @@ export function normalizeFolder(folderRaw, name) {
 }
 
 /**
+ * Does `folder` still look like the slug of `name`?
+ *
+ * The two identity fields are independent — someone who typed their own folder
+ * name keeps it — so when a *new* name arrives the folder is only carried along
+ * while it still follows the name: empty, or exactly what the old name slugs to.
+ * Anything else is a hand-written value and none of our business.
+ *
+ * @param {string} name the name the folder may be following
+ * @param {string} folder the folder currently in the field
+ */
+export function folderFollowsName(name, folder) {
+  const current = String(folder ?? '').trim()
+  if (!current) return true
+  const trimmedName = String(name ?? '').trim()
+  if (!trimmedName) return false
+  return current.toLowerCase() === normalizeFolder('', trimmedName).toLowerCase()
+}
+
+/**
  * Parse and validate the model's reply.
  * @param {string} text
  * @param {{limit?: number}} [options]

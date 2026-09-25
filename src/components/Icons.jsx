@@ -39,6 +39,23 @@ export function ResetIcon({ size = 16, ...rest }) {
   )
 }
 
+/**
+ * Re-generate: two arcs with their arrowheads.
+ *
+ * Deliberately a different glyph from `ResetIcon` (one arc, "back to the start"):
+ * this one means "ask for another one", and the two sit in the same panel.
+ */
+export function RefreshIcon({ size = 16, ...rest }) {
+  return (
+    <svg {...base} width={size} height={size} {...rest}>
+      <path d="M4 12a8 8 0 0 1 13.7-5.6" />
+      <path d="M17.7 2.9v3.5h-3.5" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.6" />
+      <path d="M6.3 21.1v-3.5h3.5" />
+    </svg>
+  )
+}
+
 export function GitHubIcon({ size = 16, ...rest }) {
   return (
     <svg {...base} width={size} height={size} strokeWidth={1.5} {...rest}>

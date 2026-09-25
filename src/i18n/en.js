@@ -362,6 +362,11 @@ export default {
   'ai.privacyNote':
     'The key stays in this browser. Nothing about your theme leaves the page except the colours in this request.',
   'ai.generated': 'Generated {count} name suggestion(s).',
+  // Per-field re-generate buttons (the ↻ next to each label).
+  'ai.regenerateName': 'Ask for another theme name (rewrites its summary too)',
+  'ai.regenerateFolder': 'Rebuild the folder name from the current theme name',
+  'ai.regenerateDescription': 'Write a different summary (theme name unchanged)',
+  'ai.nameRegenerated': 'New theme name applied.',
   'ai.errorNoKey': 'Add an API key in the AI settings first.',
   'ai.errorNoBase': 'Enter an endpoint URL in the AI settings.',
   'ai.errorNoModel': 'Enter a model id in the AI settings.',

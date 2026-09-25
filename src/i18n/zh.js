@@ -333,6 +333,11 @@ export default {
   'ai.lang.zh': '中文',
   'ai.privacyNote': 'Key 只留在本机浏览器里；每次请求除了这几个颜色，不会把你的主题内容发出去。',
   'ai.generated': '已生成 {count} 个名字。',
+  // Per-field re-generate buttons (the ↻ next to each label).
+  'ai.regenerateName': '换一个主题名称（连带重写配套摘要）',
+  'ai.regenerateFolder': '按当前主题名重新生成文件夹名',
+  'ai.regenerateDescription': '重写摘要（主题名不变）',
+  'ai.nameRegenerated': '已换一个新的主题名称。',
   'ai.errorNoKey': '请先在 AI 设置里填入 API Key。',
   'ai.errorNoBase': '请先在 AI 设置里填写接口地址。',
   'ai.errorNoModel': '请先在 AI 设置里填写模型名。',

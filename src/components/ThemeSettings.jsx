@@ -36,6 +36,13 @@ export function ThemeSettings({
    */
   nameHintKey = 'settings.name.hint',
   folderHintKey = 'settings.folder.hint',
+  /*
+   * Optional action nodes rendered at the far end of the name / folder label row
+   * (the Chrome workbench puts a re-generate button there). A workspace that has
+   * nothing to offer simply omits them.
+   */
+  nameAction = null,
+  folderAction = null,
   headerSlot = null,
   footerSlot = null,
   groupExtra,
@@ -120,9 +127,12 @@ export function ThemeSettings({
       {headerSlot}
 
       <div className="field">
-        <label className="field__label" htmlFor="theme-name">
-          {t('settings.name.label')}
-        </label>
+        <div className="field__label-row">
+          <label className="field__label" htmlFor="theme-name">
+            {t('settings.name.label')}
+          </label>
+          {nameAction}
+        </div>
         <input
           id="theme-name"
           type="text"
@@ -154,9 +164,12 @@ export function ThemeSettings({
         reused, and even then nothing is written back into this input.
       */}
       <div className="field">
-        <label className="field__label" htmlFor="theme-folder">
-          {t('settings.folder.label')}
-        </label>
+        <div className="field__label-row">
+          <label className="field__label" htmlFor="theme-folder">
+            {t('settings.folder.label')}
+          </label>
+          {folderAction}
+        </div>
         <input
           id="theme-folder"
           type="text"

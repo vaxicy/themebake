@@ -171,6 +171,58 @@
   line-height: 1.5;
 }
 
+/*
+ * A label with a per-field action at the other end (the ↻ that re-generates that
+ * one field). The row owns the gap the label used to carry, so a field without an
+ * action keeps its old spacing.
+ */
+.field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+  margin-bottom: 6px;
+}
+
+.field__label-row .field__label {
+  margin-bottom: 0;
+}
+
+/*
+ * Hover changes the icon colour only: a second filled box inside a field would
+ * read as a nested control rather than an action on the label.
+ */
+.field-action {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+
+.field-action:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.field-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.field-action.is-busy {
+  color: var(--accent);
+}
+
+.field-action.is-busy svg {
+  animation: field-action-spin 0.9s linear infinite;
+}
+
 .field__error {
   margin-top: 6px;
   font-size: var(--text-sm);
@@ -1195,6 +1247,13 @@
 }
 
 /* ------------------------------ Animations ------------------------------- */
+/* A per-field regenerate button spins while its own request is in flight. */
+@keyframes field-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
