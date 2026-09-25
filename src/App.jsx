@@ -596,14 +596,20 @@ export default function App() {
   }, [])
 
   /**
-   * Applying a candidate writes **both** fields — the theme name the model
-   * invented and the folder name that goes with it — which is the whole reason
-   * the two are editable side by side.
+   * Applying a candidate writes **all three** fields — the theme name the model
+   * invented, the folder name that goes with it, and the store summary written for
+   * that name. Picking a different name therefore changes the description too:
+   * "Sunlit Hay Theme" reads differently from "Amber Aura Theme", and a summary
+   * left over from the previous pick describes the wrong theme.
    */
   const handleApplyAiCandidate = useCallback((candidate) => {
     setName(candidate.name)
     setNameError('')
     setFolderInput(candidate.folder)
+    if (candidate.description) {
+      setDescription(candidate.description)
+      setDescriptionError('')
+    }
     setAiAppliedName(candidate.name)
     if (candidate.name && !aiSeenRef.current.includes(candidate.name)) {
       aiSeenRef.current = [candidate.name, ...aiSeenRef.current].slice(0, 20)
@@ -612,12 +618,16 @@ export default function App() {
 
   /**
    * One click fills the whole store listing — theme name, its folder name, and
-   * the description — from the palette. It runs two requests on the same path
-   * (one key, one endpoint, one set of error toasts): the model's names come
-   * first with the top candidate applied immediately, then the description is
-   * written for that name. The description clamps to the manifest's 132-character
-   * limit inside `parseDescriptionResponse`, so an over-talkative model can never
-   * produce an invalid manifest.
+   * the description — from the palette.
+   *
+   * The names request carries the summaries too (one request per click): every
+   * candidate comes back with the description written for *that* name, so the top
+   * candidate is applied with its own summary and switching to another candidate
+   * switches the summary with it. A model that ignores the per-candidate field
+   * falls back to the standalone description request for the chosen name, which is
+   * why that path still exists. Either way the text clamps to the manifest's
+   * 132-character limit inside `parseDescriptionResponse`, so an over-talkative
+   * model can never produce an invalid manifest.
    */
   const handleAiGenerateAll = useCallback(async () => {
     if (!String(aiConfig.apiKey).trim()) {
@@ -640,14 +650,16 @@ export default function App() {
       if (chosen) handleApplyAiCandidate(chosen)
       toast.success(t('ai.generated', { count: names.length }))
 
-      const text = await requestThemeDescription(aiConfig, {
-        palette: describePalette(colors),
-        name: chosen?.name || name,
-        language: aiConfig.language,
-      })
-      setDescription(text)
-      setDescriptionError('')
-      toast.success(t('ai.descGenerated'))
+      if (!chosen?.description) {
+        const text = await requestThemeDescription(aiConfig, {
+          palette: describePalette(colors),
+          name: chosen?.name || name,
+          language: aiConfig.language,
+        })
+        setDescription(text)
+        setDescriptionError('')
+        toast.success(t('ai.descGenerated'))
+      }
     } catch (error) {
       toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
     } finally {

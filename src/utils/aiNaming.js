@@ -96,6 +96,31 @@ export function describePalette(colors = {}) {
   }
 }
 
+/**
+ * The writing rules for the store summary.
+ *
+ * Shared by the naming prompt — every candidate comes back with its own summary,
+ * so picking a name brings its description along instead of leaving whatever was
+ * written for the first name — and the standalone description prompt. One list,
+ * so a summary from either path is equally manifest-valid. Exported so the
+ * self-check can assert that both prompts really do state the same rules.
+ */
+export const DESCRIPTION_RULES = {
+  en: [
+    `- Write ONE sentence in English describing the mood of these colours and what the theme suits, at most ${MAX_DESCRIPTION_LENGTH} characters.`,
+    '- Plain text: no quotes, no emoji, no marketing superlatives, and the word "theme" at most once.',
+  ],
+  zh: [
+    `- 用中文写一句话描述这套配色的氛围和适合的场景，不超过 ${MAX_DESCRIPTION_LENGTH} 个字符。`,
+    '- 纯文本：不要引号、不要 emoji、不要夸张的营销词，"主题"一词最多出现一次。',
+  ],
+}
+
+/** @param {'en'|'zh'} language @returns {string[]} prompt bullets */
+function descriptionRules(language) {
+  return DESCRIPTION_RULES[language === 'zh' ? 'zh' : 'en']
+}
+
 /** Human-readable style/phrase appended to the prompt. `auto` = no steer. */
 function styleInstruction(style) {
   switch (style) {
@@ -169,9 +194,13 @@ export function buildNamingMessages({ palette, style, language, candidates, excl
   lines.push('- Across the candidates, vary the first letter and the semantic category (nature, food, weather, material, emotion, place).')
   lines.push('- No two candidates may share a first word.')
   lines.push('')
+  lines.push('Each candidate also carries its own store summary, which the user gets when they pick that name:')
+  lines.push('- description: written for THAT name. Two candidates must never share a description.')
+  for (const rule of descriptionRules(language)) lines.push(rule)
+  lines.push('')
   lines.push('Return exactly this JSON shape:')
   lines.push(
-    '{"candidates":[{"name":"...","folder":"...","vibe":"2-3 word mood","reason":"one short sentence referencing the palette"}]}',
+    '{"candidates":[{"name":"...","folder":"...","vibe":"2-3 word mood","reason":"one short sentence referencing the palette","description":"one-sentence store summary for this name"}]}',
   )
 
   return { system, user: lines.join('\n') }
@@ -218,7 +247,7 @@ export function normalizeFolder(folderRaw, name) {
  * Parse and validate the model's reply.
  * @param {string} text
  * @param {{limit?: number}} [options]
- * @returns {{name:string, folder:string, vibe:string, reason:string}[]}
+ * @returns {{name:string, folder:string, vibe:string, reason:string, description:string}[]}
  */
 export function parseNamingResponse(text, { limit = 6 } = {}) {
   const data = extractJson(text)
@@ -236,6 +265,12 @@ export function parseNamingResponse(text, { limit = 6 } = {}) {
       folder: normalizeFolder(item?.folder, name),
       vibe: typeof item?.vibe === 'string' ? item.vibe.trim().slice(0, 60) : '',
       reason: typeof item?.reason === 'string' ? item.reason.trim().slice(0, 200) : '',
+      // Each candidate's own store summary. Run through the description parser so
+      // a model that wraps it in quotes or JSON gets cleaned up the same way the
+      // standalone path cleans it, and it can never exceed the manifest limit.
+      description: parseDescriptionResponse(
+        typeof item?.description === 'string' ? item.description : '',
+      ),
     })
     if (out.length >= limit) break
   }
@@ -333,7 +368,7 @@ async function chatCompletion(config, { system, user, maxTokens }, options = {})
  * @param {typeof fetch} [options.fetchImpl] injectable for tests
  * @param {AbortSignal} [options.signal] caller cancellation
  * @param {number} [options.timeoutMs=30000]
- * @returns {Promise<{name:string, folder:string, vibe:string, reason:string}[]>}
+ * @returns {Promise<{name:string, folder:string, vibe:string, reason:string, description:string}[]>}
  * @throws {AiNamingError} `.key` is an i18n key
  */
 export async function requestThemeNames(config, context, options = {}) {
@@ -345,7 +380,10 @@ export async function requestThemeNames(config, context, options = {}) {
     exclude: context.exclude,
   })
 
-  const content = await chatCompletion(config, { system, user, maxTokens: 900 }, options)
+  // Room for the summaries: each candidate now carries a full sentence, and a
+  // truncated reply would fail the JSON parse outright — the one failure mode
+  // that costs the user the whole generation.
+  const content = await chatCompletion(config, { system, user, maxTokens: 1600 }, options)
   const names = parseNamingResponse(content, { limit: config.candidates || 6 })
   if (!names.length) throw new AiNamingError('ai.errorParse')
 
@@ -381,15 +419,8 @@ export function buildDescriptionMessages({ palette, name, language }) {
   if (name) lines.push(`- theme name: ${name}`)
   lines.push('')
 
-  if (language === 'zh') {
-    lines.push('Writing rules (Chinese):')
-    lines.push('- 用中文写一句话描述这套配色的氛围和适合的场景，不超过 132 个字符。')
-    lines.push('- 纯文本：不要引号、不要 emoji、不要夸张的营销词，"主题"一词最多出现一次。')
-  } else {
-    lines.push('Writing rules (English):')
-    lines.push('- Write ONE sentence in English describing the mood of these colours and what the theme suits, at most 132 characters.')
-    lines.push('- Plain text: no quotes, no emoji, no marketing superlatives, and the word "theme" at most once.')
-  }
+  lines.push(language === 'zh' ? 'Writing rules (Chinese):' : 'Writing rules (English):')
+  for (const rule of descriptionRules(language)) lines.push(rule)
 
   lines.push('')
   lines.push('Return exactly this JSON shape:')

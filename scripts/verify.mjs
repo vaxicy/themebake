@@ -77,6 +77,7 @@ import {
 } from '../src/data/aiProviders.js'
 import { sanitizeAiConfig } from '../src/utils/aiConfig.js'
 import {
+  DESCRIPTION_RULES,
   buildDescriptionMessages,
   buildNamingMessages,
   describePalette,
@@ -1647,6 +1648,30 @@ const messagesZh = buildNamingMessages({
 ok('the Chinese prompt switches the naming rules', messagesZh.user.includes('Chinese characters'))
 ok('the prompt lists names to avoid', messagesZh.user.includes('Old Name Theme'))
 ok('the style steer reaches the prompt', messagesZh.user.includes('elegant'))
+
+// Every candidate carries its own store summary, so picking a name picks its
+// description. The naming and description prompts must state the same writing
+// rules, or the two paths would produce summaries to different standards.
+const namingAsksForSummary = messagesEn.user.toLowerCase().includes('own store summary')
+ok('the naming prompt asks for a per-candidate summary',
+  namingAsksForSummary && messagesEn.user.includes('"description"'), '')
+ok('the naming prompt reuses the description writing rules',
+  DESCRIPTION_RULES.en.every((rule) => messagesEn.user.includes(rule)),
+  DESCRIPTION_RULES.en.filter((rule) => !messagesEn.user.includes(rule)).join(' | '))
+ok('the description prompt uses the very same rules',
+  DESCRIPTION_RULES.en.every((rule) =>
+    buildDescriptionMessages({ palette: described, name: '', language: 'en' }).user.includes(rule)))
+
+const fencedCandidates = parseNamingResponse(
+  '{"candidates":[{"name":"Lemon Juice Theme","description":"\\"A bright lemon wash for daytime work.\\""},{"name":"Bare Name Theme"}]}',
+)
+ok('a candidate carries its own summary',
+  fencedCandidates[0]?.description === 'A bright lemon wash for daytime work.', fencedCandidates[0]?.description)
+ok('a candidate without a summary yields an empty string', fencedCandidates[1]?.description === '')
+ok('a candidate summary is clamped to the manifest limit',
+  parseNamingResponse(
+    `{"candidates":[{"name":"Long Theme","description":"${'y'.repeat(400)}"}]}`,
+  )[0].description.length === MAX_DESCRIPTION_LENGTH)
 
 const aiBare = parseNamingResponse(
   '{"candidates":[{"name":"Lemon Juice Theme","folder":"Lemon Juice Theme","vibe":"fresh","reason":"lemon yellow"}]}',

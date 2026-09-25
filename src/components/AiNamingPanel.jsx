@@ -5,9 +5,10 @@
  *
  * The component owns no logic: it renders the AI settings (provider / endpoint /
  * model / key / creativity), a button that asks for names, and the returned
- * candidates as clickable chips. Applying a chip writes **both** the theme name
- * and the folder name, which is the whole point — the two fields are generated
- * together and stay in step.
+ * candidates as clickable chips. Applying a chip writes the theme name, the folder
+ * name **and** that candidate's own store summary — the three are generated
+ * together, so they stay in step and picking another name picks its description
+ * with it.
  *
  * The provider defaults live in `data/aiProviders.js`. Choosing a provider is
  * convenience only: it just prefills the base URL and model, and everything
@@ -126,6 +127,9 @@ export function AiNamingPanel({
           <ul className="ai__candidate-list">
             {candidates.map((candidate) => {
               const isActive = candidate.name === appliedName
+              // The summary leads: it is what this chip writes into the store
+              // description, and the reason underneath explains the name itself.
+              const tooltip = [candidate.description, candidate.reason].filter(Boolean).join('\n')
               return (
                 <li key={candidate.name}>
                   <button
@@ -133,7 +137,7 @@ export function AiNamingPanel({
                     className={`ai__candidate${isActive ? ' is-active' : ''}`}
                     onClick={() => onApply(candidate)}
                     aria-pressed={isActive}
-                    title={candidate.reason || undefined}
+                    title={tooltip || undefined}
                   >
                     <span className="ai__candidate-name">{candidate.name}</span>
                     <span className="ai__candidate-folder">{candidate.folder}</span>
