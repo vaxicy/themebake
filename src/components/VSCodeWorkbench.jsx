@@ -99,31 +99,28 @@ const isPairableType = (type) => counterpartTypeFor(type) !== null
  * own colour. A third "half-set" state would leave the exported theme — and the
  * person reading the panel — guessing.
  */
-function RegionField({ field, value, inherited, disabled = false, disabledHint = '', onChange, onInvalid }) {
+function RegionField({ field, value, inherited, onChange, onInvalid }) {
   const { t } = useI18n()
   const source = vscodeFieldById(field.inherits)
   const sourceLabel = t(source ? source.labelKey : 'vscode.field.sidebarBg')
-  const own = !disabled && typeof value === 'string'
+  const own = typeof value === 'string'
 
   return (
     <ColorField
       id={field.id}
       label={t(field.labelKey)}
       /*
-       * Three states, one line: it follows a master colour (the hint names it and
-       * shows what that resolves to), it has one of its own (the hint goes back to
-       * describing the region), or the other half of a pair is on screen and the
-       * colour belongs to the palette it was chosen against.
+       * Two states, one line: it follows a master colour (the hint names it and
+       * shows what that resolves to), or it has one of its own (the hint goes back
+       * to describing the region). The value passed in belongs to the half of the
+       * pair on screen, so the same rows read and write either palette.
        */
       hint={
-        disabled
-          ? disabledHint
-          : own
-            ? t(field.hintKey)
-            : t('vscode.region.follows', { source: sourceLabel, hex: inherited })
+        own
+          ? t(field.hintKey)
+          : t('vscode.region.follows', { source: sourceLabel, hex: inherited })
       }
       value={own ? value : inherited}
-      disabled={disabled}
       onChange={onChange}
       onInvalid={onInvalid}
       action={
@@ -164,8 +161,10 @@ function readInitialState() {
       // "derive it again when pairing is switched on".
       pairedColors: saved.pairedColors ? buildMasterColors(saved.pairedColors) : null,
       // Pinned regions travel with the draft like the colours do; anything
-      // unknown or malformed is dropped, which means "inherit".
+      // unknown or malformed is dropped, which means "inherit". Each half of a pair
+      // keeps its own set — the two are independent themes (see `reseedPair`).
       overrides: buildOverrides(saved.overrides),
+      pairedOverrides: buildOverrides(saved.pairedOverrides),
       outputMode: VSCODE_OUTPUT_MODE_IDS.includes(saved.outputMode)
         ? saved.outputMode
         : DEFAULT_VSCODE_OUTPUT_MODE,
@@ -230,8 +229,15 @@ export function VSCodeWorkbench({
    * palette is replaced.
    */
   const [pairedColors, setPairedColors] = useState(INITIAL.state?.pairedColors ?? null)
-  // Regions pinned to their own colour instead of following the master palette.
+  /*
+   * Regions pinned to their own colour instead of following the master palette.
+   *
+   * One set per half of the pair: a pin is an absolute colour chosen against the
+   * palette on screen, and both halves are editable, so a status band picked for
+   * the light theme and one picked for its dark twin are two different decisions.
+   */
   const [overrides, setOverrides] = useState(INITIAL.state?.overrides ?? {})
+  const [pairedOverrides, setPairedOverrides] = useState(INITIAL.state?.pairedOverrides ?? {})
   const [outputMode, setOutputMode] = useState(() => {
     const saved = INITIAL.state?.outputMode
     if (!VSCODE_OUTPUT_MODE_IDS.includes(saved)) return DEFAULT_VSCODE_OUTPUT_MODE
@@ -296,6 +302,7 @@ export function VSCodeWorkbench({
         colors,
         pairedColors,
         overrides,
+        pairedOverrides,
         outputMode,
         pair,
         seed,
@@ -316,6 +323,7 @@ export function VSCodeWorkbench({
     colors,
     pairedColors,
     overrides,
+    pairedOverrides,
     outputMode,
     pair,
     seed,
@@ -349,12 +357,28 @@ export function VSCodeWorkbench({
   /** The palette the fields edit and the mockup shows. */
   const activeColors = editingPaired ? counterpart : master
 
+  /**
+   * The pinned regions of the half on screen.
+   *
+   * Both halves are editable themes, so the pins follow the palette: the rows read
+   * and write this set, and the preview paints with it, whichever half is selected.
+   */
+  const activeOverrides = editingPaired ? pairedOverrides : overrides
+
   /** The type every export writes. For dark/light it is the palette's own scheme. */
   const exportedType = useMemo(() => resolveType(type, master), [type, master])
 
+  // Built from the half on screen, pins included, so the "derived N keys" note
+  // describes the theme the user is looking at rather than a pin-less variant.
   const themeJson = useMemo(
-    () => buildVscodeThemeJson({ name, type: exportedType, colors: activeColors }),
-    [name, exportedType, activeColors],
+    () =>
+      buildVscodeThemeJson({
+        name,
+        type: exportedType,
+        colors: activeColors,
+        overrides: activeOverrides,
+      }),
+    [name, exportedType, activeColors, activeOverrides],
   )
   const folderName = useMemo(() => toSafeName(folderInput) || toThemeFolderName(name), [folderInput, name])
   /** What the chosen output will be called, shown before anything is generated. */
@@ -368,10 +392,10 @@ export function VSCodeWorkbench({
   const storageWarning = storageWarningKey ? t(storageWarningKey) : null
 
   // ----------------------------------------------------------------- handlers
-  /** The slice one undo step restores: both palettes and the pinned regions. */
+  /** The slice one undo step restores: both palettes and each half's pinned regions. */
   const snapshotDraft = useCallback(
-    () => ({ colors, pairedColors, overrides }),
-    [colors, pairedColors, overrides],
+    () => ({ colors, pairedColors, overrides, pairedOverrides }),
+    [colors, pairedColors, overrides, pairedOverrides],
   )
 
   /** Record the current draft so the mutation about to run can be undone. */
@@ -391,6 +415,7 @@ export function VSCodeWorkbench({
     setColors(snapshot.colors)
     setPairedColors(snapshot.pairedColors ?? null)
     setOverrides(snapshot.overrides ?? {})
+    setPairedOverrides(snapshot.pairedOverrides ?? {})
     toast.info(t('toast.undone'))
     return true
   }, [toast, t])
@@ -450,21 +475,24 @@ export function VSCodeWorkbench({
   )
 
   /**
-   * Pin or release one region. `null` means "follow the master palette again",
-   * which is the same state a fresh draft is in — the override is deleted rather
-   * than stored as an empty string, so `buildOverrides` has nothing to sanitise.
+   * Pin or release one region of the half on screen. `null` means "follow the
+   * master palette again", which is the same state a fresh draft is in — the
+   * override is deleted rather than stored as an empty string, so `buildOverrides`
+   * has nothing to sanitise.
    */
   const handleOverrideChange = useCallback(
     (fieldId, next) => {
       pushHistory(`override:${fieldId}`)
-      setOverrides((current) => {
+      const apply = (current) => {
         const copy = { ...current }
         if (typeof next === 'string' && normalizeHex(next)) copy[fieldId] = normalizeHex(next)
         else delete copy[fieldId]
         return copy
-      })
+      }
+      if (editingPaired) setPairedOverrides(apply)
+      else setOverrides(apply)
     },
-    [pushHistory],
+    [editingPaired, pushHistory],
   )
 
   /**
@@ -477,12 +505,17 @@ export function VSCodeWorkbench({
    * merely because it *was* the opposite scheme is how a fresh palette ended up
    * beside the previous theme's other side: a new purple dark theme paired with
    * the grey light half of whatever came before it.
+   *
+   * Its pinned regions go with the palette it replaced: a pin is an absolute
+   * colour picked against the half that is gone, so the new flip starts with every
+   * region following its own master colours again.
    */
   const reseedPair = useCallback(
     (palette) => {
       const opposite = counterpartTypeFor(schemeOf(palette))
       if (!pair || !opposite) return
       setPairedColors(deriveCounterpart(palette, opposite))
+      setPairedOverrides({})
     },
     [pair],
   )
@@ -686,10 +719,10 @@ export function VSCodeWorkbench({
    * tabs, widgets, line numbers, indent guides — rendered inside the group each
    * one belongs to, as ordinary colour rows.
    *
-   * While the *other* half of a pair is on screen they are disabled: these colours
-   * are absolute and belong to the palette they were chosen against, so writing one
-   * would change a theme the user is not looking at. The row then shows the colour
-   * the palette on screen really uses.
+   * Editable for whichever half of the pair is on screen: the rows read that half's
+   * own pins and write back to them, so both palettes can have a status band of
+   * their own. A row shows the region's own colour, or the master colour it follows
+   * with the hint naming which one that is.
    */
   const renderRegionFields = useCallback(
     (group) => {
@@ -697,18 +730,16 @@ export function VSCodeWorkbench({
       if (!fields.length) return null
       return fields.map((field) => (
         <RegionField
-          key={field.id}
+          key={`${editingSlot}:${field.id}`}
           field={field}
-          value={editingPaired ? undefined : overrides[field.id]}
+          value={activeOverrides[field.id]}
           inherited={activeColors[field.inherits]}
-          disabled={editingPaired}
-          disabledHint={t('vscode.override.otherPairNote', { scheme: t(`scheme.${scheme}`) })}
           onChange={(next) => handleOverrideChange(field.id, next)}
           onInvalid={(label) => toast.error(t('colorField.invalidToast', { label }))}
         />
       ))
     },
-    [activeColors, editingPaired, handleOverrideChange, overrides, scheme, t, toast],
+    [activeColors, activeOverrides, editingSlot, handleOverrideChange, t, toast],
   )
 
   /**
@@ -746,7 +777,13 @@ export function VSCodeWorkbench({
         type: exportedType,
         colors: master,
         counterpart: counterpart
-          ? { type: counterpartTypeFor(exportedType), colors: counterpart }
+          ? {
+              type: counterpartTypeFor(exportedType),
+              colors: counterpart,
+              // The other half travels with its own pins: it is a theme in its own
+              // right, and the regions the user gave it are part of it.
+              overrides: pairedOverrides,
+            }
           : null,
         overrides,
         format: outputMode,
@@ -794,6 +831,7 @@ export function VSCodeWorkbench({
     name,
     outputMode,
     overrides,
+    pairedOverrides,
     toast,
     t,
   ])
@@ -1019,7 +1057,7 @@ export function VSCodeWorkbench({
 
           <VSCodeMockup
             colors={activeColors}
-            overrides={editingPaired ? {} : overrides}
+            overrides={activeOverrides}
             showKeys={showKeys}
             onPick={handlePickField}
           />

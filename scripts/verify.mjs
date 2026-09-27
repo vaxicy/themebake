@@ -2405,8 +2405,10 @@ ok('every pinnable id is declared once',
     VSCODE_OVERRIDE_FIELDS.every((field) => VSCODE_FIELD_IDS.includes(field.inherits)),
   VSCODE_OVERRIDE_FIELDS.map((field) => `${field.id}<-${field.inherits}`).join(','))
 
-// The theme JSON and the package must honour the pins, and a pair must not copy
-// one palette's pins onto the other.
+// The theme JSON and the package must honour the pins, and each half of a pair
+// must carry its *own*: the two are independent themes, so the light one's pins
+// never leak into the dark one, and the dark one may pin regions the light one
+// leaves following its master colours.
 ok('the theme JSON honours pins',
   buildVscodeThemeJson({ name: 'Pinned', colors: MASTER, overrides: { panelBg: '#123456' } }).colors[
     'panel.background'
@@ -2416,7 +2418,7 @@ const pinnedPkg = buildVscodePackage({
   folderName: 'pinned-pair',
   type: 'dark',
   colors: MASTER,
-  counterpart: { type: 'light', colors: lightDerived },
+  counterpart: { type: 'light', colors: lightDerived, overrides: { statusBarBg: '#00CCFF' } },
   overrides: { panelBg: '#123456' },
 })
 const pinnedThemes = JSON.parse(readFileFrom(pinnedPkg, 'package.json')).contributes.themes
@@ -2424,9 +2426,12 @@ const pinnedPrimary = JSON.parse(readFileFrom(pinnedPkg, `themes/pinned-pair-dar
 const pinnedDerived = JSON.parse(readFileFrom(pinnedPkg, `themes/pinned-pair-light-color-theme.json`))
 ok('a package declares two themes here', pinnedThemes.length === 2)
 ok('the edited theme carries its pins', pinnedPrimary.colors['panel.background'] === '#123456')
-ok('the derived theme inherits from its own colours instead',
-  pinnedDerived.colors['panel.background'] === lightDerived.sidebarBg,
-  pinnedDerived.colors['panel.background'])
+ok('the other half carries its own pins',
+  pinnedDerived.colors['statusBar.background'] === '#00CCFF', pinnedDerived.colors['statusBar.background'])
+ok('neither half wears the other\u2019s pins',
+  pinnedDerived.colors['panel.background'] === lightDerived.sidebarBg &&
+    pinnedPrimary.colors['statusBar.background'] !== '#00CCFF',
+  `${pinnedDerived.colors['panel.background']} / ${pinnedPrimary.colors['statusBar.background']}`)
 ok('a package without pins is unaffected',
   buildVscodeThemeJson({ name: 'Plain', colors: MASTER }).colors['panel.background'] === MASTER.sidebarBg)
 

@@ -158,7 +158,7 @@ export default {
 
   // ------------------------------------------------- VS Code 独立区域
   // 这些区域与上面的基准色同在一个列表里，默认跟随；上面已无「单独控制」分组。
-  'vscode.override.otherPairNote': '这些颜色只属于{scheme}那套配色，切回那套即可调整。',
+  // 成对的两套各有自己的一份，两边都可编辑，所以这里没有「只属于另一套」的说明。
   'vscode.override.panelBg': '面板背景',
   'vscode.override.panelBg.hint': '问题 / 输出 / 终端那条面板（panel.background）。默认跟随侧边栏背景。',
   'vscode.override.statusBarBg': '状态栏背景',

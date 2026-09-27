@@ -756,12 +756,16 @@ function buildVsixMetadata({ pkg, displayName, folderName }) {
  *   a slug of `name`.
  * @param {string} [options.type]  'dark' | 'light' | 'hc-black'
  * @param {Record<string,string>} options.colors  Master colours of the edited scheme.
- * @param {{type:string, colors:Record<string,string>}|null} [options.counterpart]
- *   The other scheme (`deriveCounterpart`). Ignored for `hc-black`, which is a
- *   rendering mode of its own rather than one half of a pair.
+ * @param {{type:string, colors:Record<string,string>, overrides?:Record<string,string>}|null}
+ *   [options.counterpart] The other scheme (`deriveCounterpart`). Ignored for
+ *   `hc-black`, which is a rendering mode of its own rather than one half of a
+ *   pair.
  * @param {Record<string,string>} [options.overrides]  Pinned regions
- *   (`VSCODE_OVERRIDE_FIELDS`). They apply to the edited palette only; the
- *   derived half of a pair inherits from its own colours.
+ *   (`VSCODE_OVERRIDE_FIELDS`) for the edited palette.
+ * @param {Record<string,string>} [options.counterpart.overrides]  Pinned regions
+ *   for the other half. The two halves are two themes: each keeps the regions the
+ *   user gave *it*, which is why the pins travel with the palette instead of being
+ *   a single set applied to the edited side.
  * @param {'zip'|'folder'|'vsix'} [options.format]  Which hand-over to lay out for.
  * @returns {{files:{path:string,data:string}[], folderName:string, zipName:string,
  *   vsixName:string, fileName:string, format:string,
@@ -779,6 +783,7 @@ export function buildVscodePackage({
 }) {
   const master = buildMasterColors(colors)
   const pinned = buildOverrides(overrides)
+  const counterpartPinned = buildOverrides(counterpart?.overrides)
   const typedFolderName = typeof explicitFolderName === 'string' ? toSafeName(explicitFolderName) : ''
   const folderName = (typedFolderName || toThemeFolderName(name)).toLowerCase()
   // The declared type decides only *whether* a pair is possible; which side each
@@ -790,17 +795,17 @@ export function buildVscodePackage({
   /**
    * One contributed theme: its JSON payload plus the package.json entry.
    *
-   * `isPrimary` decides whether the pinned regions apply. An override is an
-   * absolute colour chosen against *this* palette — a pale panel picked for a
-   * light theme would be wrong on the derived dark one — so the derived theme
-   * inherits from its own master colours instead.
+   * `pins` is the override set belonging to *that* palette. An override is an
+   * absolute colour chosen against the palette it was picked on — a pale panel
+   * picked for a light theme would be wrong on the dark one — so the two halves of
+   * a pair each carry their own, and neither wears the other's.
    */
-  const makeTheme = (label, themeType, themeColors, fileName, isPrimary = true) => {
+  const makeTheme = (label, themeType, themeColors, fileName, pins) => {
     const json = buildVscodeThemeJson({
       name: label,
       type: themeType,
       colors: themeColors,
-      overrides: isPrimary ? pinned : {},
+      overrides: pins,
     })
     return {
       label,
@@ -822,11 +827,11 @@ export function buildVscodePackage({
         scheme,
         isPrimary ? master : other,
         `${folderName}-${scheme}-color-theme.json`,
-        isPrimary,
+        isPrimary ? pinned : counterpartPinned,
       )
     })
   } else {
-    themes = [makeTheme(name, declaredType, master, `${folderName}-color-theme.json`)]
+    themes = [makeTheme(name, declaredType, master, `${folderName}-color-theme.json`, pinned)]
   }
 
   // The marketplace banner sits behind the logo, so take the light side of a

@@ -170,9 +170,8 @@ export default {
 
   // ------------------------------------------------------- separate regions
   // These rows sit in the same list as the master colours and follow by default;
-  // there is no separate "pin a region" section any more.
-  'vscode.override.otherPairNote':
-    'These colours belong to the {scheme} palette — switch back to it to change them.',
+  // there is no separate "pin a region" section any more. Both halves of a pair
+  // keep their own, so nothing here is "only editable on the other side".
   'vscode.override.panelBg': 'Panel background',
   'vscode.override.panelBg.hint':
     'The Problems / Output / Terminal strip (panel.background). Follows the sidebar by default.',
