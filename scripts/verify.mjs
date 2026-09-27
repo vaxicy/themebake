@@ -117,6 +117,7 @@ import {
   masterFromPalette,
   resolveType,
   schemeOf,
+  shellOverridesFor,
 } from '../src/vscode/build.js'
 import {
   DEFAULT_VSCODE_COLORS,
@@ -2554,6 +2555,76 @@ for (let i = 0; i < 60; i += 1) {
 console.log(`  consecutive randomise distance: min ${minConsecutive.toFixed(2)}, avg ${(consecutiveSum / 59).toFixed(2)}`)
 ok('two quick randomise clicks are forced to differ', minConsecutive >= 0.5,
   minConsecutive.toFixed(2))
+
+// ---------------------------------------------------------------------------
+section('26. VS Code shell variety (sidebar / activity bar / panel / status bar)')
+// ---------------------------------------------------------------------------
+// The reported problem: every generated theme was "the editor colour with two
+// lighter steps of itself" — sidebar, activity bar, panel and status bar all one
+// colour. The hand-made references are not like that, and neither is a theme from
+// this generator any more. These assertions pin the *variety* (it has to actually
+// happen) and the *restraint* (no invented hue, no illegible strip).
+let shellFamilies = 0
+let shellAccentColumns = 0
+let shellLayers = 0
+let shellPinned = 0
+let shellContrastBad = 0
+const shellPairs = [
+  ['activityBar.foreground', 'activityBar.background'],
+  ['activityBar.inactiveForeground', 'activityBar.background'],
+  ['sideBar.foreground', 'sideBar.background'],
+  ['statusBar.foreground', 'statusBar.background'],
+  ['panel.foreground', 'panel.background'],
+  ['titleBar.activeForeground', 'titleBar.activeBackground'],
+]
+for (let seed = 0; seed < 120; seed += 1) {
+  const master = masterFromPalette(buildColors(generateRandomColors(seed * 7919 + 13)))
+  const overrides = shellOverridesFor(master)
+  const colors = buildVscodeColors(master, overrides)
+
+  if (hueGap(hexToHsl(colors['sideBar.background']).h, hexToHsl(master.editorBg).h) >= 25) shellFamilies += 1
+  if (hueGap(hexToHsl(colors['activityBar.background']).h, hexToHsl(colors['sideBar.background']).h) >= 20) {
+    shellAccentColumns += 1
+  }
+  if (Math.abs(hexToHsl(colors['sideBar.background']).l - hexToHsl(master.editorBg).l) >= 2) shellLayers += 1
+  if (Object.keys(overrides).length > 0) shellPinned += 1
+  for (const [fg, bg] of shellPairs) {
+    if (contrastRatio(colors[fg], colors[bg]) < 3) shellContrastBad += 1
+  }
+}
+console.log(`  shell over 120 randoms: other family ${shellFamilies}, accent column ${shellAccentColumns}, `
+  + `own-colour strips ${shellPinned}`)
+ok('the shell sometimes wears a different family from the editor', shellFamilies >= 20, `${shellFamilies}/120`)
+ok('the icon column sometimes takes the accent hue', shellAccentColumns >= 10, `${shellAccentColumns}/120`)
+ok('some solved themes come with a shell colour of their own', shellPinned >= 15, `${shellPinned}/120`)
+ok('the shell is always a visible layer, never flush with the editor', shellLayers === 120, `${shellLayers}/120`)
+ok('every shell region keeps its labels legible (3:1)', shellContrastBad === 0, `${shellContrastBad}`)
+
+// Deterministic per palette: a theme must re-export byte-identically.
+const shellOnce = masterFromPalette(buildColors(generateRandomColors(1234)))
+const shellTwice = masterFromPalette(buildColors(generateRandomColors(1234)))
+ok('the shell build is deterministic per palette', JSON.stringify(shellOnce) === JSON.stringify(shellTwice))
+ok('the generated shell pins are deterministic too',
+  JSON.stringify(shellOverridesFor(shellOnce)) === JSON.stringify(shellOverridesFor(shellTwice)))
+
+// A monochrome palette stays monochrome: no invented hue in the shell, no band.
+const greyMaster = masterFromPalette(grey.colors)
+const greyShell = buildVscodeColors(greyMaster, shellOverridesFor(greyMaster))
+ok('an achromatic palette gets no shell pin', Object.keys(shellOverridesFor(greyMaster)).length === 0)
+ok('an achromatic palette keeps an achromatic shell',
+  ['sideBar.background', 'activityBar.background', 'statusBar.background', 'panel.background'].every((key) => {
+    const rgb = parseHex(greyShell[key])
+    return Math.max(rgb.r, rgb.g, rgb.b) - Math.min(rgb.r, rgb.g, rgb.b) <= 3
+  }),
+  ['sideBar.background', 'activityBar.background'].map((key) => greyShell[key]).join(' '))
+
+// The pair's other half gets the same treatment, so flipping sides does not swap a
+// designed shell for a monotone ladder.
+const pairShell = deriveCounterpart(shellOnce, 'light')
+ok('the flipped half builds a shell of its own',
+  pairShell.sidebarBg && pairShell.activityBg && pairShell.titleBg &&
+    new Set([pairShell.editorBg, pairShell.sidebarBg, pairShell.activityBg]).size === 3,
+  `${pairShell.editorBg} ${pairShell.sidebarBg} ${pairShell.activityBg}`)
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

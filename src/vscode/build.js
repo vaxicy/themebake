@@ -41,6 +41,129 @@ function fade(hex, alpha) {
   return `${hex}${alpha}`.toUpperCase()
 }
 
+/**
+ * A stable 0..1 value for a string (FNV-1a).
+ *
+ * The generator has to make taste choices that are *deterministic per palette* —
+ * the same colours must always export the same theme, and `verify` asserts it —
+ * while still spreading across themes. A hash of the palette gives exactly that:
+ * arbitrary-looking across palettes, fixed for one.
+ */
+function unitHash(text) {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return ((hash >>> 0) % 100000) / 100000
+}
+
+/** How colourful a colour is, as its channel spread (0-1). */
+function chromaOf(hex) {
+  const { r, g, b } = parseHex(hex)
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
+}
+
+/**
+ * A tint of `hue` at lightness `l` carrying `chroma` (channel spread over 255).
+ *
+ * Surfaces are specified in chroma, never in HSL saturation: at l 96 an "s 25"
+ * surface is a 4/255 difference, i.e. white (the bug that made the flipped light
+ * half read as grey). The budget is converted back into the saturation that
+ * actually delivers it.
+ */
+function tintAt(hue, l, chroma) {
+  const denom = 1 - Math.abs(2 * (l / 100) - 1)
+  const s = denom <= 0.02 ? 0 : Math.min(100, (chroma / denom) * 100)
+  return hslToHex({ h: hue, s, l })
+}
+
+/**
+ * The shell surfaces: the sidebar, the title/tab strip and the icon column.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS IS NOT THREE FIXED STEPS
+ * ---------------------------------------------------------------------------
+ * Deriving all of them as one small step off the editor (4%, 5%, 9% — what this
+ * used to be) is what made every generated theme read as "one colour everywhere".
+ * The hand-made reference themes are not like that: `chiffon-bloom`'s light side
+ * sits on a clearly pink sidebar, `jade-veil`'s icon column is a deep green while
+ * its editor is near-white, `coca-berry` carries a saturated status band. So the
+ * shell gets two palette-driven parameters instead of one:
+ *
+ *   - how far it steps off the editor (3%..12%) — measured against the hand-made
+ *     themes, whose shell sits 2-12 *lightness points* away, not 20,
+ *   - how much of the **accent rides along** (6%..22%). This is the half that
+ *     makes a shell read as "a different colour" rather than "the same colour,
+ *     darker": in the references the sidebar is often *tinted* while the editor is
+ *     near-white, so the separation lives in the chroma as much as in the
+ *     lightness,
+ *   - whether the icon column takes the accent's **own hue** instead of a step of
+ *     the editor colour (only when the accent is a real colour, so a monochrome
+ *     palette stays monochrome).
+ *
+ * Everything is a function of the palette, so a theme re-exports identically.
+ *
+ * @returns {{sidebarBg:string, titleBg:string, activityBg:string}}
+ */
+function shellSurfaces(bg, accent, dark) {
+  /**
+   * Two *independent* choices: which family the shell wears, and whether the icon
+   * column takes the accent's own hue. Keyed off one hash they would always agree
+   * (a rival-family shell would always bring a rival-family column), and the
+   * references show all four combinations.
+   */
+  const shellUnit = unitHash(`${bg}|${accent}`)
+  const stripUnit = unitHash(`strip|${accent}|${bg}`)
+  const away = dark ? '#FFFFFF' : '#000000'
+  const step = 0.03 + shellUnit * 0.07
+  const bgHsl = hexToHsl(bg)
+  const bgChroma = chromaOf(bg)
+  const accentHsl = hexToHsl(accent)
+  const accentChroma = chromaOf(accent)
+
+  /**
+   * The shell's chroma budget — how colourful the strips are.
+   *
+   * They are meant to carry *colour*, not just a lightness step: the reference
+   * sidebars measure 0.04-0.18 chroma while their editors sit near 0.02, and a
+   * shell that is only "the editor, darker" is exactly the "one colour everywhere"
+   * look. A truly achromatic palette gets a budget of zero, so a grey theme stays
+   * grey instead of growing an invented hue.
+   */
+  const canTint = bgChroma >= 0.008 || accentChroma >= 0.06
+  const budget = canTint ? clamp(0.03 + bgChroma * 0.8 + shellUnit * 0.07, 0.03, 0.15) : 0
+
+  const liftedL = (amount) => hexToHsl(mix(bg, away, amount)).l
+  const accentStrip = stripUnit >= 0.6 && accentChroma >= 0.12
+
+  /**
+   * Whose hue the shell wears.
+   *
+   * Half the reference themes put the shell in a *different* family from the
+   * editor — a cyan sidebar under a pink editor (`candy-breeze`, 130° apart), a
+   * lavender column under a blue one (`blue-reverie`). That is what makes the
+   * window read as designed instead of as one tint at two lightnesses, and it is
+   * the half this generator was missing. The other half keep the shell in the
+   * editor's own family, which is the quieter, more common look.
+   */
+  const shellHue = shellUnit >= 0.55 && accentChroma >= 0.12 ? accentHsl.h : bgHsl.h
+
+  return {
+    sidebarBg: tintAt(shellHue, liftedL(step), budget),
+    titleBg: tintAt(shellHue, liftedL(step * 0.7 + 0.02), budget * 0.85),
+    activityBg: accentStrip
+      ? tintAt(
+          accentHsl.h,
+          // A light theme wants a pale column, a dark one a deep one; the bold end
+          // of the hash lands on the other side of the editor for a louder strip.
+          dark ? (stripUnit >= 0.82 ? 28 : 17) : stripUnit >= 0.82 ? 50 : 91,
+          clamp(accentChroma * 0.7, 0.05, 0.14),
+        )
+      : tintAt(shellHue, liftedL(step * (stripUnit >= 0.75 ? 2.2 : 1.5)), budget * 1.1),
+  }
+}
+
 /** Is the master palette a dark scheme? Drives a handful of derivations. */
 export function isDarkTheme(colors) {
   return relativeLuminance(colors.editorBg) < 0.4
@@ -163,26 +286,6 @@ export function deriveCounterpart(colors, targetType) {
 
   const dark = target === 'dark'
 
-  /** How colourful a colour is, as its channel spread (0-1). */
-  const chromaOf = (hex) => {
-    const { r, g, b } = parseHex(hex)
-    return (Math.max(r, g, b) - Math.min(r, g, b)) / 255
-  }
-
-  /**
-   * A tint of `hue` at lightness `l` that actually carries `chroma`.
-   *
-   * Never express these surfaces as "l 97 at s 25": near white an HSL saturation
-   * is a 4/255 channel difference, i.e. white — which is why the flipped light
-   * half used to read as a grey theme next to a clearly coloured dark twin. The
-   * chroma budget is converted back into whatever saturation delivers it.
-   */
-  const tintAt = (hue, l, chroma) => {
-    const denom = 1 - Math.abs(2 * (l / 100) - 1)
-    const s = denom <= 0.02 ? 0 : Math.min(100, (chroma / denom) * 100)
-    return hslToHex({ h: hue, s, l })
-  }
-
   /**
    * The tint the flip is built on: the editor background's own colour when it has
    * any, otherwise the most colourful of the other background surfaces.
@@ -211,6 +314,13 @@ export function deriveCounterpart(colors, targetType) {
   /** A surface one step away from `bg`, in the direction that adds depth. */
   const step = (t) => mix(bg, dark ? '#FFFFFF' : '#000000', t)
 
+  /**
+   * The same shell build the primary half uses, so flipping the pair does not
+   * swap a designed shell for a monotone ladder — the two halves are meant to be
+   * one theme in two schemes.
+   */
+  const shellColors = shellSurfaces(bg, accent, dark)
+
   return {
     editorBg: bg,
     editorFg: fg,
@@ -220,14 +330,54 @@ export function deriveCounterpart(colors, targetType) {
     // current line reads as a highlight in both schemes.
     lineHighlightBg: mix(bg, fg, dark ? 0.07 : 0.06),
     mutedFg: mix(fg, bg, 0.42),
-    activityBg: dark ? mix(bg, '#000000', 0.25) : mix(bg, '#000000', 0.05),
-    sidebarBg: step(0.05),
-    titleBg: step(0.09),
+    activityBg: shellColors.activityBg,
+    sidebarBg: shellColors.sidebarBg,
+    titleBg: shellColors.titleBg,
     border: step(0.12),
     buttonBg: accent,
     buttonFg: readableTextOn(accent),
     errorFg: contrastAgainst(source.errorFg, bg),
     warningFg: contrastAgainst(source.warningFg, bg),
+  }
+}
+
+/** Shortest angular distance between two hues, 0-180. */
+function hueApart(a, b) {
+  const d = Math.abs(((a - b) % 360 + 360) % 360)
+  return d > 180 ? 360 - d : d
+}
+
+/**
+ * Shell regions the generator gives a colour of their own.
+ *
+ * The pinnable regions exist so a theme can say "this strip is a different
+ * colour", and the hand-made references say exactly that: a saturated status band
+ * under a quiet editor (`coca-berry`), a deep burgundy bar on a cream theme, a
+ * bottom panel that is not a copy of the sidebar. Generation therefore hands back
+ * *pins* rather than a different mapping — a pin is this app's own word for "this
+ * region has its own colour", the panel already shows it as such, un-pinning is
+ * one click, and the undo stack covers it like any other edit.
+ *
+ * Gated on the palette being able to carry it: the accent has to be a real colour
+ * at a distance from the shell's hue, or a monochrome theme would grow a coloured
+ * band out of nothing — the same rule the Chrome solver follows for hues.
+ *
+ * @param {Record<string,string>} master master colours (see `buildMasterColors`)
+ * @returns {Record<string,string>} overrides for `buildVscodeColors`, possibly empty
+ */
+export function shellOverridesFor(master) {
+  const m = buildMasterColors(master)
+  const accent = hexToHsl(m.accent)
+  if (chromaOf(m.accent) < 0.12 || accent.s < 24) return {}
+  if (hueApart(accent.h, hexToHsl(m.sidebarBg).h) < 40) return {}
+
+  const unit = unitHash(`${m.editorBg}|${m.sidebarBg}|${m.accent}`)
+  if (unit < 0.35) return {}
+  if (unit < 0.68) return { statusBarBg: m.accent }
+  return {
+    // A band, and a panel that is a tint of it rather than a copy of the sidebar.
+    statusBarBg: m.accent,
+    panelBg: mix(m.sidebarBg, m.accent, 0.18),
   }
 }
 
@@ -339,8 +489,16 @@ export function buildVscodeColors(m, overrides = {}) {
     'badge.foreground': onAccent,
 
     'activityBar.background': m.activityBg,
-    'activityBar.foreground': m.editorFg,
-    'activityBar.inactiveForeground': m.mutedFg,
+    /*
+     * Ink anchored to the column it sits on. The column can now be a colour of its
+     * own — a deep accent-hued strip or the palette's second family — and the
+     * editor's ink is only correct while the strip is a near-step of the editor
+     * (dark ink on a deep green column measured 2.6:1). `contrastAgainst` keeps the
+     * ink's own hue and moves its lightness just far enough; the inactive tone is
+     * allowed the dimmer icon bar so active and inactive still differ.
+     */
+    'activityBar.foreground': contrastAgainst(m.editorFg, m.activityBg),
+    'activityBar.inactiveForeground': contrastAgainst(m.mutedFg, m.activityBg, 3),
     'activityBar.activeBorder': m.accent,
     'activityBarBadge.background': m.buttonBg,
     'activityBarBadge.foreground': m.buttonFg,
@@ -349,7 +507,8 @@ export function buildVscodeColors(m, overrides = {}) {
     'scrollbarSlider.hoverBackground': fade(m.border, 'BB'),
 
     'sideBar.background': m.sidebarBg,
-    'sideBar.foreground': m.editorFg,
+    // Same anchoring as the activity bar: the sidebar carries its own colour now.
+    'sideBar.foreground': contrastAgainst(m.editorFg, m.sidebarBg),
     'sideBar.border': m.border,
     'panel.background': panelBg,
     'panel.foreground': inkOn(panelBg, m.editorFg),
@@ -363,9 +522,9 @@ export function buildVscodeColors(m, overrides = {}) {
     'statusBar.noFolderForeground': inkOn(statusBarBg, m.editorFg),
 
     'titleBar.activeBackground': m.titleBg,
-    'titleBar.activeForeground': m.editorFg,
+    'titleBar.activeForeground': contrastAgainst(m.editorFg, m.titleBg),
     'titleBar.inactiveBackground': m.editorBg,
-    'titleBar.inactiveForeground': m.mutedFg,
+    'titleBar.inactiveForeground': contrastAgainst(m.mutedFg, m.editorBg, 3),
 
     'input.background': widgetBg,
     'input.foreground': inkOn(widgetBg, m.editorFg),
@@ -824,8 +983,11 @@ export function masterFromPalette(solved) {
     return out
   }
   const bg = confineBg(dark ? mix(frame, '#131120', bgMix) : mix(frame, '#FFFFFF', bgMix), dark)
+  /**
+   * The wash under the current line: deliberately *small* and not the shell step.
+   * It sits on the editor, where a strong band would fight the code.
+   */
   const surface = dark ? mix(bg, '#FFFFFF', 0.05) : mix(bg, '#000000', 0.04)
-  const surface2 = dark ? mix(bg, '#FFFFFF', 0.09) : mix(bg, '#000000', 0.07)
 
   /**
    * The accent, re-checked against the surface it is about to sit on.
@@ -851,6 +1013,12 @@ export function masterFromPalette(solved) {
   const shell = (base, amount) => mix(base, accent, amount)
 
   /**
+   * The shell: sidebar, title/tab strip and the icon column, from the palette.
+   * They are the surfaces the user can see varying between their own themes.
+   */
+  const shellColors = shellSurfaces(bg, accent, dark)
+
+  /**
    * Buttons: the solver's own button colour when it carries a hue of its own.
    *
    * In a triadic theme the window buttons were given the *third* corner of the
@@ -869,9 +1037,9 @@ export function masterFromPalette(solved) {
     selectionBg: mix(accent, bg, 0.72),
     lineHighlightBg: surface,
     mutedFg: mix(solved.tabBackgroundText, bg, 0.2),
-    activityBg: shell(dark ? mix(bg, '#000000', 0.25) : mix(bg, '#000000', 0.06), 0.05),
-    sidebarBg: shell(surface, 0.04),
-    titleBg: shell(surface2, 0.06),
+    activityBg: shellColors.activityBg,
+    sidebarBg: shellColors.sidebarBg,
+    titleBg: shellColors.titleBg,
     border: dark ? mix(bg, '#FFFFFF', 0.12) : mix(bg, '#000000', 0.12),
     buttonBg,
     buttonFg: readableTextOn(buttonBg),

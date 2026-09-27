@@ -67,6 +67,7 @@ import {
   masterFromPalette,
   resolveType,
   schemeOf,
+  shellOverridesFor,
 } from '../vscode/build.js'
 import { VSCODE_PRESETS } from '../data/vscodePresets.js'
 
@@ -502,6 +503,10 @@ export function VSCodeWorkbench({
       if (next === scheme) return
       const converted = deriveCounterpart(master, next)
       setColors(converted)
+      // The shell pins are part of "which theme is this": a converted palette gets
+      // its own (and often none), or the dark theme's coloured status band would
+      // ride along onto a cream one.
+      setOverrides(shellOverridesFor(converted))
       // The other half has to be the *opposite* again, or the pair would hold two
       // palettes of the same scheme.
       reseedPair(converted)
@@ -544,6 +549,9 @@ export function VSCodeWorkbench({
       // each, and some are built from a light file. High contrast is preserved.
       setType(resolveType(type, built))
       reseedPair(built)
+      // A preset is a whole theme: it brings its own shell pins instead of wearing
+      // whatever the previous theme had pinned.
+      setOverrides(shellOverridesFor(built))
       setActivePresetId(preset.id)
       clearIdentityForNewTheme()
       toast.success(t('toast.presetApplied', { name: preset.name }))
@@ -571,6 +579,10 @@ export function VSCodeWorkbench({
       // the palette it produced, so the pair is always the right way round.
       setType(resolveType(type, built))
       reseedPair(built)
+      // A new theme carries its own shell: some solved palettes come with a coloured
+      // status band or a panel of their own (see `shellOverridesFor`), and the ones
+      // that do not must not inherit the previous theme's.
+      setOverrides(shellOverridesFor(built))
       setActivePresetId(null)
       clearIdentityForNewTheme()
       return result
@@ -625,6 +637,7 @@ export function VSCodeWorkbench({
     setColors(built)
     setType(resolveType(type, built))
     reseedPair(built)
+    setOverrides(shellOverridesFor(built))
     setActivePresetId(null)
     clearIdentityForNewTheme()
     toast.success(t('toast.randomApplied'))
