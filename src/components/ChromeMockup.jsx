@@ -12,6 +12,7 @@
 
 import { derivePreviewColors } from '../data/presets.js'
 import { logoStyleValue } from '../data/themeFields.js'
+import { PreviewTipLayer } from './PreviewTip.jsx'
 import { normalizeHex } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
 import {
@@ -56,10 +57,16 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
    * Hovering a region names it and shows the manifest key behind it; clicking it
    * jumps to that colour in the panel. The tooltip is the discoverable half — no
    * copy in the panel is needed for it.
+   *
+   * The name, the key and the click hint go to `PreviewTipLayer` as data instead of
+   * into a native `title`: the page draws the tooltip itself (`PreviewTip.jsx`), so
+   * the manifest key can be set as code and the popup matches this UI.
    */
   const cursorStyle = onPick ? { cursor: 'pointer' } : null
   const region = (fieldId, chromeKey) => ({
-    title: `${t(`field.${fieldId}.label`)} · ${chromeKey}${onPick ? ` · ${t('preview.clickToEdit')}` : ''}`,
+    'data-tip-label': t(`field.${fieldId}.label`),
+    'data-tip-key': chromeKey,
+    ...(onPick ? { 'data-tip-action': t('preview.clickToEdit') } : null),
     // Regions nest (the tab strip contains the tabs, which contain the label), so
     // the innermost one has to win — without this, clicking a tab would open the
     // tab-strip colour on the way back up.
@@ -323,6 +330,9 @@ export function PreviewPanel({
         logoStyle={logoStyle}
         onPick={onPickRegion}
       />
+
+      {/* Names the region under the pointer; one layer per preview panel. */}
+      <PreviewTipLayer />
 
       <div className={`audit${issues.length ? ' audit--warn' : ' audit--ok'}`} role="status">
         <div className="audit__head">

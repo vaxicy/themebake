@@ -86,10 +86,16 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
    * Hovering a region names it and prints the workbench key it becomes; clicking
    * jumps to the colour field that paints it. The same contract as the Chrome
    * mockup, so the two previews behave alike.
+   *
+   * The name and the key are handed to `PreviewTipLayer` as data rather than as a
+   * native `title`: the tooltip is drawn by the page (see `PreviewTip.jsx`), so it
+   * can style the key as code and keep the mockups' colours in view underneath.
    */
   const cursorStyle = onPick ? { cursor: 'pointer' } : null
   const region = (fieldId, key, labelKey) => ({
-    title: `${t(labelKey)} · ${key}${onPick ? ` · ${t('preview.clickToEdit')}` : ''}`,
+    'data-tip-label': t(labelKey),
+    'data-tip-key': key,
+    ...(onPick ? { 'data-tip-action': t('preview.clickToEdit') } : null),
     // Regions nest (the tab strip holds the tabs, the editor holds its lines), so
     // the innermost one wins the click.
     onClick: onPick

@@ -23,6 +23,7 @@ import { ColorField } from './ColorField.jsx'
 import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
+import { PreviewTipLayer } from './PreviewTip.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
 import { ResetIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
@@ -1061,6 +1062,9 @@ export function VSCodeWorkbench({
             showKeys={showKeys}
             onPick={handlePickField}
           />
+
+          {/* Names the region under the pointer; one layer per preview panel. */}
+          <PreviewTipLayer />
 
           <p className="export-panel__note">
             {t('vscode.preview.derived', {

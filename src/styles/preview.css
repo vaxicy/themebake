@@ -594,3 +594,66 @@
   border-radius: 50%;
   background-color: var(--warning);
 }
+
+/* ------------------------- Preview tooltip (regions) ----------------------- */
+/* Our own, not the platform's: a native `title` waits, renders in the OS font and
+   cannot be styled, while this one names the region and the key it becomes in the
+   same grammar as the rest of the panel. Dark chip on purpose — it sits over the
+   mockups, which are dark whatever the page palette is. */
+.preview-tip-layer {
+  display: contents;
+}
+
+.preview-tip {
+  position: fixed;
+  /* Above the mockups (which use z-index up to 5) and the key badges. */
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(24, 23, 34, 0.95);
+  color: #f5f4fa;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(15, 14, 26, 0.34);
+  /* Never steals the hover that is showing it. */
+  pointer-events: none;
+  animation: preview-tip-in var(--dur-fast) var(--ease);
+}
+
+/* Fades and lifts in rather than popping: it appears the moment the pointer
+   enters a region, so without a small transition it reads as a glitch. */
+@keyframes preview-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.preview-tip__label {
+  font-weight: 600;
+}
+
+/* The workbench / manifest key, in the same mono face the key badges use. */
+.preview-tip__key {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #c9c6dd;
+}
+
+.preview-tip__action {
+  padding-left: 8px;
+  border-left: 1px solid rgba(245, 244, 250, 0.22);
+  color: #c9c6dd;
+}
+
