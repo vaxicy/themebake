@@ -295,12 +295,45 @@ export function normalizeSeeds(values) {
 }
 
 /**
+ * The chroma below which a colour counts as grey.
+ *
+ * Not one number: the same channel spread does not read the same at every
+ * lightness. At mid lightness 0.06 is a tint you have to look for; near white or
+ * black there is barely any room for one, which is why `#FFF0FC` (spread 0.059,
+ * HSL saturation 100% — a pale pink by any eye) sat *just* under a flat 0.06 cut
+ * and was solved as a **greyscale** theme, greys and all. The bar therefore
+ * shrinks with the room the colour's lightness leaves it, down to a floor that
+ * still keeps a rounding-error tint (`#FEFEFE`, spread 0.004) neutral: the solver
+ * must never invent a hue the user did not choose.
+ */
+const NEUTRAL_CHROMA = 0.06
+const NEUTRAL_CHROMA_FLOOR = 0.02
+
+/** The chroma below which a colour of lightness `l` counts as grey. */
+function neutralChromaAt(l) {
+  const room = 1 - Math.abs(2 * (l / 100) - 1)
+  return Math.max(NEUTRAL_CHROMA_FLOOR, NEUTRAL_CHROMA * room)
+}
+
+/**
+ * Does this seed carry a hue the theme should follow?
+ *
+ * Seeds can arrive as bare `{h, chroma}` pairs (that is the documented shape for
+ * `hueFamilies`), and without a lightness the flat threshold is the honest answer.
+ */
+function isChromaticSeed(seed) {
+  const chroma = seed?.chroma ?? 0
+  if (!Number.isFinite(seed?.l)) return chroma >= NEUTRAL_CHROMA
+  return chroma >= neutralChromaAt(seed.l)
+}
+
+/**
  * Circular mean of the chromatic seeds' hues, weighted by chroma.
  * A weighted circular mean is required — a plain average breaks across 0°/360°
  * (348° and 9° average to 178°, i.e. the exact opposite hue).
  */
 function hueFamily(seeds) {
-  const chromatic = seeds.filter((s) => s.chroma >= 0.06)
+  const chromatic = seeds.filter(isChromaticSeed)
   if (!chromatic.length) {
     return { hue: null, chroma: 0, neutral: true, chromaticCount: 0 }
   }
@@ -334,7 +367,8 @@ function hueFamily(seeds) {
  * Seeds are clustered greedily by hue distance (strongest first), and each
  * family's hue is the chroma-weighted circular mean of its members.
  *
- * @param {{h:number, chroma:number}[]} seeds
+ * @param {{h:number, l?:number, chroma:number}[]} seeds  `l` drives the neutral
+ *   test (see `neutralChromaAt`); without it the flat chroma threshold applies.
  * @param {number} [threshold] degrees; seeds further apart start separate families
  * @returns {{hue:number, chroma:number, count:number}[]} strongest family first
  */
@@ -342,7 +376,7 @@ export function hueFamilies(seeds, threshold = 26) {
   const families = []
 
   for (const seed of [...seeds].sort((a, b) => b.chroma - a.chroma)) {
-    if (seed.chroma < 0.06) continue
+    if (!isChromaticSeed(seed)) continue
     const near = families.find((family) => hueDistance(family.hue, seed.h) <= threshold)
     if (!near) {
       families.push({ hue: seed.h, weight: seed.chroma, count: 1 })
@@ -388,7 +422,7 @@ function chromaToSaturation(chroma, l) {
  * that actually works as a window frame.
  */
 function pickPrimary(seeds, family, mode) {
-  const pool = seeds.filter((s) => s.chroma >= 0.06)
+  const pool = seeds.filter(isChromaticSeed)
   const candidates = pool.length ? pool : seeds
   const idealL = mode === 'dark' ? 26 : 68
 

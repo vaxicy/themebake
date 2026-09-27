@@ -735,6 +735,39 @@ ok(
   }),
 )
 
+// The reported bug: a pale pink (`#FFF0FC`, channel spread 0.059, HSL s 100%) sat
+// just under the flat 0.06 chroma cut, so the solver called it neutral and handed
+// back greys. Chroma does not read the same at every lightness — near white there
+// is barely any room for it, so the neutral bar has to shrink with that room.
+const palePink = solveTheme({ seeds: ['#FFF0FC'] })
+// Local copy: the shared `hueGap` helper is defined further down this file.
+const paleHueGap = (a, b) => {
+  const d = Math.abs(((a - b) % 360 + 360) % 360)
+  return d > 180 ? 360 - d : d
+}
+ok('a pale pink seed is not neutral', palePink.neutral === false)
+ok('a pale pink seed is not solved as greys',
+  FIELD_IDS.some((id) => {
+    const rgb = parseHex(palePink.colors[id])
+    return Math.max(rgb.r, rgb.g, rgb.b) - Math.min(rgb.r, rgb.g, rgb.b) > 8
+  }),
+  palePink.colors.frame)
+ok('a pale pink seed keeps its own hue in the frame',
+  paleHueGap(hexToHsl(palePink.colors.frame).h, hexToHsl('#FFF0FC').h) <= 20,
+  `${hexToHsl(palePink.colors.frame).h.toFixed(0)} vs ${hexToHsl('#FFF0FC').h.toFixed(0)}`)
+ok('a pale pink seed yields a soft, not vivid, surface',
+  hexToHsl(palePink.colors.frame).s <= 55, `s=${hexToHsl(palePink.colors.frame).s.toFixed(0)}`)
+
+// …while an actual rounding-error tint still counts as white, because inventing a
+// hue from a 1/255 difference is exactly what the neutral rule exists to prevent.
+const nearWhite = solveTheme({ seeds: ['#FEFEFE'] })
+ok('a rounding-error tint is still neutral', nearWhite.neutral === true)
+ok('a genuinely near-white seed still yields greys',
+  FIELD_IDS.every((id) => {
+    const rgb = parseHex(nearWhite.colors[id])
+    return rgb.r === rgb.g && rgb.g === rgb.b
+  }))
+
 // Sweep the hue wheel + both intensities: every output must be legible and valid.
 let sweepFailures = []
 const sweepByGroup = new Map()
