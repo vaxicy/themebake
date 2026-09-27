@@ -137,10 +137,10 @@ export default {
     '最左侧图标栏的底色（activityBar.background）；图标本身跟随编辑器文字色。',
   'vscode.field.sidebarBg': '侧边栏背景',
   'vscode.field.sidebarBg.hint':
-    '资源管理器侧边栏（sideBar.background）。面板、状态栏和弹窗默认跟着它 —— 想分开就在下面的「单独控制」里指定。',
-  'vscode.field.titleBg': '标题栏 / 非活动标签',
+    '资源管理器侧边栏（sideBar.background）。同一个分组里的面板、状态栏和弹窗默认跟着它；要分开改，直接改那几项就行。',
+  'vscode.field.titleBg': '标题栏',
   'vscode.field.titleBg.hint':
-    '标题栏与未选中的标签页（titleBar.activeBackground、tab.inactiveBackground、editorGroupHeader.tabsBackground）。',
+    '窗口标题栏（titleBar.activeBackground）。未选中的标签页默认跟着它 —— 想分开改，直接改同一分组里的「非活动标签页背景」。',
   'vscode.field.border': '边框',
   'vscode.field.border.hint':
     '侧边栏、面板、输入框与标签的分隔线，以及滚动条滑块（sideBar.border、panel.border、input.border、tab.border、scrollbarSlider.background）。',
@@ -156,14 +156,9 @@ export default {
   'vscode.field.warningFg.hint':
     '警告波浪线，并参与字符串、数字等语法色的推导（editorWarning.foreground、terminal.ansiYellow）。',
 
-  // ------------------------------------------------------- 单独控制
-  'vscode.override.section': '单独控制',
-  'vscode.override.sectionHint':
-    '下面这些区域默认跟随上面的基准色。它们在 VS Code 里本来是各自独立的颜色（浅色侧边栏配深色状态栏是很常见的搭配），需要时在这里单独指定，预览和导出都会同步。',
-  'vscode.override.otherPairNote':
-    '单独控制是绝对颜色，只属于你刚才编辑的那套（{scheme}）配色。切回那套配色就能修改。',
-  'vscode.override.enable': '单独设置',
-  'vscode.override.inherits': '跟随{source}',
+  // ------------------------------------------------- VS Code 独立区域
+  // 这些区域与上面的基准色同在一个列表里，默认跟随；上面已无「单独控制」分组。
+  'vscode.override.otherPairNote': '这些颜色只属于{scheme}那套配色，切回那套即可调整。',
   'vscode.override.panelBg': '面板背景',
   'vscode.override.panelBg.hint': '问题 / 输出 / 终端那条面板（panel.background）。默认跟随侧边栏背景。',
   'vscode.override.statusBarBg': '状态栏背景',
@@ -171,7 +166,7 @@ export default {
     '最底部那条状态栏（statusBar.background、statusBar.noFolderBackground）。默认跟随侧边栏背景。',
   'vscode.override.inactiveTabBg': '非活动标签页背景',
   'vscode.override.inactiveTabBg.hint':
-    '未选中的标签与标签栏底色（tab.inactiveBackground、editorGroupHeader.tabsBackground）。默认跟随标题栏。',
+    '未选中的标签与标签栏底色（tab.inactiveBackground、editorGroupHeader.tabsBackground）。默认跟随标题栏，改这里就与标题栏分开。',
   'vscode.override.widgetBg': '弹窗与提示背景',
   'vscode.override.widgetBg.hint':
     '命令面板、自动补全、悬浮提示、通知、输入框与下拉（quickInput.background、editorSuggestWidget.background、editorHoverWidget.background、notifications.background、input.background、dropdown.background）。默认跟随侧边栏背景。',
@@ -407,6 +402,9 @@ export default {
   'preview.title': '实时预览',
   'preview.subtitle': '随编辑即时更新。实际应用时 Chrome 可能微调对比度。',
   'preview.showKeys': '显示键名',
+  'preview.clickToEdit': '点击修改这个颜色',
+  'vscode.region.follows': '跟随{source} · {hex}',
+  'vscode.region.reset': '恢复为跟随基准色',
   'preview.mockupAria': '你正在制作的 Chrome 主题的实时预览',
   'preview.omnibox': '搜索或输入网址',
   'preview.ntpSearch': '搜索或输入网址',

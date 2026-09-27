@@ -14,7 +14,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/index.jsx'
 import { normalizeHex } from '../utils/color.js'
 
-export function ColorField({ id, label, hint, value, onChange, onInvalid }) {
+/**
+ * @param {object} props
+ * @param {React.ReactNode} [props.action] optional control rendered with the
+ *   colour inputs (the "hand this region back to the colour it follows" reset).
+ */
+export function ColorField({ id, label, hint, value, onChange, onInvalid, action = null, disabled = false }) {
   const { t } = useI18n()
   const inputId = `${id}-hex`
   const pickerId = `${id}-picker`
@@ -89,7 +94,7 @@ export function ColorField({ id, label, hint, value, onChange, onInvalid }) {
   }
 
   return (
-    <div className="color-field">
+    <div className={`color-field${disabled ? ' is-disabled' : ''}`}>
       <div className="color-field__main">
         <span className="color-field__swatch" style={{ backgroundColor: normalizeHex(value) ?? '#000000' }} aria-hidden="true" />
 
@@ -105,11 +110,13 @@ export function ColorField({ id, label, hint, value, onChange, onInvalid }) {
         </div>
 
         <div className="color-field__controls">
+          {action}
           <input
             id={pickerId}
             type="color"
             className="color-field__picker"
             value={normalizeHex(value) ?? '#000000'}
+            disabled={disabled}
             onChange={(e) => {
               const next = e.target.value
               setDraft(next)
@@ -124,6 +131,7 @@ export function ColorField({ id, label, hint, value, onChange, onInvalid }) {
             type="text"
             className={`color-field__hex${invalid ? ' is-invalid' : ''}`}
             value={draft}
+            disabled={disabled}
             onChange={handleTextChange}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}

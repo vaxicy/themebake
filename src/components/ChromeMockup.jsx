@@ -35,34 +35,66 @@ const TABS = [
 
 const SHORTCUTS = ['Mail', 'Calendar', 'Music', 'Docs']
 
-/** Small annotation badge; only rendered when the key overlay is enabled. */
-function KeyBadge({ children, position = 'top-left' }) {
+/**
+ * Small annotation badge; only rendered when the key overlay is enabled.
+ *
+ * Shared with the VS Code mockup, which has the same overlay for the same reason
+ * (reading a generated theme JSON tells you nothing about which key paints what).
+ */
+export function KeyBadge({ children, position = 'top-left' }) {
   return <span className={`key-badge key-badge--${position}`}>{children}</span>
 }
 
-export function ChromeMockup({ colors, showKeys, logoStyle }) {
+export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
   const { t } = useI18n()
   const safe = Object.fromEntries(
     Object.entries(colors).map(([id, value]) => [id, normalizeHex(value) ?? '#000000']),
   )
   const derived = derivePreviewColors(safe)
 
+  /**
+   * Hovering a region names it and shows the manifest key behind it; clicking it
+   * jumps to that colour in the panel. The tooltip is the discoverable half — no
+   * copy in the panel is needed for it.
+   */
+  const cursorStyle = onPick ? { cursor: 'pointer' } : null
+  const region = (fieldId, chromeKey) => ({
+    title: `${t(`field.${fieldId}.label`)} · ${chromeKey}${onPick ? ` · ${t('preview.clickToEdit')}` : ''}`,
+    // Regions nest (the tab strip contains the tabs, which contain the label), so
+    // the innermost one has to win — without this, clicking a tab would open the
+    // tab-strip colour on the way back up.
+    onClick: onPick
+      ? (event) => {
+          event.stopPropagation()
+          onPick(fieldId)
+        }
+      : undefined,
+  })
+
   return (
     <div className="mockup" role="img" aria-label={t('preview.mockupAria')}>
       <div className="mockup__window" style={{ backgroundColor: safe.toolbar }}>
         {/* ---------------------------- Tab strip ---------------------------- */}
-        <div className="mockup__strip" style={{ backgroundColor: safe.frame }}>
+        <div
+          className="mockup__strip"
+          style={{ backgroundColor: safe.frame, ...cursorStyle }}
+          {...region('frame', 'frame')}
+        >
           {showKeys ? <KeyBadge position="top-left">frame</KeyBadge> : null}
 
           {/* Window controls — coloured by `button_background`. */}
-          <div className="mockup__window-controls" style={{ color: safe.toolbarButtonIcon }}>
+          <div
+            className="mockup__window-controls"
+            style={{ color: safe.toolbarButtonIcon, ...cursorStyle }}
+            {...region('buttonBackground', 'button_background')}
+          >
             {showKeys ? <KeyBadge position="top-right">button_background</KeyBadge> : null}
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
           </div>
 
-          <div className="mockup__tabs">
+          <div className="mockup__tabs" style={cursorStyle} {...region('backgroundTab', 'background_tab')}>
             {TABS.map((tab) => (
               <div
                 key={tab.id}
@@ -107,7 +139,11 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
         </div>
 
         {/* ----------------------------- Toolbar ----------------------------- */}
-        <div className="mockup__toolbar" style={{ backgroundColor: safe.toolbar }}>
+        <div
+          className="mockup__toolbar"
+          style={{ backgroundColor: safe.toolbar, ...cursorStyle }}
+          {...region('toolbar', 'toolbar')}
+        >
           {showKeys ? <KeyBadge position="top-left">toolbar</KeyBadge> : null}
 
           <div className="mockup__nav" style={{ color: safe.toolbarButtonIcon }}>
@@ -122,7 +158,9 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
               backgroundColor: safe.omniboxBackground,
               color: safe.omniboxText,
               borderColor: derived.omniboxBorder,
+              ...cursorStyle,
             }}
+            {...region('omniboxBackground', 'omnibox_background')}
           >
             <SearchIcon size={13} />
             <span className="mockup__omnibox-text">{t('preview.omnibox')}</span>
@@ -144,7 +182,11 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
         </div>
 
         {/* --------------------------- Bookmark bar -------------------------- */}
-        <div className="mockup__bookmarks" style={{ backgroundColor: safe.toolbar }}>
+        <div
+          className="mockup__bookmarks"
+          style={{ backgroundColor: safe.toolbar, ...cursorStyle }}
+          {...region('bookmarkText', 'bookmark_text')}
+        >
           {showKeys ? <KeyBadge position="right">bookmark_text</KeyBadge> : null}
           {['Design', 'Docs', 'Inspiration'].map((label) => (
             <span className="mockup__bookmark" key={label} style={{ color: safe.bookmarkText }}>
@@ -159,7 +201,11 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
 
         {/* ------------------------- New Tab Page area ------------------------ */}
         <div className="mockup__content" style={{ backgroundColor: derived.contentBackground }}>
-          <div className="mockup__ntp" style={{ backgroundColor: safe.ntpBackground }}>
+          <div
+            className="mockup__ntp"
+            style={{ backgroundColor: safe.ntpBackground, ...cursorStyle }}
+            {...region('ntpBackground', 'ntp_background')}
+          >
             {showKeys ? <KeyBadge position="top-left">ntp_background</KeyBadge> : null}
             {/*
               The mockup itself draws no browser logos by design, so the logo
@@ -180,10 +226,18 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
               <span className="mockup__mark mockup__mark--c" style={{ backgroundColor: safe.backgroundTab }} />
             </div>
 
-            <p className="mockup__ntp-title" style={{ color: safe.ntpText }}>
+            <p
+              className="mockup__ntp-title"
+              style={{ color: safe.ntpText, ...cursorStyle }}
+              {...region('ntpText', 'ntp_text')}
+            >
               {t('preview.ntpTitle')}
             </p>
-            <p className="mockup__ntp-subtitle" style={{ color: safe.ntpText, opacity: 0.62 }}>
+            <p
+              className="mockup__ntp-subtitle"
+              style={{ color: safe.ntpText, opacity: 0.62, ...cursorStyle }}
+              {...region('ntpText', 'ntp_text')}
+            >
               {t('preview.ntpSubtitle')}
             </p>
 
@@ -227,7 +281,15 @@ export function ChromeMockup({ colors, showKeys, logoStyle }) {
  * The audit is always rendered — a green "all clear" is information too, and it
  * is the quickest way for a user to know their hand-edits are still legible.
  */
-export function PreviewPanel({ colors, showKeys, onToggleKeys, auditIssues, onFixContrast, logoStyle }) {
+export function PreviewPanel({
+  colors,
+  showKeys,
+  onToggleKeys,
+  auditIssues,
+  onFixContrast,
+  logoStyle,
+  onPickRegion = null,
+}) {
   const { t } = useI18n()
   const issues = auditIssues ?? []
 
@@ -255,7 +317,12 @@ export function PreviewPanel({ colors, showKeys, onToggleKeys, auditIssues, onFi
         </label>
       </div>
 
-      <ChromeMockup colors={colors} showKeys={showKeys} logoStyle={logoStyle} />
+      <ChromeMockup
+        colors={colors}
+        showKeys={showKeys}
+        logoStyle={logoStyle}
+        onPick={onPickRegion}
+      />
 
       <div className={`audit${issues.length ? ' audit--warn' : ' audit--ok'}`} role="status">
         <div className="audit__head">

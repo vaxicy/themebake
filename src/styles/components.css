@@ -190,6 +190,29 @@
 }
 
 /*
+ * A field that a click in the preview just jumped to. The flash is the feedback
+ * that answers "which one moved?" when the colour you clicked has scrolled a long
+ * list into view.
+ */
+.color-field.is-picked {
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* A colour that belongs to the other half of a pair: shown, not editable. */
+.color-field.is-disabled {
+  opacity: 0.55;
+}
+
+/* Preview header: the pair switch and the key overlay sit side by side. */
+.panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/*
  * Hover changes the icon colour only: a second filled box inside a field would
  * read as a nested control rather than an action on the label.
  */

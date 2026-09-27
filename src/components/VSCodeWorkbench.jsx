@@ -24,6 +24,7 @@ import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
+import { ResetIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
 import { useToast } from './Toast.jsx'
 import { DEFAULT_THEME_NAME } from '../data/presets.js'
@@ -98,48 +99,47 @@ const isPairableType = (type) => counterpartTypeFor(type) !== null
  * own colour. A third "half-set" state would leave the exported theme — and the
  * person reading the panel — guessing.
  */
-function OverrideField({ field, value, inherited, onChange, onInvalid }) {
+function RegionField({ field, value, inherited, disabled = false, disabledHint = '', onChange, onInvalid }) {
   const { t } = useI18n()
   const source = vscodeFieldById(field.inherits)
   const sourceLabel = t(source ? source.labelKey : 'vscode.field.sidebarBg')
-  const pinned = typeof value === 'string'
+  const own = !disabled && typeof value === 'string'
 
   return (
-    <div className={`override-field${pinned ? ' is-active' : ''}`}>
-      {pinned ? (
-        <ColorField
-          id={`override-${field.id}`}
-          label={t(field.labelKey)}
-          hint={t(field.hintKey)}
-          value={value}
-          onChange={onChange}
-          onInvalid={onInvalid}
-        />
-      ) : (
-        <div className="override-field__inherited">
-          <span
-            className="override-field__swatch"
-            style={{ backgroundColor: normalizeHex(inherited) ?? '#000000' }}
-            aria-hidden="true"
-          />
-          <span className="override-field__meta">
-            <span className="override-field__label">{t(field.labelKey)}</span>
-            <span className="override-field__hint" id={`override-${field.id}-hint`}>
-              {t('vscode.override.inherits', { source: sourceLabel })} · <code>{inherited}</code>
-            </span>
-          </span>
-        </div>
-      )}
-
-      <label className="override-field__switch" title={t(field.hintKey)}>
-        <input
-          type="checkbox"
-          checked={pinned}
-          onChange={(event) => onChange(event.target.checked ? inherited : null)}
-        />
-        <span>{t('vscode.override.enable')}</span>
-      </label>
-    </div>
+    <ColorField
+      id={field.id}
+      label={t(field.labelKey)}
+      /*
+       * Three states, one line: it follows a master colour (the hint names it and
+       * shows what that resolves to), it has one of its own (the hint goes back to
+       * describing the region), or the other half of a pair is on screen and the
+       * colour belongs to the palette it was chosen against.
+       */
+      hint={
+        disabled
+          ? disabledHint
+          : own
+            ? t(field.hintKey)
+            : t('vscode.region.follows', { source: sourceLabel, hex: inherited })
+      }
+      value={own ? value : inherited}
+      disabled={disabled}
+      onChange={onChange}
+      onInvalid={onInvalid}
+      action={
+        own ? (
+          <button
+            type="button"
+            className="field-action"
+            onClick={() => onChange(null)}
+            title={t('vscode.region.reset')}
+            aria-label={t('vscode.region.reset')}
+          >
+            <ResetIcon size={15} />
+          </button>
+        ) : null
+      }
+    />
   )
 }
 
@@ -250,6 +250,8 @@ export function VSCodeWorkbench({
    * halves are two themes, not one theme and its preview.
    */
   const [editingSlot, setEditingSlot] = useState('primary')
+  /** Preview key-name overlay. A view preference, like the Chrome workbench's. */
+  const [showKeys, setShowKeys] = useState(false)
 
   // ---------------------------------------------------------------------------
   // Undo (Ctrl+Z)
@@ -679,6 +681,55 @@ export function VSCodeWorkbench({
     }
   }, [aiConfig, aiAppliedName, handleApplyAiCandidate, master, toast, t])
 
+  /**
+   * The regions VS Code keeps separate — the panel, the status bar, the inactive
+   * tabs, widgets, line numbers, indent guides — rendered inside the group each
+   * one belongs to, as ordinary colour rows.
+   *
+   * While the *other* half of a pair is on screen they are disabled: these colours
+   * are absolute and belong to the palette they were chosen against, so writing one
+   * would change a theme the user is not looking at. The row then shows the colour
+   * the palette on screen really uses.
+   */
+  const renderRegionFields = useCallback(
+    (group) => {
+      const fields = VSCODE_OVERRIDE_FIELDS.filter((field) => field.group === group.id)
+      if (!fields.length) return null
+      return fields.map((field) => (
+        <RegionField
+          key={field.id}
+          field={field}
+          value={editingPaired ? undefined : overrides[field.id]}
+          inherited={activeColors[field.inherits]}
+          disabled={editingPaired}
+          disabledHint={t('vscode.override.otherPairNote', { scheme: t(`scheme.${scheme}`) })}
+          onChange={(next) => handleOverrideChange(field.id, next)}
+          onInvalid={(label) => toast.error(t('colorField.invalidToast', { label }))}
+        />
+      ))
+    },
+    [activeColors, editingPaired, handleOverrideChange, overrides, scheme, t, toast],
+  )
+
+  /**
+   * Clicking a region in the preview takes you to the colour that paints it: the
+   * row is scrolled into view, flashed, and its hex field focused, so the next
+   * keystroke edits that colour. The workbench equivalent of the Chrome mockup's
+   * behaviour, so the two previews work the same way.
+   */
+  const handlePickField = useCallback((fieldId) => {
+    const input = document.getElementById(`${fieldId}-hex`)
+    if (!input) return
+    input.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const row = input.closest('.color-field') ?? input.closest('.field') ?? input
+    row.classList.add('is-picked')
+    window.setTimeout(() => row.classList.remove('is-picked'), 1500)
+    window.setTimeout(() => {
+      input.focus()
+      input.select?.()
+    }, 380)
+  }, [])
+
   const handleGenerate = useCallback(async () => {
     if (generating) return
     if (!name.trim()) {
@@ -858,40 +909,13 @@ export function VSCodeWorkbench({
               </label>
             </fieldset>
           }
-          footerSlot={
-            <div className="settings-groups">
-              <fieldset className="settings-group">
-                <legend className="settings-group__legend">{t('vscode.override.section')}</legend>
-                {/*
-                  Pins are absolute colours, so they belong to the palette they
-                  were chosen against — the primary one. Showing them while the
-                  other half is on screen would let a user "pin" a region and see
-                  nothing happen, so the section explains itself instead.
-                */}
-                {editingPaired ? (
-                  <p className="settings-group__hint">
-                    {t('vscode.override.otherPairNote', { scheme: t(`scheme.${scheme}`) })}
-                  </p>
-                ) : (
-                  <>
-                    <p className="settings-group__hint">{t('vscode.override.sectionHint')}</p>
-                    <div className="settings-group__fields">
-                      {VSCODE_OVERRIDE_FIELDS.map((field) => (
-                        <OverrideField
-                          key={field.id}
-                          field={field}
-                          value={overrides[field.id]}
-                          inherited={master[field.inherits]}
-                          onChange={(next) => handleOverrideChange(field.id, next)}
-                          onInvalid={(label) => toast.error(t('colorField.invalidToast', { label }))}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </fieldset>
-            </div>
-          }
+          /*
+            The regions VS Code keeps separate are ordinary colour rows in their own
+            group — no section of their own, no "pinned" switch: a colour picked
+            here is what gives the region its own value, and the ↺ beside it hands
+            the region back to the master colour it follows.
+          */
+          groupExtra={renderRegionFields}
           onNameChange={(value) => {
             setName(value)
             if (nameError) setNameError('')
@@ -946,7 +970,8 @@ export function VSCodeWorkbench({
               is named after the scheme *that palette is*, so the two can never be
               mislabelled even if one of them later changes scheme.
             */}
-            {counterpart ? (
+            <div className="panel__header-actions">
+              {counterpart ? (
               <div
                 className="segmented segmented--pair"
                 role="radiogroup"
@@ -971,10 +996,33 @@ export function VSCodeWorkbench({
                   </label>
                 ))}
               </div>
-            ) : null}
+              ) : null}
+
+              {/*
+                The same overlay the Chrome preview has: names every region with the
+                workbench key it becomes, which is the only way to tell a generated
+                theme's 90+ keys apart. Clicking a region jumps to its colour.
+              */}
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showKeys}
+                  onChange={() => setShowKeys((value) => !value)}
+                />
+                <span className="switch__track" aria-hidden="true">
+                  <span className="switch__thumb" />
+                </span>
+                <span className="switch__label">{t('preview.showKeys')}</span>
+              </label>
+            </div>
           </div>
 
-          <VSCodeMockup colors={activeColors} overrides={editingPaired ? {} : overrides} />
+          <VSCodeMockup
+            colors={activeColors}
+            overrides={editingPaired ? {} : overrides}
+            showKeys={showKeys}
+            onPick={handlePickField}
+          />
 
           <p className="export-panel__note">
             {t('vscode.preview.derived', {

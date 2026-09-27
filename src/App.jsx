@@ -274,6 +274,25 @@ export default function App() {
   /** Re-checked on every colour change: the safety net under manual edits. */
   const auditIssues = useMemo(() => auditContrast(colors), [colors])
 
+  /**
+   * Clicking a region in the preview takes you to the colour that paints it: the
+   * row is scrolled into view, flashed, and its hex field focused, so the next
+   * keystroke edits that colour. Faster than hunting for the matching row in a
+   * list of thirteen, and it is how you find out which field owns a region.
+   */
+  const handlePickField = useCallback((fieldId) => {
+    const input = document.getElementById(`${fieldId}-hex`)
+    if (!input) return
+    input.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const row = input.closest('.color-field') ?? input.closest('.field') ?? input
+    row.classList.add('is-picked')
+    window.setTimeout(() => row.classList.remove('is-picked'), 1500)
+    window.setTimeout(() => {
+      input.focus()
+      input.select?.()
+    }, 380)
+  }, [])
+
   const storageWarning = storageWarningKey ? t(storageWarningKey) : null
 
   /** Is the AI usable at all? Every AI action needs a key on the shared path. */
@@ -1051,6 +1070,7 @@ export default function App() {
               auditIssues={auditIssues}
               onFixContrast={handleFixContrast}
               logoStyle={logoStyle}
+              onPickRegion={handlePickField}
             />
             <ExportPanel
               colorFormat={colorFormat}

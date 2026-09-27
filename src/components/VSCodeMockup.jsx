@@ -15,6 +15,9 @@
 import { buildTokenColors, buildVscodeColors } from '../vscode/build.js'
 import { normalizeHex } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
+// The key-overlay badge is shared with the Chrome mockup: both previews answer the
+// same question ("which key paints this?") with the same affordance.
+import { KeyBadge } from './ChromeMockup.jsx'
 
 /** Activity bar icons, drawn as neutral shapes. */
 const ACTIVITY_ICONS = ['files', 'search', 'git', 'debug', 'extensions']
@@ -68,7 +71,7 @@ const CODE_LINES = [
   ],
 ]
 
-export function VSCodeMockup({ colors, overrides = {} }) {
+export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick = null }) {
   const { t } = useI18n()
   const master = Object.fromEntries(
     Object.entries(colors).map(([id, value]) => [id, normalizeHex(value) ?? '#000000']),
@@ -79,10 +82,33 @@ export function VSCodeMockup({ colors, overrides = {} }) {
   const derived = buildVscodeColors(master, overrides)
   const tokens = buildTokenColors(master).palette
 
+  /**
+   * Hovering a region names it and prints the workbench key it becomes; clicking
+   * jumps to the colour field that paints it. The same contract as the Chrome
+   * mockup, so the two previews behave alike.
+   */
+  const cursorStyle = onPick ? { cursor: 'pointer' } : null
+  const region = (fieldId, key, labelKey) => ({
+    title: `${t(labelKey)} · ${key}${onPick ? ` · ${t('preview.clickToEdit')}` : ''}`,
+    // Regions nest (the tab strip holds the tabs, the editor holds its lines), so
+    // the innermost one wins the click.
+    onClick: onPick
+      ? (event) => {
+          event.stopPropagation()
+          onPick(fieldId)
+        }
+      : undefined,
+  })
+
   return (
     <div className="vsc" role="img" aria-label={t('vscode.preview.aria')}>
       {/* ------------------------------ title bar ------------------------------ */}
-      <div className="vsc__title" style={{ backgroundColor: derived['titleBar.activeBackground'] }}>
+      <div
+        className="vsc__title"
+        style={{ backgroundColor: derived['titleBar.activeBackground'], ...cursorStyle }}
+        {...region('titleBg', 'titleBar.activeBackground', 'vscode.field.titleBg')}
+      >
+        {showKeys ? <KeyBadge position="top-right">titleBar.activeBackground</KeyBadge> : null}
         <span className="vsc__title-dots">
           <i />
           <i />
@@ -95,7 +121,12 @@ export function VSCodeMockup({ colors, overrides = {} }) {
 
       <div className="vsc__body">
         {/* ---------------------------- activity bar --------------------------- */}
-        <div className="vsc__activity" style={{ backgroundColor: derived['activityBar.background'] }}>
+        <div
+          className="vsc__activity"
+          style={{ backgroundColor: derived['activityBar.background'], ...cursorStyle }}
+          {...region('activityBg', 'activityBar.background', 'vscode.field.activityBg')}
+        >
+          {showKeys ? <KeyBadge position="bottom-left">activityBar.background</KeyBadge> : null}
           {ACTIVITY_ICONS.map((icon, index) => (
             <span
               key={icon}
@@ -109,7 +140,12 @@ export function VSCodeMockup({ colors, overrides = {} }) {
         </div>
 
         {/* ------------------------------ sidebar ------------------------------ */}
-        <div className="vsc__sidebar" style={{ backgroundColor: derived['sideBar.background'] }}>
+        <div
+          className="vsc__sidebar"
+          style={{ backgroundColor: derived['sideBar.background'], ...cursorStyle }}
+          {...region('sidebarBg', 'sideBar.background', 'vscode.field.sidebarBg')}
+        >
+          {showKeys ? <KeyBadge position="bottom-left">sideBar.background</KeyBadge> : null}
           <div className="vsc__sidebar-title" style={{ color: derived['sideBar.foreground'] }}>
             EXPLORER
           </div>
@@ -134,7 +170,12 @@ export function VSCodeMockup({ colors, overrides = {} }) {
 
         {/* -------------------------- tabs + editor ---------------------------- */}
         <div className="vsc__main">
-          <div className="vsc__tabs" style={{ backgroundColor: derived['editorGroupHeader.tabsBackground'] }}>
+          <div
+            className="vsc__tabs"
+            style={{ backgroundColor: derived['editorGroupHeader.tabsBackground'], ...cursorStyle }}
+            {...region('inactiveTabBg', 'editorGroupHeader.tabsBackground', 'vscode.override.inactiveTabBg')}
+          >
+            {showKeys ? <KeyBadge position="top-right">editorGroupHeader.tabsBackground</KeyBadge> : null}
             <span
               className="vsc__tab is-active"
               style={{
@@ -157,7 +198,12 @@ export function VSCodeMockup({ colors, overrides = {} }) {
             </span>
           </div>
 
-          <div className="vsc__editor" style={{ backgroundColor: derived['editor.background'] }}>
+          <div
+            className="vsc__editor"
+            style={{ backgroundColor: derived['editor.background'], ...cursorStyle }}
+            {...region('editorBg', 'editor.background', 'vscode.field.editorBg')}
+          >
+            {showKeys ? <KeyBadge position="top-right">editor.background</KeyBadge> : null}
             {CODE_LINES.map((line, index) => (
               <div
                 key={index}
@@ -192,8 +238,14 @@ export function VSCodeMockup({ colors, overrides = {} }) {
       */}
       <div
         className="vsc__panel"
-        style={{ backgroundColor: derived['panel.background'], borderTopColor: derived['panel.border'] }}
+        style={{
+          backgroundColor: derived['panel.background'],
+          borderTopColor: derived['panel.border'],
+          ...cursorStyle,
+        }}
+        {...region('panelBg', 'panel.background', 'vscode.override.panelBg')}
       >
+        {showKeys ? <KeyBadge position="top-right">panel.background</KeyBadge> : null}
         <span
           className="vsc__panel-tab is-active"
           style={{
@@ -213,7 +265,12 @@ export function VSCodeMockup({ colors, overrides = {} }) {
       </div>
 
       {/* ------------------------------ status bar ----------------------------- */}
-      <div className="vsc__status" style={{ backgroundColor: derived['statusBar.background'] }}>
+      <div
+        className="vsc__status"
+        style={{ backgroundColor: derived['statusBar.background'], ...cursorStyle }}
+        {...region('statusBarBg', 'statusBar.background', 'vscode.override.statusBarBg')}
+      >
+        {showKeys ? <KeyBadge position="bottom-right">statusBar.background</KeyBadge> : null}
         <span style={{ color: derived['statusBar.foreground'] }}>main*</span>
         <span className="vsc__status-right" style={{ color: derived['statusBar.foreground'] }}>
           Ln 4, Col 12 · Spaces: 2 · UTF-8

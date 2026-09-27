@@ -149,10 +149,10 @@ export default {
     'The leftmost icon bar (activityBar.background); its icons follow the editor text colour.',
   'vscode.field.sidebarBg': 'Sidebar background',
   'vscode.field.sidebarBg.hint':
-    'The Explorer sidebar (sideBar.background). The panel, the status bar and popups follow it by default — pin them separately under “Pin a region” below.',
-  'vscode.field.titleBg': 'Title bar / inactive tabs',
+    'The Explorer sidebar (sideBar.background). The panel, the status bar and popups in this same group follow it by default — change those rows to separate them.',
+  'vscode.field.titleBg': 'Title bar',
   'vscode.field.titleBg.hint':
-    'Title bar and the unselected tabs (titleBar.activeBackground, tab.inactiveBackground, editorGroupHeader.tabsBackground).',
+    'The window title bar (titleBar.activeBackground). Unselected tabs follow it by default — change “Inactive tab background” in this same group to separate them.',
   'vscode.field.border': 'Borders',
   'vscode.field.border.hint':
     'Separators for sidebar, panel, inputs and tabs, plus the scrollbar slider (sideBar.border, panel.border, input.border, tab.border, scrollbarSlider.background).',
@@ -168,14 +168,11 @@ export default {
   'vscode.field.warningFg.hint':
     'Warning squiggles; it also steers the string and number token colours (editorWarning.foreground, terminal.ansiYellow).',
 
-  // ------------------------------------------------------- pinned regions
-  'vscode.override.section': 'Pin a region',
-  'vscode.override.sectionHint':
-    'These regions follow the master palette above. In VS Code they are separate surfaces — a light sidebar with a dark status bar is a completely normal pairing — so pin one here and both the preview and the export follow.',
+  // ------------------------------------------------------- separate regions
+  // These rows sit in the same list as the master colours and follow by default;
+  // there is no separate "pin a region" section any more.
   'vscode.override.otherPairNote':
-    'Pinned regions are absolute colours, so they belong to the {scheme} palette you were editing. Switch back to it to change them.',
-  'vscode.override.enable': 'Pin',
-  'vscode.override.inherits': 'Follows {source}',
+    'These colours belong to the {scheme} palette — switch back to it to change them.',
   'vscode.override.panelBg': 'Panel background',
   'vscode.override.panelBg.hint':
     'The Problems / Output / Terminal strip (panel.background). Follows the sidebar by default.',
@@ -184,7 +181,7 @@ export default {
     'The bottom status bar (statusBar.background, statusBar.noFolderBackground). Follows the sidebar by default.',
   'vscode.override.inactiveTabBg': 'Inactive tab background',
   'vscode.override.inactiveTabBg.hint':
-    'Unselected tabs and the tab strip (tab.inactiveBackground, editorGroupHeader.tabsBackground). Follows the title bar by default.',
+    'Unselected tabs and the tab strip (tab.inactiveBackground, editorGroupHeader.tabsBackground). Follows the title bar by default — set a colour here to separate them.',
   'vscode.override.widgetBg': 'Popup and widget background',
   'vscode.override.widgetBg.hint':
     'Command palette, suggestions, hover tooltips, notifications, inputs and dropdowns (quickInput.background, editorSuggestWidget.background, editorHoverWidget.background, notifications.background, input.background, dropdown.background). Follows the sidebar by default.',
@@ -435,6 +432,9 @@ export default {
   'preview.title': 'Live Preview',
   'preview.subtitle': 'Updates as you edit. Chrome may fine-tune contrast slightly on apply.',
   'preview.showKeys': 'Show keys',
+  'preview.clickToEdit': 'click to edit this colour',
+  'vscode.region.follows': 'Follows {source} · {hex}',
+  'vscode.region.reset': 'Go back to following the base colour',
   'preview.mockupAria': 'Live preview of the Chrome theme you are building',
   'preview.omnibox': 'Search or enter address',
   'preview.ntpSearch': 'Search or type a URL',

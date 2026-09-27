@@ -2366,6 +2366,21 @@ const rest = buildVscodeColors(MASTER, {
 })
 ok('pinned inactive tabs cover the tab strip too',
   rest['tab.inactiveBackground'] === '#101010' && rest['editorGroupHeader.tabsBackground'] === '#101010')
+// The title bar and the unselected tabs are two colours, not one — the field used
+// to be labelled "title bar / inactive tabs" and read as a single decision. The
+// title bar's colour drives only its own key; the tab row is what separates the
+// tabs from it, and until it is set they keep following.
+ok('the inactive tabs do not drag the title bar with them',
+  rest['titleBar.activeBackground'] === MASTER.titleBg, rest['titleBar.activeBackground'])
+const titleBarOnly = buildVscodeColors({ ...MASTER, titleBg: '#123456' })
+ok('tabs follow a new title-bar colour until told otherwise',
+  titleBarOnly['titleBar.activeBackground'] === '#123456' &&
+    titleBarOnly['tab.inactiveBackground'] === '#123456')
+const barsApart = buildVscodeColors({ ...MASTER, titleBg: '#123456' }, { inactiveTabBg: '#654321' })
+ok('the title bar and the tabs hold two different colours',
+  barsApart['titleBar.activeBackground'] === '#123456' &&
+    barsApart['tab.inactiveBackground'] === '#654321' &&
+    barsApart['editorGroupHeader.tabsBackground'] === '#654321')
 ok('pinned widgets cover every widget surface',
   ['input.background', 'dropdown.background', 'editorWidget.background', 'editorHoverWidget.background',
     'editorSuggestWidget.background', 'notifications.background', 'quickInput.background'].every(
@@ -2625,6 +2640,15 @@ ok('the flipped half builds a shell of its own',
   pairShell.sidebarBg && pairShell.activityBg && pairShell.titleBg &&
     new Set([pairShell.editorBg, pairShell.sidebarBg, pairShell.activityBg]).size === 3,
   `${pairShell.editorBg} ${pairShell.sidebarBg} ${pairShell.activityBg}`)
+
+// The regions VS Code keeps separate are ordinary colour rows in the panel now —
+// each one lives in a group, follows a real master field, and gets its own value
+// only when the user picks a colour (the ↺ hands it back).
+ok('every separate region declares a group to sit in',
+  VSCODE_OVERRIDE_FIELDS.every((field) => typeof field.group === 'string' && field.group.length > 0))
+ok('the separate regions sit in the groups they belong to',
+  new Set(VSCODE_OVERRIDE_FIELDS.map((field) => field.group)).size === 2,
+  [...new Set(VSCODE_OVERRIDE_FIELDS.map((field) => field.group))].join(','))
 
 // ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)

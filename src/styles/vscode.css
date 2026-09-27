@@ -133,6 +133,22 @@
   user-select: none;
 }
 
+/*
+ * The key overlay anchors to the region it names. Its badges are absolutely
+ * positioned (see `.key-badge`), so each region they sit in has to be a containing
+ * block — without this they anchor to the page and are clipped by `.vsc`'s
+ * `overflow: hidden`, i.e. the overlay silently shows nothing.
+ */
+.vsc__title,
+.vsc__activity,
+.vsc__sidebar,
+.vsc__tabs,
+.vsc__editor,
+.vsc__panel,
+.vsc__status {
+  position: relative;
+}
+
 .vsc__title {
   display: flex;
   align-items: center;

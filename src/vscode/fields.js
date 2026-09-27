@@ -92,45 +92,58 @@ export function vscodeFieldById(id) {
  * differently. A theme whose sidebar is light and whose status bar is brown is
  * perfectly normal in VS Code and simply not expressible through one field.
  *
- * So each of these starts out *inheriting* a master field and can be pinned to
- * its own colour. `inherits` is the master field id, which is what the UI shows
- * as "follows …" and what an empty override falls back to.
+ * So each of these starts out *inheriting* a master field and can be given its
+ * own colour. `inherits` is the master field id, which is what the UI shows as
+ * "跟随 …" and what an empty override falls back to.
  *
- * @type {{id:string, labelKey:string, hintKey:string, inherits:string}[]}
+ * In the panel they are ordinary colour rows sitting in their own group — the same
+ * kind of control as every other colour, showing the colour they resolve to while
+ * they follow. Picking a colour is what gives one its own value; the ↺ beside it
+ * hands it back to the master field. No checkbox, no separate section.
+ *
+ * @type {{id:string, group:string, labelKey:string, hintKey:string, inherits:string}[]}
  */
 export const VSCODE_OVERRIDE_FIELDS = [
   {
+    // First in the group so the row that the title bar hands off to sits next to
+    // the shell colours it belongs with, rather than at the end of the group.
+    id: 'inactiveTabBg',
+    group: 'Shell',
+    labelKey: 'vscode.override.inactiveTabBg',
+    hintKey: 'vscode.override.inactiveTabBg.hint',
+    inherits: 'titleBg',
+  },
+  {
     id: 'panelBg',
+    group: 'Shell',
     labelKey: 'vscode.override.panelBg',
     hintKey: 'vscode.override.panelBg.hint',
     inherits: 'sidebarBg',
   },
   {
     id: 'statusBarBg',
+    group: 'Shell',
     labelKey: 'vscode.override.statusBarBg',
     hintKey: 'vscode.override.statusBarBg.hint',
     inherits: 'sidebarBg',
   },
   {
-    id: 'inactiveTabBg',
-    labelKey: 'vscode.override.inactiveTabBg',
-    hintKey: 'vscode.override.inactiveTabBg.hint',
-    inherits: 'titleBg',
-  },
-  {
     id: 'widgetBg',
+    group: 'Shell',
     labelKey: 'vscode.override.widgetBg',
     hintKey: 'vscode.override.widgetBg.hint',
     inherits: 'sidebarBg',
   },
   {
     id: 'lineNumberFg',
+    group: 'Editor',
     labelKey: 'vscode.override.lineNumberFg',
     hintKey: 'vscode.override.lineNumberFg.hint',
     inherits: 'mutedFg',
   },
   {
     id: 'indentGuideFg',
+    group: 'Editor',
     labelKey: 'vscode.override.indentGuideFg',
     hintKey: 'vscode.override.indentGuideFg.hint',
     inherits: 'border',
