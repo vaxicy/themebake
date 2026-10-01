@@ -425,6 +425,23 @@ Ctrl+Z 不会动到主题），还有**新标签页 Logo 控件**：两个取值
 少了这层转发，对着远程地址跑就会在文档请求上报 `net::ERR_CONNECTION_CLOSED`，
 而同一个地址用 `fetch` 明明是 200 —— 看起来和「部署挂了」一模一样。
 
+### 预览覆盖率审计 —— 每个能改的颜色在预览里都要看得见
+
+面板和预览是同一份清单的两个视图：一个颜色如果在预览里没有落点，用户改完只能凭想象，屏幕上
+什么都不动。`scripts/check-preview-coverage.py`（Python Playwright，和抓图脚本一样）逐色验证
+这件事：把**每一个**可编辑颜色写成一个独特的哨兵色，渲染后读回预览里所有计算样式，再要求每个
+哨兵色都出现在**属于它自己的那个区域**里（`data-tip-label` / `data-tip-key`）。
+
+```bash
+npm run build
+python3 -m http.server 6799 --directory dist
+python3 scripts/check-preview-coverage.py --url http://127.0.0.1:6799/   # 不带 --url 则审计线上
+```
+
+要求「出现在自己的区域里」而不是「出现在页面上」，是为了抓住更安静的那类 bug：区域在，但画的是
+别的派生色（比如「面板背景」的区域其实用的是侧边栏的颜色）。唯一豁免是 Chrome 的 `frame_inactive`
+—— 那是窗口失焦时的框架色，静态预览里画不出第二个焦点状态。
+
 ---
 
 ## 构建
@@ -487,7 +504,8 @@ themebake/
 ├── scripts/
 │   ├── verify.mjs              # 自检脚本（npm run verify）
 │   ├── inspect-palette.mjs     # 这套配色到底是怎么解出来的？
-│   └── capture-docs.py         # 重新抓这两个 README 截图
+│   ├── capture-docs.py         # 重新抓这两个 README 截图
+│   └── check-preview-coverage.py  # 每个能改的颜色在预览里真的都有效果吗？
 └── src/
     ├── main.jsx                # 入口，引入全局 CSS
     ├── App.jsx                 # 应用外壳 + 全部状态、派生出的 manifest

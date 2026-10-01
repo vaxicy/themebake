@@ -505,6 +505,27 @@ system's own settings instead. Without the forwarding, running against a remote
 URL fails with `net::ERR_CONNECTION_CLOSED` on the document request while the same
 URL returns 200 from `fetch`, which looks exactly like a broken deployment.
 
+### Preview coverage — every editable colour has to show up in the preview
+
+The panel and the preview are two views of one list, and a colour with no surface in
+the preview is one the user changes on faith: nothing on screen moves.
+`scripts/check-preview-coverage.py` (Python Playwright, like the screenshot script)
+settles that colour by colour: each editable colour is written as its own sentinel,
+the preview is rendered, every computed colour inside it is read back, and each
+sentinel must appear **inside its own region** (`data-tip-label` / `data-tip-key`).
+
+```bash
+npm run build
+python3 -m http.server 6799 --directory dist
+python3 scripts/check-preview-coverage.py --url http://127.0.0.1:6799/   # no --url audits production
+```
+
+"Asking for its own region" rather than "appearing somewhere on the page" is what
+catches the quieter bug: the region is there, but it is painted from the wrong
+derived colour (a "panel background" region showing the sidebar's colour). The one
+exemption is Chrome's `frame_inactive` — the frame of an *unfocused* window, which a
+still preview has no second focus state to draw.
+
 ---
 
 ## Build
@@ -570,7 +591,8 @@ themebake/
 ├── scripts/
 │   ├── verify.mjs              # Headless self-check (npm run verify)
 │   ├── inspect-palette.mjs     # Why did this palette solve that way?
-│   └── capture-docs.py         # Re-shoots both README screenshots
+│   ├── capture-docs.py         # Re-shoots both README screenshots
+│   └── check-preview-coverage.py  # Does every editable colour show up in the preview?
 └── src/
     ├── main.jsx                # Entry point, global CSS imports
     ├── App.jsx                 # App shell + all state, derived manifest
