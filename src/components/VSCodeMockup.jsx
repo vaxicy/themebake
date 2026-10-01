@@ -15,12 +15,63 @@
 import { buildTokenColors, buildVscodeColors } from '../vscode/build.js'
 import { normalizeHex } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
-// The key-overlay badge is shared with the Chrome mockup: both previews answer the
-// same question ("which key paints this?") with the same affordance.
-import { KeyBadge } from './ChromeMockup.jsx'
 
-/** Activity bar icons, drawn as neutral shapes. */
-const ACTIVITY_ICONS = ['files', 'search', 'git', 'debug', 'extensions']
+/**
+ * Activity bar icons, drawn as outlines the way VS Code draws its own.
+ *
+ * The mockup shipped with five identical squares, which said "there is an icon
+ * here" and nothing else. Five recognisable glyphs are what make the strip read as
+ * the workbench's activity bar rather than as decoration.
+ */
+const ACTIVITY_ICONS = [
+  {
+    id: 'files',
+    art: (
+      <>
+        <path d="M5 2.5h3.6L12 5.9v7.6H5z" />
+        <path d="M8.6 2.5v3.4H12" />
+      </>
+    ),
+  },
+  {
+    id: 'search',
+    art: (
+      <>
+        <circle cx="7.6" cy="7.6" r="4.1" />
+        <path d="M10.7 10.7l2.8 2.8" />
+      </>
+    ),
+  },
+  {
+    id: 'git',
+    art: (
+      <>
+        <circle cx="5.6" cy="4" r="1.7" />
+        <circle cx="5.6" cy="12" r="1.7" />
+        <circle cx="11.4" cy="8" r="1.7" />
+        <path d="M5.6 5.7v4.6M7.3 8h2.4" />
+      </>
+    ),
+  },
+  {
+    id: 'run',
+    art: <path d="M6 3.6l6.4 4.4L6 12.4z" />,
+  },
+  {
+    id: 'extensions',
+    art: (
+      <>
+        <rect x="3.4" y="3.4" width="4" height="4" />
+        <rect x="9.4" y="3.4" width="4" height="4" />
+        <rect x="3.4" y="9.4" width="4" height="4" />
+        <rect x="9.4" y="9.4" width="4" height="4" />
+      </>
+    ),
+  },
+]
+
+/** The menu bar, as a Windows VS Code window shows it. */
+const MENUS = ['File', 'Edit', 'Selection', 'View', 'Go', 'Run', 'Terminal', 'Help']
 
 /** The line the caret is on: highlighted, its number accented, its guide brighter. */
 const CURRENT_LINE = 3
@@ -100,7 +151,7 @@ const CODE_LINES = [
   ],
 ]
 
-export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick = null }) {
+export function VSCodeMockup({ colors, overrides = {}, onPick = null }) {
   const { t } = useI18n()
   const master = Object.fromEntries(
     Object.entries(colors).map(([id, value]) => [id, normalizeHex(value) ?? '#000000']),
@@ -143,14 +194,20 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
         style={{ backgroundColor: derived['titleBar.activeBackground'], ...cursorStyle }}
         {...region('titleBg', 'titleBar.activeBackground', 'vscode.field.titleBg')}
       >
-        {showKeys ? <KeyBadge position="top-right">titleBar.activeBackground</KeyBadge> : null}
-        <span className="vsc__title-dots">
-          <i />
-          <i />
-          <i />
+        {/* Menu bar, window title, window controls — the order a Windows VS Code
+            window puts them in. */}
+        <span className="vsc__menu" style={{ color: derived['titleBar.activeForeground'] }}>
+          {MENUS.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
         </span>
         <span className="vsc__title-name" style={{ color: derived['titleBar.activeForeground'] }}>
           themebake — Visual Studio Code
+        </span>
+        <span className="vsc__window-controls" style={{ color: derived['titleBar.activeForeground'] }}>
+          <i className="vsc__window-control vsc__window-control--min" />
+          <i className="vsc__window-control vsc__window-control--max" />
+          <i className="vsc__window-control vsc__window-control--close" />
         </span>
       </div>
 
@@ -161,16 +218,18 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
           style={{ backgroundColor: derived['activityBar.background'], ...cursorStyle }}
           {...region('activityBg', 'activityBar.background', 'vscode.field.activityBg')}
         >
-          {showKeys ? <KeyBadge position="bottom-left">activityBar.background</KeyBadge> : null}
           {ACTIVITY_ICONS.map((icon, index) => (
             <span
-              key={icon}
+              key={icon.id}
               className={`vsc__activity-icon${index === 0 ? ' is-active' : ''}`}
               style={{
                 color: index === 0 ? derived['activityBar.foreground'] : derived['activityBar.inactiveForeground'],
                 borderColor: index === 0 ? derived['activityBar.activeBorder'] : 'transparent',
               }}
             >
+              <svg className="vsc__activity-art" viewBox="0 0 16 16" aria-hidden="true">
+                {icon.art}
+              </svg>
               {/*
                 An unread badge on the first icon. It is how VS Code paints
                 `activityBarBadge.background` / `.foreground` — the button colours,
@@ -201,7 +260,6 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
           style={{ backgroundColor: derived['sideBar.background'], ...cursorStyle }}
           {...region('sidebarBg', 'sideBar.background', 'vscode.field.sidebarBg')}
         >
-          {showKeys ? <KeyBadge position="bottom-left">sideBar.background</KeyBadge> : null}
           <div className="vsc__sidebar-title" style={{ color: derived['sideBar.foreground'] }}>
             EXPLORER
           </div>
@@ -252,7 +310,6 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
             style={{ backgroundColor: derived['editorGroupHeader.tabsBackground'], ...cursorStyle }}
             {...region('inactiveTabBg', 'editorGroupHeader.tabsBackground', 'vscode.override.inactiveTabBg')}
           >
-            {showKeys ? <KeyBadge position="top-right">editorGroupHeader.tabsBackground</KeyBadge> : null}
             <span
               className="vsc__tab is-active"
               style={{
@@ -261,7 +318,9 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
                 borderTopColor: derived['tab.activeBorderTop'],
               }}
             >
+              <i className="vsc__tab-dot" style={{ backgroundColor: tokens.func }} />
               theme.js
+              <i className="vsc__tab-close">×</i>
             </span>
             <span
               className="vsc__tab"
@@ -272,6 +331,15 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
               }}
             >
               palette.js
+              <i className="vsc__tab-close">×</i>
+            </span>
+            <span className="vsc__tab-add" style={{ color: derived['tab.inactiveForeground'] }}>
+              +
+            </span>
+            {/* Split editor and view actions, as the tab row's right end carries. */}
+            <span className="vsc__tab-actions" style={{ color: derived['tab.inactiveForeground'] }}>
+              <i className="vsc__tab-action vsc__tab-action--split" />
+              <i className="vsc__tab-action vsc__tab-action--more" />
             </span>
           </div>
 
@@ -280,7 +348,13 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
             style={{ backgroundColor: derived['editor.background'], ...cursorStyle }}
             {...region('editorBg', 'editor.background', 'vscode.field.editorBg')}
           >
-            {showKeys ? <KeyBadge position="top-right">editor.background</KeyBadge> : null}
+            {/* Breadcrumb: no colour of its own in the theme — VS Code paints it on
+                the editor background in the editor's ink. */}
+            <div className="vsc__breadcrumb" style={{ color: derived['editor.foreground'] }}>
+              <span>src</span>
+              <i className="vsc__breadcrumb-sep">›</i>
+              <span>theme.js</span>
+            </div>
             {CODE_LINES.map((line, index) => {
               const current = index === CURRENT_LINE
               // Indentation guides sit at the column the indentation ends at, so
@@ -389,9 +463,6 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
               }}
               {...region('widgetBg', 'editorSuggestWidget.background', 'vscode.override.widgetBg')}
             >
-              {showKeys ? (
-                <KeyBadge position="top-right">editorSuggestWidget.background</KeyBadge>
-              ) : null}
               <span
                 className="vsc__suggest-row is-selected"
                 style={{ backgroundColor: derived['editorSuggestWidget.selectedBackground'], ...cursorStyle }}
@@ -421,7 +492,6 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
         }}
         {...region('panelBg', 'panel.background', 'vscode.override.panelBg')}
       >
-        {showKeys ? <KeyBadge position="top-right">panel.background</KeyBadge> : null}
         <span className="vsc__panel-tabs">
           <span
             className="vsc__panel-tab is-active"
@@ -470,10 +540,27 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
         style={{ backgroundColor: derived['statusBar.background'], ...cursorStyle }}
         {...region('statusBarBg', 'statusBar.background', 'vscode.override.statusBarBg')}
       >
-        {showKeys ? <KeyBadge position="bottom-right">statusBar.background</KeyBadge> : null}
-        <span style={{ color: derived['statusBar.foreground'] }}>main*</span>
+        <span className="vsc__status-side" style={{ color: derived['statusBar.foreground'] }}>
+          {/* The branch, the dirty marker, then the problem counts. */}
+          <svg className="vsc__status-glyph" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="5.6" cy="4" r="1.7" />
+            <circle cx="5.6" cy="12" r="1.7" />
+            <circle cx="11.4" cy="8" r="1.7" />
+            <path d="M5.6 5.7v4.6M7.3 8h2.4" />
+          </svg>
+          main*
+          <svg className="vsc__status-glyph" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M3.5 8a4.5 4.5 0 0 1 7.7-3.2M12.5 8a4.5 4.5 0 0 1-7.7 3.2" />
+            <path d="M11.2 2.6v2.4H8.8M4.8 13.4v-2.4h2.4" />
+          </svg>
+          <span className="vsc__status-count">0</span>
+          <span className="vsc__status-count">△ 0</span>
+        </span>
         <span className="vsc__status-right" style={{ color: derived['statusBar.foreground'] }}>
-          Ln 4, Col 12 · Spaces: 2 · UTF-8
+          Ln 4, Col 12
+          <span className="vsc__status-item">Spaces: 2</span>
+          <span className="vsc__status-item">UTF-8</span>
+          <span className="vsc__status-item">{'{ }'}</span>
         </span>
       </div>
     </div>

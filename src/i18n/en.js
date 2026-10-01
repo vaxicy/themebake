@@ -106,13 +106,11 @@ export default {
   'vscode.type.label': 'Theme type',
   'vscode.type.dark': 'Dark',
   'vscode.type.light': 'Light',
-  'vscode.type.hc': 'High contrast',
   'vscode.type.hint':
-    'Dark and light follow the primary palette — {scheme} right now, which is also the type written into the theme JSON. Picking the other card re-solves the primary palette for it (the other half is untouched); high contrast is a rendering mode, so it stays a manual choice.',
+    'Dark and light follow the primary palette — {scheme} right now, which is also the type written into the theme JSON. Picking the other card re-solves the primary palette for it (the other half is untouched).',
   'vscode.pair.label': 'Also generate the opposite scheme',
   'vscode.pair.hint':
     'Derives the {other} palette from your colours and exports both themes from one package. The preview switch flips between them.',
-  'vscode.pair.hcUnsupported': 'High contrast has no light/dark counterpart, so pairing is unavailable.',
   'vscode.autoClearTitle':
     'Clears the theme name and folder name whenever a new theme is applied (preset, random, smart palette, palette import)',
   'vscode.name.hint':
@@ -433,7 +431,6 @@ export default {
   // ------------------------------------------------------------------ preview
   'preview.title': 'Live Preview',
   'preview.subtitle': 'Updates as you edit. Chrome may fine-tune contrast slightly on apply.',
-  'preview.showKeys': 'Show keys',
   'preview.clickToEdit': 'click to edit this colour',
   'vscode.region.follows': 'Follows {source} · {hex}',
   'vscode.region.reset': 'Go back to following the base colour',

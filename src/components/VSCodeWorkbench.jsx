@@ -90,8 +90,6 @@ const VSCODE_STRIP_ITEMS = [
   { id: 'border', labelKey: 'vscode.field.border' },
 ]
 
-const isPairableType = (type) => counterpartTypeFor(type) !== null
-
 /**
  * One pinnable region.
  *
@@ -156,7 +154,7 @@ function readInitialState() {
       // Healed on load: a draft saved before the palette became the source of
       // truth can say "light" while holding dark colours, and that is exactly the
       // state that used to render a light theme dark.
-      type: resolveType(declared, colors),
+      type: resolveType(colors),
       colors,
       // The other half of a light/dark pair, once the user has one. `null` means
       // "derive it again when pairing is switched on".
@@ -257,8 +255,6 @@ export function VSCodeWorkbench({
    * halves are two themes, not one theme and its preview.
    */
   const [editingSlot, setEditingSlot] = useState('primary')
-  /** Preview key-name overlay. A view preference, like the Chrome workbench's. */
-  const [showKeys, setShowKeys] = useState(false)
 
   // ---------------------------------------------------------------------------
   // Undo (Ctrl+Z)
@@ -342,16 +338,13 @@ export function VSCodeWorkbench({
    * `resolveType`) what the exported theme declares.
    */
   const scheme = useMemo(() => schemeOf(master), [master])
-  /** `hc-black` is a rendering mode, so it is the one manual choice left. */
-  const highContrast = type === 'hc-black'
-  const pairable = isPairableType(type)
-  /** The scheme the other half of the pair has, or null in high contrast. */
+  /** The scheme the other half of the pair has. Both schemes have one. */
   const otherScheme = counterpartTypeFor(scheme)
 
   /** The stored other half, or null while pairing is off / nothing is stored yet. */
   const counterpart = useMemo(
-    () => (pair && pairable && pairedColors ? buildMasterColors(pairedColors) : null),
-    [pair, pairable, pairedColors],
+    () => (pair && pairedColors ? buildMasterColors(pairedColors) : null),
+    [pair, pairedColors],
   )
   const editingPaired = editingSlot === 'paired' && counterpart !== null
 
@@ -367,7 +360,7 @@ export function VSCodeWorkbench({
   const activeOverrides = editingPaired ? pairedOverrides : overrides
 
   /** The type every export writes. For dark/light it is the palette's own scheme. */
-  const exportedType = useMemo(() => resolveType(type, master), [type, master])
+  const exportedType = useMemo(() => resolveType(master), [master])
 
   // Built from the half on screen, pins included, so the "derived N keys" note
   // describes the theme the user is looking at rather than a pin-less variant.
@@ -531,10 +524,6 @@ export function VSCodeWorkbench({
     (next) => {
       pushHistory()
       setEditingSlot('primary')
-      if (next === 'hc-black') {
-        setType('hc-black')
-        return
-      }
       setType(next)
       if (next === scheme) return
       const converted = deriveCounterpart(master, next)
@@ -583,7 +572,7 @@ export function VSCodeWorkbench({
       setColors(built)
       // Read the scheme off the preset's own colours: presets ship one palette
       // each, and some are built from a light file. High contrast is preserved.
-      setType(resolveType(type, built))
+      setType(resolveType(built))
       reseedPair(built)
       // A preset is a whole theme: it brings its own shell pins instead of wearing
       // whatever the previous theme had pinned.
@@ -613,7 +602,7 @@ export function VSCodeWorkbench({
       setColors(built)
       // The solver decided light or dark from the seed; the declared type follows
       // the palette it produced, so the pair is always the right way round.
-      setType(resolveType(type, built))
+      setType(resolveType(built))
       reseedPair(built)
       // A new theme carries its own shell: some solved palettes come with a coloured
       // status band or a panel of their own (see `shellOverridesFor`), and the ones
@@ -671,7 +660,7 @@ export function VSCodeWorkbench({
     lastRandomRef.current = candidate
     const built = masterFromPalette(buildColors(candidate))
     setColors(built)
-    setType(resolveType(type, built))
+    setType(resolveType(built))
     reseedPair(built)
     setOverrides(shellOverridesFor(built))
     setActivePresetId(null)
@@ -890,19 +879,14 @@ export function VSCodeWorkbench({
             <fieldset className="format-picker">
               <legend className="format-picker__legend">{t('vscode.type.label')}</legend>
               <div
-                className="segmented segmented--three"
+                className="segmented"
                 role="radiogroup"
                 aria-label={t('vscode.type.label')}
               >
                 {VSCODE_TYPES.map((entry) => {
-                  // Dark and light are read off the palette, so their cards show
-                  // what the colours *are*; only high contrast is a stored choice.
-                  // While high contrast is on, exactly one card may be active —
-                  // otherwise the scheme card stays lit and clicking it is a no-op,
-                  // because a radio that is already checked never fires onChange.
-                  const active = highContrast
-                    ? entry.id === 'hc-black'
-                    : entry.id === scheme
+                  // Dark and light are read off the palette, so the lit card is
+                  // always the colour family on screen — never a stale stored label.
+                  const active = entry.id === scheme
                   return (
                     <label
                       key={entry.id}
@@ -925,24 +909,17 @@ export function VSCodeWorkbench({
                 {t('vscode.type.hint', { scheme: t(`scheme.${scheme}`) })}
               </p>
 
-              {/*
-                The pair switch. Only meaningful for the two real schemes — high
-                contrast is a rendering mode of its own, so the control stays
-                visible but disabled rather than silently vanishing.
-              */}
-              <label className={`pair-toggle${pairable ? '' : ' is-disabled'}`}>
+              {/* The pair switch: both schemes have a counterpart, always. */}
+              <label className="pair-toggle">
                 <input
                   type="checkbox"
-                  checked={pair && pairable}
-                  disabled={!pairable}
+                  checked={pair}
                   onChange={(event) => handlePairChange(event.target.checked)}
                 />
                 <span className="pair-toggle__body">
                   <span className="pair-toggle__label">{t('vscode.pair.label')}</span>
                   <span className="pair-toggle__hint">
-                    {pairable
-                      ? t('vscode.pair.hint', { other: t(`scheme.${otherScheme}`) })
-                      : t('vscode.pair.hcUnsupported')}
+                    {t('vscode.pair.hint', { other: t(`scheme.${otherScheme}`) })}
                   </span>
                 </span>
               </label>
@@ -1036,30 +1013,12 @@ export function VSCodeWorkbench({
                 ))}
               </div>
               ) : null}
-
-              {/*
-                The same overlay the Chrome preview has: names every region with the
-                workbench key it becomes, which is the only way to tell a generated
-                theme's 90+ keys apart. Clicking a region jumps to its colour.
-              */}
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showKeys}
-                  onChange={() => setShowKeys((value) => !value)}
-                />
-                <span className="switch__track" aria-hidden="true">
-                  <span className="switch__thumb" />
-                </span>
-                <span className="switch__label">{t('preview.showKeys')}</span>
-              </label>
             </div>
           </div>
 
           <VSCodeMockup
             colors={activeColors}
             overrides={activeOverrides}
-            showKeys={showKeys}
             onPick={handlePickField}
           />
 

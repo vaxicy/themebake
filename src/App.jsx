@@ -217,7 +217,6 @@ export default function App() {
 
   const [nameError, setNameError] = useState('')
   const [descriptionError, setDescriptionError] = useState('')
-  const [showKeys, setShowKeys] = useState(false)
   const [manifestOpen, setManifestOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -1065,11 +1064,8 @@ export default function App() {
           <div className="workspace__right">
             <PreviewPanel
               colors={colors}
-              showKeys={showKeys}
-              onToggleKeys={() => setShowKeys((value) => !value)}
               auditIssues={auditIssues}
               onFixContrast={handleFixContrast}
-              logoStyle={logoStyle}
               onPickRegion={handlePickField}
             />
             <ExportPanel

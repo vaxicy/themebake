@@ -135,22 +135,6 @@
   flex: 0 0 auto;
 }
 
-/* The shared `.segmented` grid is 2-up for the export format picker; these
-   groups have three options each. */
-.segmented--three {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.segmented--three .segmented__option {
-  align-items: center;
-  text-align: center;
-  padding: 7px 6px;
-}
-
-.segmented--three .segmented__label {
-  font-size: var(--text-sm);
-}
-
 /*
   The derived result: a legend row, then one labelled swatch per role. The strip
   used to be a single unlabelled bar, which showed a palette but not *what it was
@@ -410,10 +394,6 @@
 
   .studio__strip-cell {
     flex: 0 0 calc(33.333% - 4px);
-  }
-
-  .segmented--three .segmented__label {
-    font-size: var(--text-xs);
   }
 }
 

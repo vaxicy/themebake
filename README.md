@@ -117,7 +117,7 @@ into your browser.
 | --- | --- |
 | **13 editable colors** | Frame, toolbar, tab background, tab text, address bar, bookmarks, New Tab Page and more — the keys Chrome also accepts are derived rather than asked for, and one (`ntp_link`) is no longer a control at all: current Chrome derives the New Tab Page's link colour from the background, so the key is written but not offered (see **Always complete**) |
 | **Live preview** | A Chrome-style browser mockup repaints on every edit |
-| **"Show keys" overlay** | Labels each preview region with its real `theme.colors` manifest key |
+| **Hover names, click edits** | Hovering a region shows its name and its real `theme.colors` manifest key; clicking it jumps to the colour that paints it. Every editable colour has a region of its own, and `check-preview-coverage.py` audits that |
 | **Color picker + HEX input** | Native picker and text field stay in sync in both directions |
 | **Smart palette studio** | Pick one colour and derive a full theme — with a live preview of the six "signature" roles before you commit |
 | **Palette / link / manifest import** | Paste `#FFF5F5 #F7D6D0 #E2B4BD #4A4A4A`, a Coolors link, or a manifest — the input type is auto-detected |
@@ -478,7 +478,7 @@ node <harness>/e2e.mjs http://localhost:4173
 ```
 
 **233 assertions** across 24 suites: first render, live preview reactions, invalid
-input recovery, presets, randomiser, the key overlay, the manifest modal, name
+input recovery, presets, randomiser, the region tooltip, the manifest modal, name
 validation, **the generated ZIP unpacked and inspected byte-for-byte (manifest.json
 and nothing else)**, storage
 persistence across a reload, the reset dialog, responsive layout, EN/中文 switching,
@@ -642,7 +642,7 @@ themebake/
         ├── layout.css          # Header, hero, two-column workspace
         ├── components.css      # Buttons, panels, fields, modal, toasts
         ├── studio.css          # Language switch, palette studio, import panel
-        └── preview.css         # Browser mockup, key overlay, contrast audit
+        └── preview.css         # Browser mockup, region tooltips, contrast audit
 ```
 
 ### Where to change things

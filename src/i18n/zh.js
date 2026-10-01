@@ -98,12 +98,10 @@ export default {
   'vscode.type.label': '主题类型',
   'vscode.type.dark': '深色',
   'vscode.type.light': '浅色',
-  'vscode.type.hc': '高对比',
   'vscode.type.hint':
-    '深色 / 浅色由主配色的明暗自动判断，当前是{scheme}，theme JSON 的 type 也随之写入。点另一张卡片会把主配色换算成那个方案（另一套不受影响）；高对比是渲染模式，仍需手动选。',
+    '深色 / 浅色由主配色的明暗自动判断，当前是{scheme}，theme JSON 的 type 也随之写入。点另一张卡片会把主配色换算成那个方案（另一套不受影响）。',
   'vscode.pair.label': '同时生成相反的色调',
   'vscode.pair.hint': '由当前配色推导出{other}方案，一个扩展包里同时包含两套主题；预览上方可随时切换。',
-  'vscode.pair.hcUnsupported': '高对比没有对应的浅色/深色方案，无法成对生成。',
   'vscode.autoClearTitle': '应用新主题（选预设、随机生成、智能配色、导入调色板）时自动清空主题名称和文件夹名',
   'vscode.name.hint':
     '会写进扩展包 package.json 的 displayName —— 安装后在 VS Code 主题列表里显示的就是它，按你输入的原样保留。下面的文件夹名是独立的一项。',
@@ -404,7 +402,6 @@ export default {
   // ------------------------------------------------------------------ preview
   'preview.title': '实时预览',
   'preview.subtitle': '随编辑即时更新。实际应用时 Chrome 可能微调对比度。',
-  'preview.showKeys': '显示键名',
   'preview.clickToEdit': '点击修改这个颜色',
   'vscode.region.follows': '跟随{source} · {hex}',
   'vscode.region.reset': '恢复为跟随基准色',

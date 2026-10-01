@@ -125,6 +125,7 @@ import {
   VSCODE_OVERRIDE_FIELDS,
   VSCODE_OVERRIDE_IDS,
   VSCODE_OUTPUT_MODES,
+  VSCODE_TYPE_IDS,
   buildOverrides,
 } from '../src/vscode/fields.js'
 import { VSCODE_PRESETS } from '../src/data/vscodePresets.js'
@@ -1894,7 +1895,7 @@ ok(
   pairSources.every(({ colors }) => schemeOf(colors) === 'dark'),
   pairSources.filter(({ colors }) => schemeOf(colors) !== 'dark').map((s) => s.id).join(','),
 )
-ok('counterpartTypeFor flips the two schemes and refuses high contrast',
+ok('counterpartTypeFor flips the two schemes and refuses anything else',
   counterpartTypeFor('dark') === 'light' &&
     counterpartTypeFor('light') === 'dark' &&
     counterpartTypeFor('hc-black') === null)
@@ -1903,14 +1904,12 @@ ok('deriveCounterpart with no target picks the opposite scheme',
 
 // The reported bug: a draft declaring "light" while holding dark colours produced
 // a "light" theme that rendered dark — and an equally wrong "derived light" that
-// was dark again. The palette is the source of truth now.
+// was dark again. The palette is the source of truth now, and the *only* source:
+// there is no label left for it to disagree with.
 const lightPalette = deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light')
-ok('a dark palette outvotes a declared light type', resolveType('light', DEFAULT_VSCODE_COLORS) === 'dark')
-ok('a light palette outvotes a declared dark type', resolveType('dark', lightPalette) === 'light')
-ok('the declared type is used only when it agrees with the palette',
-  resolveType('dark', DEFAULT_VSCODE_COLORS) === 'dark' && resolveType('light', lightPalette) === 'light')
-ok('high contrast survives the palette rule', resolveType('hc-black', DEFAULT_VSCODE_COLORS) === 'hc-black')
-ok('a mismatched type can never reach the theme JSON',
+ok('the type is read off the palette', resolveType(DEFAULT_VSCODE_COLORS) === 'dark')
+ok('and off the other palette', resolveType(lightPalette) === 'light')
+ok('a stale declared type can never reach the theme JSON',
   buildVscodeThemeJson({ name: 'Stale Label', type: 'light', colors: DEFAULT_VSCODE_COLORS }).type === 'dark')
 const mislabelledSingle = buildVscodePackage({ name: 'Stale Label', type: 'light', colors: DEFAULT_VSCODE_COLORS })
 ok('a mismatched type can never reach package.json either',
@@ -2083,18 +2082,15 @@ ok('a single theme keeps its label unsuffixed',
 ok('a single theme adds no pair keywords',
   !JSON.parse(readFileFrom(soloPkg, 'package.json')).keywords.includes('light-theme'))
 
-// High contrast is its own rendering mode; the builder must refuse to pair it even
-// if a caller passes a counterpart anyway.
-
-const hcPkg = buildVscodePackage({
-  name: 'HC Test',
-  type: 'hc-black',
-  colors: DEFAULT_VSCODE_COLORS,
-  counterpart: counterpartInput,
-})
-ok('high contrast ignores a counterpart', hcPkg.themeCount === 1, String(hcPkg.themeCount))
-ok('high contrast keeps its own uiTheme',
-  JSON.parse(readFileFrom(hcPkg, 'package.json')).contributes.themes[0].uiTheme === 'hc-black')
+// The type picker offers the two schemes and nothing else. It used to carry a
+// third card, high contrast, as the one manual choice — which a generator cannot
+// honour, since `hc-black` is a rendering mode tuned by hand rather than a palette
+// that can be solved for. Anything without a counterpart would also break the pair
+// switch, so the invariant is "everything offered can be paired".
+ok('the type picker offers exactly the two schemes', VSCODE_TYPE_IDS.join(',') === 'dark,light',
+  VSCODE_TYPE_IDS.join(','))
+ok('every offered type can be paired',
+  VSCODE_TYPE_IDS.every((id) => counterpartTypeFor(id) !== null))
 
 // ---------------------------------------------------------------------------
 section('22. VSIX hand-over (and the ZIP hand-over it must not disturb)')

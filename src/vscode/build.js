@@ -186,8 +186,6 @@ export function schemeOf(colors) {
 
 /**
  * The opposite scheme of a theme type, or `null` when there is none.
- * High contrast is deliberately excluded: `hc-black` is its own rendering mode,
- * not one half of a light/dark pair.
  * @param {string} type
  * @returns {'dark'|'light'|null}
  */
@@ -211,16 +209,15 @@ export function counterpartTypeFor(type) {
  * palette arrives from a seed, a preset, an import or a hand-edited hex field,
  * none of which consult a selector.
  *
- * So the palette decides, and only high contrast stays a manual choice: it is a
- * rendering *mode* (`hc-black`), not a scheme, and its palette is deliberately
- * pushed to the extremes rather than being light or dark.
+ * So the palette decides. The selector is kept because the two cards are how a
+ * user says "write this palette as the other half" — but it can never disagree
+ * with the colours, because the colours are what answer the question.
  *
- * @param {string} declaredType the selector's value
  * @param {Record<string,string>} colors master colours
- * @returns {'dark'|'light'|'hc-black'}
+ * @returns {'dark'|'light'}
  */
-export function resolveType(declaredType, colors) {
-  return declaredType === 'hc-black' ? 'hc-black' : schemeOf(colors)
+export function resolveType(colors) {
+  return schemeOf(colors)
 }
 
 /**
@@ -648,7 +645,7 @@ export function buildVscodeThemeJson({ name, type = DEFAULT_VSCODE_TYPE, colors,
     name,
     // Normalised here, at the single point every theme JSON is created, so no
     // caller can emit a theme whose `type` contradicts its own colours.
-    type: resolveType(type, master),
+    type: resolveType(master),
     colors: buildVscodeColors(master, buildOverrides(overrides)),
     semanticHighlighting: true,
     semanticTokenColors,
@@ -789,7 +786,7 @@ export function buildVscodePackage({
   // The declared type decides only *whether* a pair is possible; which side each
   // palette is comes from the palettes themselves (`schemeOf`), so a stale label
   // can never put a dark JSON under the Light contribution.
-  const declaredType = resolveType(type, master)
+  const declaredType = resolveType(master)
   const paired = Boolean(counterpart) && counterpartTypeFor(declaredType) !== null
 
   /**

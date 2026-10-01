@@ -350,50 +350,6 @@
   font-weight: 560;
 }
 
-/* --------------------------- Manifest key overlay ------------------------- */
-/* Rendered only when "Show keys" is on. Teaches the UI-name -> manifest-key
-   mapping directly on top of the region it controls. */
-.key-badge {
-  position: absolute;
-  z-index: 5;
-  padding: 1.5px 5px;
-  border-radius: 4px;
-  background-color: rgba(22, 22, 38, 0.78);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.key-badge--top-left {
-  top: 4px;
-  left: 4px;
-}
-
-.key-badge--top-right {
-  top: 4px;
-  right: 4px;
-}
-
-.key-badge--bottom-left {
-  bottom: 4px;
-  left: 4px;
-}
-
-.key-badge--bottom-right {
-  bottom: 4px;
-  right: 4px;
-}
-
-.key-badge--right {
-  top: 50%;
-  right: 5px;
-  transform: translateY(-50%);
-}
-
 /* ------------------------------ Responsive -------------------------------- */
 @media (max-width: 1099px) {
   .mockup__ntp {

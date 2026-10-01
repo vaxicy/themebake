@@ -8,11 +8,19 @@
  * derives every real key from them, plus auto-generates `tokenColors`.
  */
 
-/** Segmented options for the theme `type`. `uiTheme` goes into package.json. */
+/**
+ * Segmented options for the theme `type`. `uiTheme` goes into package.json.
+ *
+ * Two, not three: `hc-black` used to sit here as the manual escape hatch from the
+ * "the palette decides" rule, and nobody generates high-contrast themes through
+ * this app — it is a rendering mode for accessibility, tuned by hand against an
+ * OS-level setting, not a palette a generator should guess at. Leaving it in the
+ * picker only offered a way to produce a theme that says `hc-black` while holding
+ * ordinary colours.
+ */
 export const VSCODE_TYPES = [
   { id: 'dark', labelKey: 'vscode.type.dark', uiTheme: 'vs-dark' },
   { id: 'light', labelKey: 'vscode.type.light', uiTheme: 'vs' },
-  { id: 'hc-black', labelKey: 'vscode.type.hc', uiTheme: 'hc-black' },
 ]
 
 export const VSCODE_TYPE_IDS = VSCODE_TYPES.map((type) => type.id)

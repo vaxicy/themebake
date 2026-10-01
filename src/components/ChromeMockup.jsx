@@ -11,7 +11,6 @@
  */
 
 import { derivePreviewColors } from '../data/presets.js'
-import { logoStyleValue } from '../data/themeFields.js'
 import { PreviewTipLayer } from './PreviewTip.jsx'
 import { normalizeHex } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
@@ -36,17 +35,7 @@ const TABS = [
 
 const SHORTCUTS = ['Mail', 'Calendar', 'Music', 'Docs']
 
-/**
- * Small annotation badge; only rendered when the key overlay is enabled.
- *
- * Shared with the VS Code mockup, which has the same overlay for the same reason
- * (reading a generated theme JSON tells you nothing about which key paints what).
- */
-export function KeyBadge({ children, position = 'top-left' }) {
-  return <span className={`key-badge key-badge--${position}`}>{children}</span>
-}
-
-export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
+export function ChromeMockup({ colors, onPick = null }) {
   const { t } = useI18n()
   const safe = Object.fromEntries(
     Object.entries(colors).map(([id, value]) => [id, normalizeHex(value) ?? '#000000']),
@@ -87,15 +76,12 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
           style={{ backgroundColor: safe.frame, ...cursorStyle }}
           {...region('frame', 'frame')}
         >
-          {showKeys ? <KeyBadge position="top-left">frame</KeyBadge> : null}
-
           {/* Window controls — coloured by `button_background`. */}
           <div
             className="mockup__window-controls"
             style={{ color: safe.toolbarButtonIcon, ...cursorStyle }}
             {...region('buttonBackground', 'button_background')}
           >
-            {showKeys ? <KeyBadge position="top-right">button_background</KeyBadge> : null}
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
             <span className="mockup__window-control" style={{ backgroundColor: safe.buttonBackground }} />
@@ -146,13 +132,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
               +
             </span>
           </div>
-
-          {showKeys ? (
-            <>
-              <KeyBadge position="bottom-left">background_tab</KeyBadge>
-              <KeyBadge position="bottom-right">tab_text / tab_background_text</KeyBadge>
-            </>
-          ) : null}
         </div>
 
         {/* ----------------------------- Toolbar ----------------------------- */}
@@ -161,8 +140,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
           style={{ backgroundColor: safe.toolbar, ...cursorStyle }}
           {...region('toolbar', 'toolbar')}
         >
-          {showKeys ? <KeyBadge position="top-left">toolbar</KeyBadge> : null}
-
           {/* Every glyph the toolbar draws takes `toolbar_button_icon`. */}
           <div
             className="mockup__nav"
@@ -193,7 +170,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
             >
               {t('preview.omnibox')}
             </span>
-            {showKeys ? <KeyBadge position="bottom-left">omnibox_background / omnibox_text</KeyBadge> : null}
           </div>
 
           <div
@@ -212,8 +188,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
             </span>
             <MoreIcon size={15} />
           </div>
-
-          {showKeys ? <KeyBadge position="top-right">toolbar_button_icon</KeyBadge> : null}
         </div>
 
         {/* --------------------------- Bookmark bar -------------------------- */}
@@ -222,7 +196,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
           style={{ backgroundColor: safe.toolbar, ...cursorStyle }}
           {...region('bookmarkText', 'bookmark_text')}
         >
-          {showKeys ? <KeyBadge position="right">bookmark_text</KeyBadge> : null}
           {['Design', 'Docs', 'Inspiration'].map((label) => (
             <span className="mockup__bookmark" key={label} style={{ color: safe.bookmarkText }}>
               <span
@@ -241,18 +214,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
             style={{ backgroundColor: safe.ntpBackground, ...cursorStyle }}
             {...region('ntpBackground', 'ntp_background')}
           >
-            {showKeys ? <KeyBadge position="top-left">ntp_background</KeyBadge> : null}
-            {/*
-              The mockup itself draws no browser logos by design, so the logo
-              setting is surfaced as a key badge with its live value rather than
-              as a picture of a logo we are not allowed to draw. It still earns
-              its place in the overlay: it is the one manifest key whose target
-              region is otherwise invisible.
-            */}
-            {showKeys ? (
-              <KeyBadge position="top-right">{`ntp_logo_alternate: ${logoStyleValue(logoStyle)}`}</KeyBadge>
-            ) : null}
-
             <div className="mockup__ntp-brand">
               {/* Abstract ThemeBake mark: overlapping shapes in the theme's own
                   colours. No browser logos, no stock imagery. */}
@@ -301,8 +262,6 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
                 </div>
               ))}
             </div>
-
-            {showKeys ? <KeyBadge position="bottom-right">ntp_text</KeyBadge> : null}
           </div>
         </div>
       </div>
@@ -311,18 +270,15 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
 }
 
 /**
- * Preview shell: title, key-overlay toggle and the contrast audit readout.
+ * Preview shell: the mockup and the contrast audit readout.
  *
  * The audit is always rendered — a green "all clear" is information too, and it
  * is the quickest way for a user to know their hand-edits are still legible.
  */
 export function PreviewPanel({
   colors,
-  showKeys,
-  onToggleKeys,
   auditIssues,
   onFixContrast,
-  logoStyle,
   onPickRegion = null,
 }) {
   const { t } = useI18n()
@@ -342,22 +298,9 @@ export function PreviewPanel({
             {t('preview.subtitle')}
           </p>
         </div>
-
-        <label className="switch">
-          <input type="checkbox" checked={showKeys} onChange={onToggleKeys} />
-          <span className="switch__track" aria-hidden="true">
-            <span className="switch__thumb" />
-          </span>
-          <span className="switch__label">{t('preview.showKeys')}</span>
-        </label>
       </div>
 
-      <ChromeMockup
-        colors={colors}
-        showKeys={showKeys}
-        logoStyle={logoStyle}
-        onPick={onPickRegion}
-      />
+      <ChromeMockup colors={colors} onPick={onPickRegion} />
 
       {/* Names the region under the pointer; one layer per preview panel. */}
       <PreviewTipLayer />
