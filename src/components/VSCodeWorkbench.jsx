@@ -24,6 +24,7 @@ import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
 import { PreviewTipLayer } from './PreviewTip.jsx'
+import { AiRecolor } from './AiRecolor.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
 import { ResetIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
@@ -38,6 +39,7 @@ import {
 } from '../utils/palette.js'
 import { useI18n } from '../i18n/index.jsx'
 import { describePalette, requestThemeNames } from '../utils/aiNaming.js'
+import { requestRecolor } from '../utils/aiRecolor.js'
 import { normalizeHex } from '../utils/color.js'
 import { canWriteFolder, writeThemeFolder } from '../utils/fsFolder.js'
 import { buildColors, generateRandomColors, paletteDistance } from '../data/presets.js'
@@ -622,6 +624,106 @@ export function VSCodeWorkbench({
     [clearIdentityForNewTheme, pushHistory, reseedPair, toast, t, type],
   )
 
+  /**
+   * A sentence in, a few colours out — for the half of the pair that is on screen.
+   *
+   * The palette handed to the model is what the user is looking at: the master
+   * fields plus, as separate entries, the regions this half has pinned. A request
+   * like "status bar deep green" therefore comes back as the *region* id and is
+   * written to the pins rather than to a master colour, which is exactly where that
+   * colour lives in the export.
+   *
+   * Applying it is the same edit as typing the hex: one undo step, and the other
+   * half is re-derived from the result (see `handleColorChange`).
+   *
+   * @returns {Promise<boolean>} whether the palette changed
+   */
+  const handleAiRecolor = useCallback(
+    async (instruction) => {
+      if (!String(aiConfig.apiKey).trim()) {
+        toast.error(t('ai.errorNoKey'))
+        return false
+      }
+      setAiBusy(true)
+      try {
+        const masterIds = VSCODE_FIELDS.map((field) => field.id)
+        const regionIds = VSCODE_OVERRIDE_FIELDS.map((field) => field.id)
+        const palette = [
+          ...masterIds.map((id) => ({ id, value: activeColors[id] })),
+          ...VSCODE_OVERRIDE_FIELDS.map((field) => {
+            const pinned = typeof activeOverrides[field.id] === 'string'
+            return {
+              id: field.id,
+              value: pinned ? activeOverrides[field.id] : activeColors[field.inherits],
+              pinned,
+            }
+          }),
+        ]
+
+        const result = await requestRecolor(aiConfig, {
+          palette,
+          instruction,
+          language: aiConfig.language,
+          allowed: [...masterIds, ...regionIds],
+        })
+        if (!result.changes.length) {
+          toast.info(t('recolor.nothingChanged'), 5000)
+          return false
+        }
+
+        pushHistory()
+        const nextColors = { ...activeColors }
+        const nextOverrides = { ...activeOverrides }
+        for (const change of result.changes) {
+          if (regionIds.includes(change.id)) nextOverrides[change.id] = change.value
+          else nextColors[change.id] = change.value
+        }
+
+        const edited = buildMasterColors(nextColors)
+        const opposite = counterpartTypeFor(schemeOf(edited))
+        if (editingPaired) {
+          setPairedColors(edited)
+          setPairedOverrides(nextOverrides)
+          if (pair && opposite) {
+            setColors(deriveCounterpart(edited, opposite))
+            setOverrides({})
+          }
+        } else {
+          setColors(edited)
+          setOverrides(nextOverrides)
+          if (pair && opposite) {
+            setPairedColors(deriveCounterpart(edited, opposite))
+            setPairedOverrides({})
+          }
+        }
+
+        toast.success(
+          t('recolor.applied', {
+            count: result.changes.length,
+            summary: result.summary || result.changes.map((change) => change.id).join(', '),
+          }),
+          6000,
+        )
+        return true
+      } catch (error) {
+        toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+        return false
+      } finally {
+        setAiBusy(false)
+      }
+    },
+    [
+      activeColors,
+      activeOverrides,
+      aiConfig,
+      editingPaired,
+      pair,
+      pushHistory,
+      toast,
+      t,
+    ],
+  )
+
   /** Shared "solve a palette and adopt it" step for studio / random / import. */
   const applySolvedPalette = useCallback(
     (seeds) => {
@@ -995,6 +1097,14 @@ export function VSCodeWorkbench({
           seedHintKey="studio.vscodeSeedHint"
           stripMapper={masterFromPalette}
           stripItems={VSCODE_STRIP_ITEMS}
+        />
+
+        {/* The conversational half of "make this look different": the studio
+            derives a whole family from one seed, this edits what is on screen. */}
+        <AiRecolor
+          onRun={handleAiRecolor}
+          busy={aiBusy}
+          hasKey={Boolean(aiConfig.apiKey)}
         />
 
         <ImportPanel onApplyPalette={handleImportPalette} onApplyManifest={handleImportManifestUnsupported} />

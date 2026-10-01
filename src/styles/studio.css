@@ -395,6 +395,12 @@
   .studio__strip-cell {
     flex: 0 0 calc(33.333% - 4px);
   }
+
+  /* Three cards in one row are tight at this width — step the label down rather
+     than letting them clip. */
+  .segmented--three .segmented__label {
+    font-size: var(--text-xs);
+  }
 }
 
 /* ----------------------- Settings header actions -------------------------- */

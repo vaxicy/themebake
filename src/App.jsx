@@ -27,6 +27,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AiNamingPanel } from './components/AiNamingPanel.jsx'
+import { AiRecolor } from './components/AiRecolor.jsx'
 import { ConfirmDialog } from './components/ConfirmDialog.jsx'
 import { ExportPanel } from './components/ExportPanel.jsx'
 import { Header } from './components/Header.jsx'
@@ -59,6 +60,7 @@ import {
   requestThemeDescription,
   requestThemeNames,
 } from './utils/aiNaming.js'
+import { requestRecolor } from './utils/aiRecolor.js'
 import { loadAutoClearNewTheme, saveAutoClearNewTheme, loadEditorMode, saveEditorMode } from './utils/appPrefs.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
@@ -552,6 +554,60 @@ export default function App() {
     const result = applySolvedTheme([seed])
     if (result) toast.success(t('toast.smartApplied'))
   }, [applySolvedTheme, seed, toast, t])
+
+  /**
+   * A sentence in, a few colours out.
+   *
+   * The model only ever *proposes*: `parseRecolorResponse` keeps the changes whose
+   * ids this palette actually has and whose values parse as hex, so a hallucinated
+   * key or a malformed colour is dropped instead of reaching the manifest. One undo
+   * step covers the whole edit, and a request that changes nothing says so rather
+   * than pretending it worked.
+   *
+   * @returns {Promise<boolean>} whether the palette changed
+   */
+  const handleAiRecolor = useCallback(
+    async (instruction) => {
+      if (!String(aiConfig.apiKey).trim()) {
+        toast.error(t('ai.errorNoKey'))
+        return false
+      }
+      setAiBusy(true)
+      try {
+        const palette = Object.keys(colors).map((id) => ({ id, value: colors[id] }))
+        const result = await requestRecolor(aiConfig, {
+          palette,
+          instruction,
+          language: aiConfig.language,
+          allowed: palette.map((field) => field.id),
+        })
+        if (!result.changes.length) {
+          toast.info(t('recolor.nothingChanged'), 5000)
+          return false
+        }
+        pushHistory()
+        setColors((current) => {
+          const next = { ...current }
+          for (const change of result.changes) next[change.id] = change.value
+          return buildColors(next)
+        })
+        toast.success(
+          t('recolor.applied', {
+            count: result.changes.length,
+            summary: result.summary || result.changes.map((c) => c.id).join(', '),
+          }),
+          6000,
+        )
+        return true
+      } catch (error) {
+        toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
+        return false
+      } finally {
+        setAiBusy(false)
+      }
+    },
+    [aiConfig, colors, pushHistory, toast, t],
+  )
 
   const handleImportPalette = useCallback(
     (seeds) => {
@@ -1047,6 +1103,14 @@ export default function App() {
               onAccentChange={(next) => setSmartAccent(pick(next, ACCENT_STRATEGIES, DEFAULT_ACCENT_STRATEGY))}
               onGenerate={handleStudioGenerate}
               onInvalidSeed={handleInvalidColor}
+            />
+
+            {/* The conversational half of "make this look different": the studio
+                derives a whole family from one seed, this edits what is on screen. */}
+            <AiRecolor
+              onRun={handleAiRecolor}
+              busy={aiRequestInFlight}
+              hasKey={Boolean(aiConfig.apiKey)}
             />
 
             <ImportPanel

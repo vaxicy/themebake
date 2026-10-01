@@ -693,6 +693,25 @@
   gap: 8px;
 }
 
+/*
+ * The three-option groups (the studio's mode / accent / intensity pickers, the
+ * type picker before it became two-up): the shared grid is 2-up, which leaves the
+ * third card stranded on a row of its own.
+ */
+.segmented--three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.segmented--three .segmented__option {
+  align-items: center;
+  text-align: center;
+  padding: 7px 6px;
+}
+
+.segmented--three .segmented__label {
+  font-size: var(--text-sm);
+}
+
 .segmented__option {
   display: flex;
   flex-direction: column;
@@ -1326,6 +1345,21 @@
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* --------------------------- AI recolouring -------------------------------- */
+/* Sits under the palette studio: a sentence, applied to the colours on screen. */
+.recolor__form {
+  display: grid;
+  gap: 8px;
+}
+
+.recolor__input {
+  min-height: 62px;
+  padding: 9px 12px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: vertical;
 }
 
 /* The author's brief. A textarea, not an input: these notes run to a sentence or

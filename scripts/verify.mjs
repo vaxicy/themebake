@@ -90,6 +90,11 @@ import {
   requestThemeDescription,
   requestThemeNames,
 } from '../src/utils/aiNaming.js'
+import {
+  buildRecolorMessages,
+  parseRecolorResponse,
+  requestRecolor,
+} from '../src/utils/aiRecolor.js'
 import { MAX_DESCRIPTION_LENGTH } from '../src/utils/manifest.js'
 import {
   EXTENDED_DERIVATIONS,
@@ -1748,6 +1753,110 @@ ok('a brief is capped', normalizeBrief('x'.repeat(AI_BRIEF_MAX + 120)).length ==
 ok('a non-string brief is empty', normalizeBrief(null) === '' && normalizeBrief(42) === '')
 ok('the saved config keeps the brief, normalised', sanitizeAiConfig({ brief: ' a\nb ' }).brief === 'a b')
 ok('a config without a brief is empty', sanitizeAiConfig({}).brief === '')
+
+// ---------------------------------------------------------------------------
+// Plain-language recolouring: the model proposes, this side disposes.
+// ---------------------------------------------------------------------------
+const recolorFields = [
+  { id: 'frame', value: '#D6C7B0' },
+  { id: 'toolbar', value: '#EFE6D8' },
+  { id: 'statusBarBg', value: '#EFE6D8', pinned: false },
+]
+const recolorMessages = buildRecolorMessages({
+  palette: recolorFields,
+  instruction: '整体暖一点，状态栏改成深绿',
+  language: 'zh',
+})
+ok('the recolour prompt lists every field with its colour',
+  recolorFields.every((field) => recolorMessages.user.includes(`${field.id}: ${field.value}`)),
+  recolorMessages.user)
+ok('the recolour prompt marks pinned regions',
+  buildRecolorMessages({ palette: [{ id: 'panelBg', value: '#123456', pinned: true }], instruction: 'x', language: 'en' })
+    .user.includes('pinned'))
+ok('the recolour prompt carries the request verbatim', recolorMessages.user.includes('整体暖一点，状态栏改成深绿'))
+ok('the recolour prompt states the id and hex rules',
+  recolorMessages.user.includes('Never invent an id') && recolorMessages.user.includes('#1F3D2B'))
+ok('the recolour prompt asks for a summary in the user’s language',
+  recolorMessages.user.includes('in Chinese'))
+
+const allowedIds = ['frame', 'toolbar', 'statusBarBg']
+const parsedRecolor = parseRecolorResponse(
+  '{"summary":"把状态栏改深绿，其余略暖","changes":{"statusBarBg":"#1f3d2b","nonsense":"#FFFFFF","frame":"not-a-colour"}}',
+  { allowed: allowedIds },
+)
+ok('a recolour keeps only known ids with valid hexes',
+  parsedRecolor.changes.length === 1 && parsedRecolor.changes[0].id === 'statusBarBg',
+  JSON.stringify(parsedRecolor.changes))
+ok('a recolour normalises the hex', parsedRecolor.changes[0].value === '#1F3D2B', parsedRecolor.changes[0].value)
+ok('a recolour reports what it dropped',
+  parsedRecolor.ignored.join(',') === 'nonsense,frame', parsedRecolor.ignored.join(','))
+ok('a recolour reads the summary', parsedRecolor.summary === '把状态栏改深绿，其余略暖')
+ok('a recolour accepts an array shape instead of a map',
+  parseRecolorResponse('{"changes":[{"id":"frame","value":"#AABBCC"}]}', { allowed: allowedIds }).changes.length === 1)
+ok('a recolour tolerates a fenced reply',
+  parseRecolorResponse('```json\n{"changes":{"frame":"#AABBCC"}}\n```', { allowed: allowedIds }).changes.length === 1)
+ok('a recolour with no JSON changes nothing',
+  parseRecolorResponse('I would warm it up.', { allowed: allowedIds }).changes.length === 0)
+ok('a recolour with no changes says so',
+  parseRecolorResponse('{"summary":"已经是最暖的了","changes":{}}', { allowed: allowedIds }).changes[0] === undefined)
+ok('a recolour summary is capped and flattened',
+  parseRecolorResponse(`{"summary":"a\\n\\n${'b'.repeat(400)}","changes":{}}`, { allowed: allowedIds }).summary.length === 200)
+
+const recolorStub = async (url, init) => {
+  const body = JSON.parse(init.body)
+  if (!body.messages[1].content.includes('状态栏改成深绿')) throw new Error('the request lost the instruction')
+  return {
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: '{"summary":"done","changes":{"statusBarBg":"#1F3D2B"}}' } }],
+    }),
+  }
+}
+const recoloured = await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k', temperature: 1 },
+  {
+    palette: recolorFields,
+    instruction: '状态栏改成深绿',
+    language: 'en',
+    allowed: allowedIds,
+  },
+  { fetchImpl: recolorStub },
+)
+ok('requestRecolor puts the instruction in the request body and parses the reply',
+  recoloured.changes.length === 1 && recoloured.changes[0].value === '#1F3D2B', recoloured.summary)
+
+const recolorKeyFor = async (impl) => {
+  try {
+    await requestRecolor(
+      { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+      { palette: recolorFields, instruction: '状态栏改成深绿', language: 'en', allowed: allowedIds },
+      { fetchImpl: impl },
+    )
+    return null
+  } catch (error) {
+    return error.key
+  }
+}
+const proseReply = async () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ choices: [{ message: { content: 'sorry, no idea.' } }] }),
+})
+ok('a recolour reply that is not JSON is a parse error',
+  (await recolorKeyFor(proseReply)) === 'ai.errorParse')
+const keylessRecolor = await (async () => {
+  try {
+    await requestRecolor(
+      { baseURL: 'https://example.test/v1', model: 'm', apiKey: '' },
+      { palette: recolorFields, instruction: 'x', language: 'en', allowed: allowedIds },
+      { fetchImpl: async () => { throw new Error('network should not be reached') } },
+    )
+    return null
+  } catch (error) {
+    return error.key
+  }
+})()
+ok('a recolour without a key says so', keylessRecolor === 'ai.errorNoKey', String(keylessRecolor))
 
 const fencedCandidates = parseNamingResponse(
   '{"candidates":[{"name":"Lemon Juice Theme","description":"\\"A bright lemon wash for daytime work.\\""},{"name":"Bare Name Theme"}]}',

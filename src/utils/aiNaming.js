@@ -18,6 +18,7 @@
  */
 
 import { normalizeBrief } from '../data/aiProviders.js'
+import { AiNamingError, chatCompletion, extractJson } from './aiClient.js'
 import { hexToHsl } from './color.js'
 import { MAX_DESCRIPTION_LENGTH } from './manifest.js'
 import { toThemeFolderName } from './package.js'
@@ -58,14 +59,8 @@ function lightnessWord(l) {
   return 'very light'
 }
 
-/** An error the UI can translate: `.key` is an i18n key, never a message. */
-export class AiNamingError extends Error {
-  constructor(key) {
-    super(key)
-    this.name = 'AiNamingError'
-    this.key = key
-  }
-}
+/** The error type lives with the transport; re-exported here for its old callers. */
+export { AiNamingError }
 
 /**
  * Turn the 14 colours into the compact facts a model reasons over, instead of a
@@ -235,31 +230,6 @@ export function buildNamingMessages({ palette, style, language, candidates, excl
   return { system, user: lines.join('\n') }
 }
 
-/** Pull a JSON object out of whatever the model returned (fences and prose tolerated). */
-function extractJson(text) {
-  const raw = String(text ?? '').trim()
-  if (!raw) return null
-
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  const body = fenced ? fenced[1].trim() : raw
-
-  try {
-    return JSON.parse(body)
-  } catch {
-    /* fall through to a brace scan */
-  }
-
-  const objectish = body.match(/\{[\s\S]*\}/)
-  if (objectish) {
-    try {
-      return JSON.parse(objectish[0])
-    } catch {
-      return null
-    }
-  }
-  return null
-}
-
 /**
  * Force the folder onto the app's own convention instead of trusting the model:
  * slugified, lower-cased, and always ending in `-theme` (the name already does,
@@ -323,88 +293,6 @@ export function parseNamingResponse(text, { limit = 6 } = {}) {
     if (out.length >= limit) break
   }
   return out
-}
-
-function httpErrorKey(status) {
-  if (status === 401) return 'ai.errorUnauthorized'
-  if (status === 403) return 'ai.errorForbidden'
-  if (status === 404) return 'ai.errorNotFound'
-  if (status === 429) return 'ai.errorRateLimited'
-  if (status >= 500) return 'ai.errorServer'
-  return 'ai.errorUnknown'
-}
-
-/**
- * The one network call both features share. Everything about the transport —
- * validation, timeout, abort, and the HTTP-status → i18n-key mapping — lives
- * here so the naming and description paths cannot drift apart.
- *
- * @returns {Promise<string>} the assistant message content
- * @throws {AiNamingError} `.key` is an i18n key
- */
-async function chatCompletion(config, { system, user, maxTokens }, options = {}) {
-  const { fetchImpl = fetch, signal, timeoutMs = 30000 } = options
-
-  const base = String(config?.baseURL ?? '').trim().replace(/\/+$/, '')
-  if (!base) throw new AiNamingError('ai.errorNoBase')
-  if (!String(config?.model ?? '').trim()) throw new AiNamingError('ai.errorNoModel')
-  if (!String(config?.apiKey ?? '').trim()) throw new AiNamingError('ai.errorNoKey')
-
-  const controller = new AbortController()
-  let timedOut = false
-  const timer = setTimeout(() => {
-    timedOut = true
-    controller.abort()
-  }, timeoutMs)
-  const onAbort = () => controller.abort()
-  if (signal) {
-    if (signal.aborted) controller.abort()
-    else signal.addEventListener('abort', onAbort, { once: true })
-  }
-
-  let response
-  try {
-    response = await fetchImpl(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${String(config.apiKey).trim()}`,
-      },
-      body: JSON.stringify({
-        model: String(config.model).trim(),
-        temperature: Number.isFinite(config.temperature) ? config.temperature : 1,
-        max_tokens: maxTokens,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-      }),
-      signal: controller.signal,
-    })
-  } catch (error) {
-    if (timedOut) throw new AiNamingError('ai.errorTimeout')
-    if (signal?.aborted) throw new AiNamingError('ai.errorTimeout')
-    // A CORS rejection and an offline network both surface as TypeError here.
-    throw new AiNamingError('ai.errorNetwork')
-  } finally {
-    clearTimeout(timer)
-    if (signal) signal.removeEventListener('abort', onAbort)
-  }
-
-  if (!response.ok) throw new AiNamingError(httpErrorKey(response.status))
-
-  let payload
-  try {
-    payload = await response.json()
-  } catch {
-    throw new AiNamingError('ai.errorParse')
-  }
-
-  const content = payload?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) {
-    throw new AiNamingError('ai.errorParse')
-  }
-  return content
 }
 
 /**
