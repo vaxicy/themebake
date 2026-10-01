@@ -58,25 +58,31 @@ export const VSCODE_FIELD_GROUPS = [
   { id: 'Semantic', key: 'vscode.group.semantic' },
 ]
 
+/**
+ * `aiRole` is what the field *is*, for the AI recolour prompt (`data/colorRoles.js`).
+ * The id alone does not tell a model whether a colour is a surface, text or a
+ * hairline, and that gap is what makes "make the whole thing dark" come back pale —
+ * the roles let the prompt say which fields a lightness request has to move.
+ */
 export const VSCODE_FIELDS = [
   // -------------------------------------------------------------- editor
-  { id: 'editorBg', group: 'Editor', labelKey: 'vscode.field.editorBg', hintKey: 'vscode.field.editorBg.hint' },
-  { id: 'editorFg', group: 'Editor', labelKey: 'vscode.field.editorFg', hintKey: 'vscode.field.editorFg.hint' },
-  { id: 'accent', group: 'Editor', labelKey: 'vscode.field.accent', hintKey: 'vscode.field.accent.hint' },
-  { id: 'selectionBg', group: 'Editor', labelKey: 'vscode.field.selectionBg', hintKey: 'vscode.field.selectionBg.hint' },
-  { id: 'lineHighlightBg', group: 'Editor', labelKey: 'vscode.field.lineHighlightBg', hintKey: 'vscode.field.lineHighlightBg.hint' },
-  { id: 'mutedFg', group: 'Editor', labelKey: 'vscode.field.mutedFg', hintKey: 'vscode.field.mutedFg.hint' },
+  { id: 'editorBg', group: 'Editor', aiRole: 'background', labelKey: 'vscode.field.editorBg', hintKey: 'vscode.field.editorBg.hint' },
+  { id: 'editorFg', group: 'Editor', aiRole: 'text', labelKey: 'vscode.field.editorFg', hintKey: 'vscode.field.editorFg.hint' },
+  { id: 'accent', group: 'Editor', aiRole: 'accent', labelKey: 'vscode.field.accent', hintKey: 'vscode.field.accent.hint' },
+  { id: 'selectionBg', group: 'Editor', aiRole: 'overlay', labelKey: 'vscode.field.selectionBg', hintKey: 'vscode.field.selectionBg.hint' },
+  { id: 'lineHighlightBg', group: 'Editor', aiRole: 'overlay', labelKey: 'vscode.field.lineHighlightBg', hintKey: 'vscode.field.lineHighlightBg.hint' },
+  { id: 'mutedFg', group: 'Editor', aiRole: 'textMuted', labelKey: 'vscode.field.mutedFg', hintKey: 'vscode.field.mutedFg.hint' },
   // --------------------------------------------------------------- shell
-  { id: 'activityBg', group: 'Shell', labelKey: 'vscode.field.activityBg', hintKey: 'vscode.field.activityBg.hint' },
-  { id: 'sidebarBg', group: 'Shell', labelKey: 'vscode.field.sidebarBg', hintKey: 'vscode.field.sidebarBg.hint' },
-  { id: 'titleBg', group: 'Shell', labelKey: 'vscode.field.titleBg', hintKey: 'vscode.field.titleBg.hint' },
-  { id: 'border', group: 'Shell', labelKey: 'vscode.field.border', hintKey: 'vscode.field.border.hint' },
+  { id: 'activityBg', group: 'Shell', aiRole: 'backgroundAlt', labelKey: 'vscode.field.activityBg', hintKey: 'vscode.field.activityBg.hint' },
+  { id: 'sidebarBg', group: 'Shell', aiRole: 'backgroundAlt', labelKey: 'vscode.field.sidebarBg', hintKey: 'vscode.field.sidebarBg.hint' },
+  { id: 'titleBg', group: 'Shell', aiRole: 'background', labelKey: 'vscode.field.titleBg', hintKey: 'vscode.field.titleBg.hint' },
+  { id: 'border', group: 'Shell', aiRole: 'line', labelKey: 'vscode.field.border', hintKey: 'vscode.field.border.hint' },
   // ------------------------------------------------------------ controls
-  { id: 'buttonBg', group: 'Controls', labelKey: 'vscode.field.buttonBg', hintKey: 'vscode.field.buttonBg.hint' },
-  { id: 'buttonFg', group: 'Controls', labelKey: 'vscode.field.buttonFg', hintKey: 'vscode.field.buttonFg.hint' },
+  { id: 'buttonBg', group: 'Controls', aiRole: 'accentSoft', labelKey: 'vscode.field.buttonBg', hintKey: 'vscode.field.buttonBg.hint' },
+  { id: 'buttonFg', group: 'Controls', aiRole: 'textOnAccent', labelKey: 'vscode.field.buttonFg', hintKey: 'vscode.field.buttonFg.hint' },
   // ----------------------------------------------------------- semantic
-  { id: 'errorFg', group: 'Semantic', labelKey: 'vscode.field.errorFg', hintKey: 'vscode.field.errorFg.hint' },
-  { id: 'warningFg', group: 'Semantic', labelKey: 'vscode.field.warningFg', hintKey: 'vscode.field.warningFg.hint' },
+  { id: 'errorFg', group: 'Semantic', aiRole: 'semantic', labelKey: 'vscode.field.errorFg', hintKey: 'vscode.field.errorFg.hint' },
+  { id: 'warningFg', group: 'Semantic', aiRole: 'semantic', labelKey: 'vscode.field.warningFg', hintKey: 'vscode.field.warningFg.hint' },
 ]
 
 export const VSCODE_FIELD_IDS = VSCODE_FIELDS.map((field) => field.id)
@@ -117,6 +123,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
     // the shell colours it belongs with, rather than at the end of the group.
     id: 'inactiveTabBg',
     group: 'Shell',
+    aiRole: 'backgroundAlt',
     labelKey: 'vscode.override.inactiveTabBg',
     hintKey: 'vscode.override.inactiveTabBg.hint',
     inherits: 'titleBg',
@@ -124,6 +131,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
   {
     id: 'panelBg',
     group: 'Shell',
+    aiRole: 'background',
     labelKey: 'vscode.override.panelBg',
     hintKey: 'vscode.override.panelBg.hint',
     inherits: 'sidebarBg',
@@ -131,6 +139,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
   {
     id: 'statusBarBg',
     group: 'Shell',
+    aiRole: 'backgroundAlt',
     labelKey: 'vscode.override.statusBarBg',
     hintKey: 'vscode.override.statusBarBg.hint',
     inherits: 'sidebarBg',
@@ -138,6 +147,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
   {
     id: 'widgetBg',
     group: 'Shell',
+    aiRole: 'backgroundInset',
     labelKey: 'vscode.override.widgetBg',
     hintKey: 'vscode.override.widgetBg.hint',
     inherits: 'sidebarBg',
@@ -145,6 +155,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
   {
     id: 'lineNumberFg',
     group: 'Editor',
+    aiRole: 'textMuted',
     labelKey: 'vscode.override.lineNumberFg',
     hintKey: 'vscode.override.lineNumberFg.hint',
     inherits: 'mutedFg',
@@ -152,6 +163,7 @@ export const VSCODE_OVERRIDE_FIELDS = [
   {
     id: 'indentGuideFg',
     group: 'Editor',
+    aiRole: 'line',
     labelKey: 'vscode.override.indentGuideFg',
     hintKey: 'vscode.override.indentGuideFg.hint',
     inherits: 'border',

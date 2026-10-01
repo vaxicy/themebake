@@ -91,10 +91,13 @@ import {
   requestThemeNames,
 } from '../src/utils/aiNaming.js'
 import {
+  askedTone,
   buildRecolorMessages,
+  paletteTone,
   parseRecolorResponse,
   requestRecolor,
 } from '../src/utils/aiRecolor.js'
+import { COLOR_ROLE_IDS, colorRoleGloss } from '../src/data/colorRoles.js'
 import { MAX_DESCRIPTION_LENGTH } from '../src/utils/manifest.js'
 import {
   EXTENDED_DERIVATIONS,
@@ -128,6 +131,7 @@ import {
 } from '../src/vscode/build.js'
 import {
   DEFAULT_VSCODE_COLORS,
+  VSCODE_FIELDS,
   VSCODE_FIELD_IDS,
   VSCODE_OVERRIDE_FIELDS,
   VSCODE_OVERRIDE_IDS,
@@ -1857,6 +1861,148 @@ const keylessRecolor = await (async () => {
   }
 })()
 ok('a recolour without a key says so', keylessRecolor === 'ai.errorNoKey', String(keylessRecolor))
+
+// ---------------------------------------------------------------------------
+// Recolouring: does the model have enough to go on, and did it obey?
+// ---------------------------------------------------------------------------
+// A request like "换成深色主题" is only answerable if the model knows which fields
+// are surfaces (push down), which are text (pull up), and what each id is called in
+// the UI. That is `aiRole` + `label`, and both workbenches send them, so every field
+// has to declare a role the prompt can gloss — a new field without one would reach
+// the model as a bare id, which is the failure this whole section guards.
+const editableChromeFields = THEME_FIELDS.filter((field) => !field.hidden)
+ok(`every Chrome colour declares a role the prompt can describe (${editableChromeFields.length})`,
+  THEME_FIELDS.every((field) => COLOR_ROLE_IDS.includes(field.aiRole)),
+  THEME_FIELDS.filter((field) => !COLOR_ROLE_IDS.includes(field.aiRole)).map((f) => f.id).join(', '))
+ok('every VS Code colour declares one too',
+  [...VSCODE_FIELDS, ...VSCODE_OVERRIDE_FIELDS].every((field) => COLOR_ROLE_IDS.includes(field.aiRole)),
+  [...VSCODE_FIELDS, ...VSCODE_OVERRIDE_FIELDS]
+    .filter((field) => !COLOR_ROLE_IDS.includes(field.aiRole))
+    .map((f) => f.id)
+    .join(', '))
+ok('every role has a gloss for the prompt',
+  COLOR_ROLE_IDS.every((role) => colorRoleGloss(role).length > 0))
+
+// The palette as the Chrome workbench builds it: names plus roles.
+const explainedPalette = [
+  { id: 'frame', value: '#D6C7B0', label: '窗口框架', aiRole: 'background' },
+  { id: 'toolbar', value: '#EFE6D8', label: '工具栏', aiRole: 'backgroundAlt' },
+  { id: 'tabText', value: '#3A2F22', label: '标签文字', aiRole: 'text' },
+  { id: 'ntpLink', value: '#B83075', label: '链接色', aiRole: 'accent' },
+]
+const explained = buildRecolorMessages({
+  palette: explainedPalette,
+  instruction: '换成深色主题',
+  language: 'zh',
+})
+ok('the recolour prompt names each field the way the user sees it',
+  explained.user.includes('窗口框架') && explained.user.includes('标签文字'))
+ok('the recolour prompt says what each colour is',
+  explained.user.includes('background (a surface that other colours sit on)') &&
+    explained.user.includes('text (text or glyphs drawn on a background)'))
+ok('the recolour prompt states where the palette stands',
+  explained.user.includes('reads as a LIGHT theme'), explained.user.split('\n').find((l) => l.includes('reads as')))
+ok('the recolour prompt teaches the light/dark move',
+  explained.user.includes('move every background field together') &&
+    explained.user.includes('8–25%'))
+ok('the recolour prompt teaches the mood move',
+  explained.user.includes('mood') && explained.user.includes('奶油芝士'))
+ok('the recolour prompt separates a mood from a named region',
+  explained.user.includes('leave every other field alone'))
+ok('a mood and a lightness request are told to combine',
+  explained.user.includes('never a pale cream'))
+
+// Reading the request, and reading the answer.
+ok('a dark request is read as dark', askedTone('换成深色主题') === 'dark')
+ok('an English dark request too', askedTone('make the whole thing dark') === 'dark')
+ok('a light request is read as light', askedTone('整体亮一点') === 'light')
+ok('a mood is not a lightness request', askedTone('整体更奶油芝士一点') === null)
+ok('a denied direction is not a request', askedTone('别太深了') === null)
+ok('a request for both directions has no opinion', askedTone('深色背景但文字亮一点') === null)
+ok('a named region is not a whole-palette direction', askedTone('深绿的状态栏') === null)
+
+const toneDarkFields = [
+  { id: 'frame', value: '#1B1A22', aiRole: 'background' },
+  { id: 'toolbar', value: '#242330', aiRole: 'backgroundAlt' },
+  { id: 'tabText', value: '#F1EFF7', aiRole: 'text' },
+]
+const toneLightFields = [
+  { id: 'frame', value: '#F4EFE4', aiRole: 'background' },
+  { id: 'toolbar', value: '#FBF7EE', aiRole: 'backgroundAlt' },
+  { id: 'tabText', value: '#3A2F22', aiRole: 'text' },
+]
+ok('a dark palette reads as dark', paletteTone(toneDarkFields).tone === 'dark', JSON.stringify(paletteTone(toneDarkFields)))
+ok('a light palette reads as light', paletteTone(toneLightFields).tone === 'light')
+ok('the tone is judged on the backgrounds, not the text',
+  paletteTone([...toneDarkFields, { id: 'ntpLink', value: '#FFF3B0', aiRole: 'accent' }]).tone === 'dark')
+ok('a palette with no roles has no tone to report',
+  paletteTone([{ id: 'frame', value: '#000000' }]) === null)
+
+// The corrective round: a dark request answered with a pale palette gets one more
+// try, and the second answer is the one that is kept.
+const recolorCalls = []
+const answeringWith = (content) => async (url, init) => {
+  recolorCalls.push(JSON.parse(init.body))
+  return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) }
+}
+const paleReply = '{"summary":"done","changes":{"frame":"#F4EFE4","toolbar":"#FBF7EE"}}'
+const darkReply = '{"summary":"done","changes":{"frame":"#1B1A22","toolbar":"#242330","tabText":"#F1EFF7"}}'
+
+const retried = await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+  { palette: explainedPalette, instruction: '换成深色主题', language: 'zh', allowed: ['frame', 'toolbar', 'tabText'] },
+  { fetchImpl: answeringWith(paleReply) },
+)
+// Same wrong answer twice: the second is still used, and there is no third call —
+// one corrective round is a second opinion, a loop would be a stall.
+ok('a dark request answered with a pale palette is asked again, once',
+  recolorCalls.length === 2, `${recolorCalls.length} calls total`)
+ok('the caller can tell the answer was corrected', retried.corrected === true)
+
+recolorCalls.length = 0
+const bothReplies = (first, second) => async (url, init) => {
+  recolorCalls.push(JSON.parse(init.body))
+  const content = recolorCalls.length === 1 ? first : second
+  return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) }
+}
+const corrected = await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+  { palette: explainedPalette, instruction: '换成深色主题', language: 'zh', allowed: ['frame', 'toolbar', 'tabText'] },
+  { fetchImpl: bothReplies(paleReply, darkReply) },
+)
+ok('the correction is asked for exactly once', recolorCalls.length === 2, `${recolorCalls.length} calls`)
+ok('the corrected palette is the one that comes back',
+  corrected.changes.some((change) => change.id === 'frame' && change.value === '#1B1A22'),
+  JSON.stringify(corrected.changes))
+ok('the correction restates the targets for the direction asked for',
+  recolorCalls[1].messages[1].content.includes('8–25%') &&
+    recolorCalls[1].messages[1].content.includes('#F4EFE4'),
+  recolorCalls[1].messages[1].content.slice(-320))
+
+recolorCalls.length = 0
+const obeyed = await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+  { palette: explainedPalette, instruction: '换成深色主题', language: 'zh', allowed: ['frame', 'toolbar', 'tabText'] },
+  { fetchImpl: answeringWith(darkReply) },
+)
+ok('a dark request answered with a dark palette is taken as it is',
+  recolorCalls.length === 1 && obeyed.corrected === undefined)
+
+recolorCalls.length = 0
+await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+  { palette: explainedPalette, instruction: '整体更奶油芝士一点', language: 'zh', allowed: ['frame', 'toolbar', 'tabText'] },
+  { fetchImpl: answeringWith(paleReply) },
+)
+ok('a mood request is never second-guessed', recolorCalls.length === 1)
+
+recolorCalls.length = 0
+const noChange = await requestRecolor(
+  { baseURL: 'https://example.test/v1', model: 'm', apiKey: 'k' },
+  { palette: toneLightFields, instruction: '换成深色主题', language: 'zh', allowed: ['frame'] },
+  { fetchImpl: answeringWith('{"summary":"已经符合要求","changes":{}}') },
+)
+ok('an empty answer is reported, not retried', recolorCalls.length === 1 && noChange.changes.length === 0)
 
 const fencedCandidates = parseNamingResponse(
   '{"candidates":[{"name":"Lemon Juice Theme","description":"\\"A bright lemon wash for daytime work.\\""},{"name":"Bare Name Theme"}]}',

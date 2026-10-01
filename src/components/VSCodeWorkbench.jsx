@@ -654,13 +654,27 @@ export function VSCodeWorkbench({
       try {
         const masterIds = VSCODE_FIELDS.map((field) => field.id)
         const regionIds = VSCODE_OVERRIDE_FIELDS.map((field) => field.id)
+        /*
+         * Each colour goes to the model with the name the user sees and the role it
+         * plays (see `data/colorRoles.js`): a model asked for a dark theme has to
+         * know which of these are surfaces to push down and which are text to pull
+         * up, and `sidebarBg` alone does not say. Regions are listed whether or not
+         * they have been pinned — the model is describing the theme as it looks.
+         */
         const palette = [
-          ...masterIds.map((id) => ({ id, value: activeColors[id] })),
+          ...VSCODE_FIELDS.map((field) => ({
+            id: field.id,
+            value: activeColors[field.id],
+            label: t(field.labelKey),
+            aiRole: field.aiRole,
+          })),
           ...VSCODE_OVERRIDE_FIELDS.map((field) => {
             const pinned = typeof activeOverrides[field.id] === 'string'
             return {
               id: field.id,
               value: pinned ? activeOverrides[field.id] : activeColors[field.inherits],
+              label: t(field.labelKey),
+              aiRole: field.aiRole,
               pinned,
             }
           }),

@@ -582,7 +582,19 @@ export default function App() {
       }
       setRecolorBusy(true)
       try {
-        const palette = Object.keys(colors).map((id) => ({ id, value: colors[id] }))
+        /*
+         * The palette goes to the model with each colour's name and role, not just
+         * its id: `ntpLink` or `omniboxBackground` mean nothing on their own, and a
+         * model that cannot tell a surface from a text colour answers "换深色" with
+         * a pale palette. `buildColors` is the single source for the field list, so
+         * the same table the panel renders is the one the prompt describes.
+         */
+        const palette = THEME_FIELDS.map((field) => ({
+          id: field.id,
+          value: colors[field.id],
+          label: t(field.labelKey),
+          aiRole: field.aiRole,
+        }))
         const result = await requestRecolor(aiConfig, {
           palette,
           instruction,

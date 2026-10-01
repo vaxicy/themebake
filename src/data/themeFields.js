@@ -113,6 +113,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'primary',
+    aiRole: 'background',
     preview: 'Tab strip background',
   },
   {
@@ -123,6 +124,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'primaryMuted',
+    aiRole: 'backgroundAlt',
     preview: 'Not shown in preview',
   },
   {
@@ -133,6 +135,9 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'surface',
+    // Also a background: the toolbar is a surface of its own, one step off the
+    // frame, which is what keeps the strips readable in a flat palette.
+    aiRole: 'backgroundAlt',
     preview: 'Toolbar background',
   },
   {
@@ -143,6 +148,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'surfaceAlt',
+    aiRole: 'backgroundAlt',
     preview: 'Inactive tab background',
   },
   {
@@ -153,6 +159,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'onPrimary',
+    aiRole: 'text',
     preview: 'Active tab label',
   },
   {
@@ -163,6 +170,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'onSurfaceMuted',
+    aiRole: 'textMuted',
     preview: 'Inactive tab labels',
   },
   {
@@ -173,6 +181,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'onSurface',
+    aiRole: 'text',
     preview: 'Back / forward / reload icons',
   },
   {
@@ -183,6 +192,7 @@ export const THEME_FIELDS = [
     group: 'Browser chrome',
     groupKey: 'settings.group.browserChrome',
     role: 'accentSoft',
+    aiRole: 'accentSoft',
     preview: 'Window control buttons',
   },
 
@@ -195,6 +205,7 @@ export const THEME_FIELDS = [
     group: 'Address bar',
     groupKey: 'settings.group.addressBar',
     role: 'surfaceInset',
+    aiRole: 'backgroundInset',
     preview: 'Omnibox background',
   },
   {
@@ -205,6 +216,7 @@ export const THEME_FIELDS = [
     group: 'Address bar',
     groupKey: 'settings.group.addressBar',
     role: 'onSurface',
+    aiRole: 'text',
     preview: 'Omnibox placeholder text',
   },
 
@@ -217,6 +229,7 @@ export const THEME_FIELDS = [
     group: 'Bookmarks',
     groupKey: 'settings.group.bookmarks',
     role: 'onSurface',
+    aiRole: 'text',
     preview: 'Bookmark bar labels',
   },
 
@@ -229,6 +242,7 @@ export const THEME_FIELDS = [
     group: 'New Tab Page',
     groupKey: 'settings.group.newTabPage',
     role: 'page',
+    aiRole: 'background',
     preview: 'New Tab Page background',
   },
   {
@@ -239,6 +253,7 @@ export const THEME_FIELDS = [
     group: 'New Tab Page',
     groupKey: 'settings.group.newTabPage',
     role: 'onPage',
+    aiRole: 'text',
     preview: 'New Tab Page heading',
   },
   {
@@ -266,6 +281,7 @@ export const THEME_FIELDS = [
     group: 'New Tab Page',
     groupKey: 'settings.group.newTabPage',
     role: 'accent',
+    aiRole: 'accent',
     preview: 'Palette accent (legacy NTP link)',
   },
 ]
