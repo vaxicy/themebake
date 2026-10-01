@@ -167,8 +167,8 @@ export function VSCodeMockup({ colors, overrides = {}, onPick = null }) {
    * jumps to the colour field that paints it. The same contract as the Chrome
    * mockup, so the two previews behave alike.
    *
-   * The name and the key are handed to `PreviewTipLayer` as data rather than as a
-   * native `title`: the tooltip is drawn by the page (see `PreviewTip.jsx`), so it
+   * The name and the key are handed to `TooltipLayer` as data rather than as a
+   * native `title`: the tooltip is drawn by the page (see `Tooltip.jsx`), so it
    * can style the key as code and keep the mockups' colours in view underneath.
    */
   const cursorStyle = onPick ? { cursor: 'pointer' } : null

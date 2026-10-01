@@ -1347,6 +1347,82 @@
   color: var(--text-primary);
 }
 
+/* --------------------------------- Tooltip --------------------------------- */
+/*
+ * Our own, not the platform's: a native `title` waits for the OS's delay, renders in
+ * the OS's font at the OS's size, ignores the page's palette and cannot be styled.
+ * This one is drawn by `Tooltip.jsx`, mounted once for the whole app.
+ *
+ * Dark chip on purpose — it mostly sits over the mockups, which are dark whatever
+ * the page palette is, and it stays legible over the panels too.
+ */
+.tooltip-layer {
+  display: contents;
+}
+
+.tooltip {
+  position: fixed;
+  /* Above the mockups (which use z-index up to 5) and the key badges. */
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(24, 23, 34, 0.95);
+  color: #f5f4fa;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  /* Region tips are label · key · action and never wrap; a sentence does. */
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(15, 14, 26, 0.34);
+  /* Never steals the hover that is showing it. */
+  pointer-events: none;
+  animation: tooltip-in var(--dur-fast) var(--ease);
+}
+
+/* Fades and lifts in rather than popping: it appears the moment the pointer enters,
+   so without a small transition it reads as a glitch. */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A sentence: wrap it, and keep it on a normal text measure rather than a chip.
+   `pre-line` because some hints are written as two lines (a summary, then the
+   reason for it) and the newline is part of how they read. */
+.tooltip--text {
+  display: block;
+  max-width: min(300px, calc(100vw - 24px));
+  white-space: pre-line;
+}
+
+.tooltip__label {
+  font-weight: 600;
+}
+
+/* The workbench / manifest key, in the same mono face the key badges use. */
+.tooltip__key {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #c9c6dd;
+}
+
+.tooltip__action {
+  padding-left: 8px;
+  border-left: 1px solid rgba(245, 244, 250, 0.22);
+  color: #c9c6dd;
+}
+
 /* The author's brief. A textarea, not an input: these notes run to a sentence or
    two, and a one-line field hides most of what was typed. */
 .ai__brief {

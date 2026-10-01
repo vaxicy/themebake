@@ -49,7 +49,7 @@ export function Header({ onReset, onUndo, canUndo = false, storageWarning, showT
                   className="button button--ghost button--sm"
                   onClick={onUndo}
                   disabled={!canUndo}
-                  title={t('header.undoTitle')}
+                  data-tip={t('header.undoTitle')}
                   aria-label={t('header.undo')}
                 >
                   <UndoIcon size={15} />
@@ -73,7 +73,7 @@ export function Header({ onReset, onUndo, canUndo = false, storageWarning, showT
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer noopener"
-              title={t('header.githubTitle')}
+              data-tip={t('header.githubTitle')}
               aria-label={t('header.githubAria')}
             >
               <GitHubIcon size={15} />

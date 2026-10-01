@@ -105,7 +105,7 @@ export function AiNamingPanel({
               onClick={onRegenerateDescription}
               disabled={aiBlocked}
               aria-label={t('ai.regenerateDescription')}
-              title={t('ai.regenerateDescription')}
+              data-tip={t('ai.regenerateDescription')}
             >
               <RefreshIcon size={15} />
             </button>
@@ -198,7 +198,7 @@ export function AiNamingPanel({
                     className={`ai__candidate${isActive ? ' is-active' : ''}`}
                     onClick={() => onApply(candidate)}
                     aria-pressed={isActive}
-                    title={tooltip || undefined}
+                    data-tip={tooltip || undefined}
                   >
                     <span className="ai__candidate-name">{candidate.name}</span>
                     <span className="ai__candidate-folder">{candidate.folder}</span>

@@ -37,6 +37,7 @@ import { PaletteStudio } from './components/PaletteStudio.jsx'
 import { PresetsPanel } from './components/PresetsPanel.jsx'
 import { PreviewPanel } from './components/ChromeMockup.jsx'
 import { ThemeSettings } from './components/ThemeSettings.jsx'
+import { TooltipLayer } from './components/Tooltip.jsx'
 import { useToast } from './components/Toast.jsx'
 import {
   DEFAULT_COLORS,
@@ -1007,7 +1008,7 @@ export default function App() {
                       className={`field-action${aiBusyField === 'name' ? ' is-busy' : ''}`}
                       onClick={handleRegenerateName}
                       disabled={!aiConfigured || aiRequestInFlight}
-                      title={t('ai.regenerateName')}
+                      data-tip={t('ai.regenerateName')}
                       aria-label={t('ai.regenerateName')}
                     >
                       <RefreshIcon size={15} />
@@ -1021,7 +1022,7 @@ export default function App() {
                       // Nothing to slugify without a name, and no request is made,
                       // so this one stays available without an API key.
                       disabled={!name.trim() || aiRequestInFlight}
-                      title={t('ai.regenerateFolder')}
+                      data-tip={t('ai.regenerateFolder')}
                       aria-label={t('ai.regenerateFolder')}
                     >
                       <RefreshIcon size={15} />
@@ -1094,6 +1095,13 @@ export default function App() {
       <footer className="site-footer">
         <p>{t('footer.privacy')}</p>
       </footer>
+
+      {/*
+        The page's tooltip, mounted once for the whole shell: it delegates from here,
+        so every element that carries `data-tip*` — a preview region, a button with a
+        sentence to explain — is drawn by the page instead of by the browser.
+      */}
+      <TooltipLayer />
 
       {mode === 'chrome' ? (
         <>

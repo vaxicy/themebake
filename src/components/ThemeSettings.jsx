@@ -87,7 +87,7 @@ export function ThemeSettings({
         {onClearFields || onUndo ? (
           <div className="settings-actions">
             {onAutoClearChange ? (
-              <label className="auto-clear-toggle" title={autoClearTitle ?? t('settings.autoClearTitle')}>
+              <label className="auto-clear-toggle" data-tip={autoClearTitle ?? t('settings.autoClearTitle')}>
                 <input
                   type="checkbox"
                   checked={autoClear}
@@ -107,7 +107,7 @@ export function ThemeSettings({
                 className="button button--ghost button--sm"
                 onClick={onUndo}
                 disabled={!canUndo}
-                title={t('header.undoTitle')}
+                data-tip={t('header.undoTitle')}
               >
                 {t('header.undo')}
               </button>
@@ -116,7 +116,7 @@ export function ThemeSettings({
               type="button"
               className="button button--ghost button--sm"
               onClick={onClearFields}
-              title={t('settings.clearTitle')}
+              data-tip={t('settings.clearTitle')}
             >
               {t('settings.clear')}
             </button>

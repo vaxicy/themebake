@@ -158,7 +158,7 @@ export function ExportPanel({
           type="button"
           className="button button--outline button--lg"
           onClick={onExportJson}
-          title={t('export.jsonTitle')}
+          data-tip={t('export.jsonTitle')}
         >
           <DownloadIcon size={17} />
           {t('export.json')}

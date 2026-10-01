@@ -23,7 +23,6 @@ import { ColorField } from './ColorField.jsx'
 import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
-import { PreviewTipLayer } from './PreviewTip.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
 import { LinkIcon, ResetIcon, UnlinkIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
@@ -129,7 +128,7 @@ function RegionField({ field, value, inherited, onChange, onInvalid }) {
             type="button"
             className="field-action"
             onClick={() => onChange(null)}
-            title={t('vscode.region.reset')}
+            data-tip={t('vscode.region.reset')}
             aria-label={t('vscode.region.reset')}
           >
             <ResetIcon size={15} />
@@ -1095,7 +1094,7 @@ export function VSCodeWorkbench({
                 type="button"
                 className={`link-toggle${linked ? ' is-linked' : ''}`}
                 aria-pressed={linked}
-                title={t(linked ? 'vscode.link.onTitle' : 'vscode.link.offTitle')}
+                data-tip={t(linked ? 'vscode.link.onTitle' : 'vscode.link.offTitle')}
                 onClick={handleLinkChange}
               >
                 {linked ? <LinkIcon /> : <UnlinkIcon />}
@@ -1113,9 +1112,6 @@ export function VSCodeWorkbench({
             overrides={activeOverrides}
             onPick={handlePickField}
           />
-
-          {/* Names the region under the pointer; one layer per preview panel. */}
-          <PreviewTipLayer />
 
           <p className="export-panel__note">
             {t('vscode.preview.derived', {

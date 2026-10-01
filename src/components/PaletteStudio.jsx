@@ -100,7 +100,6 @@ export function PaletteStudio({
           type="button"
           className="button button--ghost button--sm studio__random"
           onClick={handleRandomSeed}
-          title={t('studio.randomSeed')}
         >
           {t('studio.randomSeed')}
         </button>
@@ -207,7 +206,14 @@ export function PaletteStudio({
             {stripItems.map((item) => {
               const hex = stripColors?.[item.id] ?? null
               return (
-                <span className="studio__strip-cell" key={item.id} title={`${t(item.labelKey)} · ${hex ?? '—'}`}>
+                <span
+                  className="studio__strip-cell"
+                  key={item.id}
+                  /* The strip's own hex is already printed under the swatch; the tip
+                     adds which field it is, in the tooltip layer's own grammar. */
+                  data-tip-label={t(item.labelKey)}
+                  data-tip-key={hex ?? '—'}
+                >
                   <span
                     className="studio__strip-swatch"
                     style={{ backgroundColor: hex ?? 'transparent' }}

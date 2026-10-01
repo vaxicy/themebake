@@ -2751,6 +2751,60 @@ ok('the exemption is a real, editable field, not a stale name',
   [...CHROME_PREVIEW_EXEMPT].join(', '))
 
 // ---------------------------------------------------------------------------
+section('28. Hints are drawn by the page, never by the browser')
+// ---------------------------------------------------------------------------
+// A native `title` waits for the OS's delay, renders in the OS's font, ignores the
+// palette and cannot be styled — so every hint we write goes through `data-tip*` and
+// the one `TooltipLayer` (`Tooltip.jsx`, mounted once in `App.jsx`). This reads the
+// sources back and fails if an explanation regresses into a `title` attribute, which
+// is exactly how the tooltip users complained about looked before.
+const jsxSources = sourceFiles
+  .filter((file) => file.endsWith('.jsx'))
+  .map((file) => ({
+    name: file.replace(/\\/g, '/').split('/src/').pop(),
+    source: readFileSync(file, 'utf8'),
+  }))
+const sourceLine = (text, key) => text.split('\n').filter((line) => line.includes(key))
+
+/** The i18n keys that are *explanations* — they must all be tooltips now. */
+const HINT_KEYS = [
+  'header.undoTitle',
+  'header.githubTitle',
+  'settings.autoClearTitle',
+  'settings.clearTitle',
+  'vscode.region.reset',
+  'vscode.link.onTitle',
+  'vscode.link.offTitle',
+  'ai.regenerateName',
+  'ai.regenerateFolder',
+  'ai.regenerateDescription',
+  'export.jsonTitle',
+]
+const nativeHints = []
+for (const key of HINT_KEYS) {
+  const lines = jsxSources.flatMap(({ name, source }) =>
+    sourceLine(source, key).map((line) => `${name}: ${line.trim()}`),
+  )
+  const usedAsTip = lines.some((line) => line.includes('data-tip'))
+  const stillNative = lines.filter((line) => line.includes('title='))
+  if (!usedAsTip || stillNative.length) nativeHints.push(`${key} -> ${stillNative.join(' | ') || 'not a tip'}`)
+}
+ok(`all ${HINT_KEYS.length} written hints are custom tooltips, not native ones`,
+  nativeHints.length === 0, nativeHints.join(' ; '))
+
+// The only `title=` left in the components are dialog names passed as props, which
+// are headings rather than hover text.
+const remainingTitles = jsxSources.flatMap(({ name, source }) =>
+  sourceLine(source, 'title={').map((line) => `${name}: ${line.trim()}`),
+)
+ok('the only title props left name a dialog',
+  remainingTitles.every((entry) => /title=\{(?:title|t\('(?:about|manifest|confirm\.[a-z]+)\.title'\))\}/.test(entry)),
+  remainingTitles.join(' ; '))
+ok('the tooltip layer is mounted once, in the app shell',
+  sourceLine(readFileSync(join(here, '..', 'src', 'App.jsx'), 'utf8'), '<TooltipLayer').length === 1 &&
+    jsxSources.filter(({ source }) => source.includes('<TooltipLayer')).length === 1)
+
+// ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
 if (failures === 0) {
   console.log(`ALL CHECKS PASSED  (${checks} assertions)`)

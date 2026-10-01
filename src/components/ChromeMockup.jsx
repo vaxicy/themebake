@@ -11,7 +11,6 @@
  */
 
 import { derivePreviewColors } from '../data/presets.js'
-import { PreviewTipLayer } from './PreviewTip.jsx'
 import { normalizeHex } from '../utils/color.js'
 import { useI18n } from '../i18n/index.jsx'
 import {
@@ -47,8 +46,8 @@ export function ChromeMockup({ colors, onPick = null }) {
    * jumps to that colour in the panel. The tooltip is the discoverable half — no
    * copy in the panel is needed for it.
    *
-   * The name, the key and the click hint go to `PreviewTipLayer` as data instead of
-   * into a native `title`: the page draws the tooltip itself (`PreviewTip.jsx`), so
+   * The name, the key and the click hint go to `TooltipLayer` as data instead of
+   * into a native `title`: the page draws the tooltip itself (`Tooltip.jsx`), so
    * the manifest key can be set as code and the popup matches this UI.
    */
   const cursorStyle = onPick ? { cursor: 'pointer' } : null
@@ -301,9 +300,6 @@ export function PreviewPanel({
       </div>
 
       <ChromeMockup colors={colors} onPick={onPickRegion} />
-
-      {/* Names the region under the pointer; one layer per preview panel. */}
-      <PreviewTipLayer />
 
       <div className={`audit${issues.length ? ' audit--warn' : ' audit--ok'}`} role="status">
         <div className="audit__head">
