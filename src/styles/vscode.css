@@ -115,6 +115,39 @@
   font-weight: 640;
 }
 
+/*
+ * The link switch, beside those two tabs: same pill, but a switch rather than a
+ * choice — so it carries the state in its icon and colour, and `aria-pressed`
+ * carries it for assistive tech. Linked is the default and reads as "on".
+ */
+.link-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 640;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.link-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.link-toggle.is-linked {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+  color: var(--text-primary);
+}
+
 /* ------------------------------ VS Code mockup ---------------------------- */
 /* Geometry only — every surface is painted inline from buildVscodeColors so the
    preview always matches the generated theme JSON exactly. */

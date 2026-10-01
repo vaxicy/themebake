@@ -25,7 +25,7 @@ import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
 import { PreviewTipLayer } from './PreviewTip.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
-import { ResetIcon } from './Icons.jsx'
+import { LinkIcon, ResetIcon, UnlinkIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
 import { useToast } from './Toast.jsx'
 import { DEFAULT_THEME_NAME } from '../data/presets.js'
@@ -67,6 +67,7 @@ import {
   counterpartTypeFor,
   deriveCounterpart,
   masterFromPalette,
+  mirroredHalf,
   resolveType,
   schemeOf,
   shellOverridesFor,
@@ -170,6 +171,11 @@ function readInitialState() {
         : DEFAULT_VSCODE_OUTPUT_MODE,
       // Paired light+dark export. Off unless the user asked for it.
       pair: saved.pair === true,
+      // Linked means the two halves mirror each other, which is what every draft
+      // written before the switch existed assumed — so anything other than an
+      // explicit `false` stays linked (`?? true` would do the same, but this reads
+      // as the rule it is: only a real "off" turns it off).
+      linked: saved.linked !== false,
       seed: normalizeHex(saved.seed) ?? DEFAULT_VSCODE_COLORS.editorBg,
       smartMode: SOLVER_MODES.includes(saved.smartMode) ? saved.smartMode : 'auto',
       smartIntensity: INTENSITIES.includes(saved.smartIntensity) ? saved.smartIntensity : 'balanced',
@@ -255,6 +261,19 @@ export function VSCodeWorkbench({
    * halves are two themes, not one theme and its preview.
    */
   const [editingSlot, setEditingSlot] = useState('primary')
+  /**
+   * Whether the two halves stay a palette and its mirror.
+   *
+   * On by default, and that is what the pair has always done: edit the light theme
+   * and the dark one is re-derived from it. Off is the case a hand-tuner needs —
+   * "my dark theme is fine, I only want to fix the light one" — and then an edit
+   * stops at the half on screen.
+   *
+   * A preference about *editing*, so it lives in the draft next to the palette but
+   * is deliberately not an undo step: undo restores colours, and flipping a mode
+   * back is a click away.
+   */
+  const [linked, setLinked] = useState(INITIAL.state?.linked ?? true)
 
   // ---------------------------------------------------------------------------
   // Undo (Ctrl+Z)
@@ -302,6 +321,7 @@ export function VSCodeWorkbench({
         pairedOverrides,
         outputMode,
         pair,
+        linked,
         seed,
         smartMode,
         smartIntensity,
@@ -323,6 +343,7 @@ export function VSCodeWorkbench({
     pairedOverrides,
     outputMode,
     pair,
+    linked,
     seed,
     smartMode,
     smartIntensity,
@@ -459,13 +480,19 @@ export function VSCodeWorkbench({
   }, [autoClear])
 
   /**
-   * Colour edits land in whichever half is on screen — and in the *other* half too,
-   * re-derived from the palette that was just edited.
+   * Colour edits land in whichever half is on screen — and, while the two are
+   * linked, in the *other* half too, re-derived from the palette that was just
+   * edited.
    *
-   * The pair is one palette and its mirror, so an edit that stopped at the half on
-   * screen would leave a flip solved for colours that no longer exist: change the
-   * light theme's selection and its dark twin would still be wearing the old one,
-   * which reads as two unrelated themes sharing a name.
+   * Linked is the pair behaving as one palette and its mirror: an edit that stopped
+   * at the half on screen would leave a flip solved for colours that no longer
+   * exist — change the light theme's selection and its dark twin would still be
+   * wearing the old one, which reads as two unrelated themes sharing a name.
+   *
+   * Unlinked, the edit stops here. That is the whole point of the switch: a dark
+   * theme that is already settled should not be rewritten because the light one was
+   * nudged. The rule itself lives in `mirroredHalf` (see `vscode/build.js`), so it
+   * is stated once and testable without a browser.
    *
    * The other half's region pins go with its old palette (a pin is an absolute
    * colour picked against it). The pins of the half being edited stay — those are
@@ -475,29 +502,36 @@ export function VSCodeWorkbench({
     (fieldId, next) => {
       pushHistory(fieldId)
       const edited = buildMasterColors({ ...activeColors, [fieldId]: next })
-      const mirror = () => {
-        const opposite = counterpartTypeFor(schemeOf(edited))
-        return pair && opposite ? deriveCounterpart(edited, opposite) : null
-      }
+      const other = mirroredHalf({ colors: edited, pair, linked })
 
       if (editingPaired) {
         setPairedColors(edited)
-        const other = mirror()
         if (other) {
           setColors(other)
           setOverrides({})
         }
       } else {
         setColors(edited)
-        const other = mirror()
         if (other) {
           setPairedColors(other)
           setPairedOverrides({})
         }
       }
     },
-    [activeColors, editingPaired, pair, pushHistory],
+    [activeColors, editingPaired, linked, pair, pushHistory],
   )
+
+  /**
+   * Connect or disconnect the two halves.
+   *
+   * Turning it back on does *not* rewrite the other half here: it only makes the
+   * next edit reach it. Re-deriving on the switch would throw away a dark theme the
+   * user may have just spent time on — and the pairing was probably turned off in
+   * the first place to keep it.
+   */
+  const handleLinkChange = useCallback(() => {
+    setLinked((current) => !current)
+  }, [])
 
   /**
    * Pin or release one region of the half on screen. `null` means "follow the
@@ -1026,6 +1060,7 @@ export function VSCodeWorkbench({
             */}
             <div className="panel__header-actions">
               {counterpart ? (
+              <>
               <div
                 className="segmented segmented--pair"
                 role="radiogroup"
@@ -1050,6 +1085,25 @@ export function VSCodeWorkbench({
                   </label>
                 ))}
               </div>
+
+              {/*
+                Connect or disconnect the two halves — right next to the switch that
+                picks which half is being edited, because it answers the question
+                that follows: does what I type here reach the other one?
+              */}
+              <button
+                type="button"
+                className={`link-toggle${linked ? ' is-linked' : ''}`}
+                aria-pressed={linked}
+                title={t(linked ? 'vscode.link.onTitle' : 'vscode.link.offTitle')}
+                onClick={handleLinkChange}
+              >
+                {linked ? <LinkIcon /> : <UnlinkIcon />}
+                <span className="link-toggle__label">
+                  {t(linked ? 'vscode.link.on' : 'vscode.link.off')}
+                </span>
+              </button>
+              </>
               ) : null}
             </div>
           </div>
@@ -1072,7 +1126,7 @@ export function VSCodeWorkbench({
 
           {counterpart ? (
             <p className="export-panel__note">
-              {t('vscode.preview.pairNote', {
+              {t(linked ? 'vscode.preview.pairNote' : 'vscode.preview.pairNoteUnlinked', {
                 shown: t(`scheme.${editingPaired ? pairedScheme : scheme}`),
               })}
             </p>

@@ -118,6 +118,7 @@ import {
   counterpartTypeFor,
   deriveCounterpart,
   masterFromPalette,
+  mirroredHalf,
   resolveType,
   schemeOf,
   shellOverridesFor,
@@ -1938,6 +1939,19 @@ ok('counterpartTypeFor flips the two schemes and refuses anything else',
     counterpartTypeFor('hc-black') === null)
 ok('deriveCounterpart with no target picks the opposite scheme',
   schemeOf(deriveCounterpart(DEFAULT_VSCODE_COLORS)) === 'light')
+
+// The link switch: whether an edit to one half reaches the other. `mirroredHalf` is
+// the whole rule — paired *and* linked means a mirror of the edited palette, and
+// anything else means the other half must be left exactly as it is.
+const linkedMirror = mirroredHalf({ colors: DEFAULT_VSCODE_COLORS, pair: true, linked: true })
+ok('paired and linked gives the other half the opposite scheme',
+  linkedMirror !== null && schemeOf(linkedMirror) === 'light', JSON.stringify(schemeOf(linkedMirror)))
+ok('the mirror is solved from the palette that was edited',
+  linkedMirror.editorBg === deriveCounterpart(DEFAULT_VSCODE_COLORS, 'light').editorBg)
+ok('unlinked leaves the other half alone', mirroredHalf({ colors: DEFAULT_VSCODE_COLORS, pair: true, linked: false }) === null)
+ok('unpaired leaves it alone too', mirroredHalf({ colors: DEFAULT_VSCODE_COLORS, pair: false, linked: true }) === null)
+ok('linking is the default, so an old draft keeps mirroring',
+  mirroredHalf({ colors: DEFAULT_VSCODE_COLORS, pair: true }) !== null)
 
 // The reported bug: a draft declaring "light" while holding dark colours produced
 // a "light" theme that rendered dark — and an equally wrong "derived light" that

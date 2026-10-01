@@ -181,7 +181,14 @@ export default {
   'vscode.preview.problemWarning': "1 个警告：'palette' 已声明但未使用",
   'vscode.preview.variantLegend': '正在编辑的配色',
   'vscode.preview.pairNote':
-    '正在编辑{shown}配色 —— 另一半由它推导，这里改什么，另一半跟着重算；导出时会同时包含两套。',
+    '正在编辑{shown}配色 —— 两套已连接：这里改什么，另一半跟着重算；导出时会同时包含两套。',
+  'vscode.preview.pairNoteUnlinked':
+    '正在编辑{shown}配色 —— 两套已断开：改颜色不会动另一半，生成一整套新配色时两套仍会一起换；导出时始终包含两套。',
+  // 连接开关：浅色与深色是否互相影响。
+  'vscode.link.on': '已连接',
+  'vscode.link.off': '已断开',
+  'vscode.link.onTitle': '两套联动：改一套会重算另一套。点击断开，各自独立编辑。',
+  'vscode.link.offTitle': '两套独立：改一套不影响另一套。点击连接，恢复联动。',
   'vscode.export.title': '导出 VS Code 主题',
   'vscode.export.subtitle': '生成可安装的扩展包 {filename}（package.json + themes/ 主题 JSON + README）。',
   'vscode.export.subtitleFolder': '直接写一个扩展包文件夹 {folder}/，无需解压即可安装。',

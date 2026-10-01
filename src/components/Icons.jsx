@@ -39,6 +39,28 @@ export function ResetIcon({ size = 16, ...rest }) {
   )
 }
 
+/** Two links joined: the light and dark halves are kept in step. */
+export function LinkIcon({ size = 15, ...rest }) {
+  return (
+    <svg {...base} width={size} height={size} {...rest}>
+      <path d="M10.5 13.5a3.6 3.6 0 0 0 5.1 0l2.6-2.6a3.6 3.6 0 0 0-5.1-5.1l-1.2 1.2" />
+      <path d="M13.5 10.5a3.6 3.6 0 0 0-5.1 0l-2.6 2.6a3.6 3.6 0 0 0 5.1 5.1l1.2-1.2" />
+    </svg>
+  )
+}
+
+/** The same chain, cut: the halves are edited separately. */
+export function UnlinkIcon({ size = 15, ...rest }) {
+  return (
+    <svg {...base} width={size} height={size} {...rest}>
+      <path d="M10.4 13.8a3.6 3.6 0 0 0 4.7-.3l1-1" />
+      <path d="M13.6 10.2a3.6 3.6 0 0 0-4.7.3l-2.6 2.6a3.6 3.6 0 0 0 4.4 5.5" />
+      <path d="M18.2 7.2a3.6 3.6 0 0 0-4.4-1.4l-1.2 1.2" />
+      <path d="M4 4l16 16" />
+    </svg>
+  )
+}
+
 /**
  * Re-generate: two arcs with their arrowheads.
  *

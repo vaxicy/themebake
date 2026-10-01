@@ -221,6 +221,32 @@ export function resolveType(colors) {
 }
 
 /**
+ * The palette the *other* half of a pair should wear after this one was edited, or
+ * `null` when the other half must be left exactly as it is.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY IT IS A RULE AND NOT AN `if` AT THE CALL SITE
+ * ---------------------------------------------------------------------------
+ * Two switches meet here. `pair` decides whether a second theme exists at all (one
+ * extension, two themes). `linked` decides whether the two stay a palette and its
+ * mirror — the default, and the reason editing one half used to rewrite the other.
+ * Unlinked is the "leave my dark theme alone while I fix the light one" case, which
+ * is what a user hand-tuning two themes actually needs.
+ *
+ * Keeping the rule in one function means the answer is testable without a browser:
+ * unlinked and unpaired both yield `null`, and a mirror is always the opposite
+ * scheme of the palette that was edited.
+ *
+ * @param {{colors: Record<string,string>, pair?: boolean, linked?: boolean}} options
+ * @returns {Record<string,string>|null} master colours for the other half
+ */
+export function mirroredHalf({ colors, pair = false, linked = true }) {
+  if (!pair || !linked) return null
+  const opposite = counterpartTypeFor(schemeOf(colors))
+  return opposite ? deriveCounterpart(colors, opposite) : null
+}
+
+/**
  * Push a colour's lightness until it clears `min` contrast against a background.
  *
  * Only lightness moves — hue and saturation are what make the colour *that*

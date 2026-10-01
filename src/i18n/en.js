@@ -199,7 +199,14 @@ export default {
   'vscode.preview.problemWarning': "1 warning: 'palette' is declared but never used",
   'vscode.preview.variantLegend': 'Edited palette',
   'vscode.preview.pairNote':
-    'Editing the {shown} palette — the other half is derived from it, so every change here re-solves it. The export contains both.',
+    'Editing the {shown} palette — the two are linked: every change here re-solves the other half. The export contains both.',
+  'vscode.preview.pairNoteUnlinked':
+    'Editing the {shown} palette — the two are unlinked: colours you change here leave the other half alone, and generating a whole new palette still replaces both. The export always contains both.',
+  // The link switch: whether the light and dark halves affect each other.
+  'vscode.link.on': 'Linked',
+  'vscode.link.off': 'Unlinked',
+  'vscode.link.onTitle': 'The two halves move together: editing one re-solves the other. Click to edit them separately.',
+  'vscode.link.offTitle': 'The two halves are independent: editing one leaves the other alone. Click to link them again.',
   'vscode.export.title': 'Export VS Code Theme',
   'vscode.export.subtitle': 'Builds an installable extension package {filename} (package.json + themes/ JSON + README).',
   'vscode.export.subtitleFolder': 'Writes the extension folder {folder}/ directly — no unzipping needed.',
