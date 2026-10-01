@@ -161,7 +161,8 @@ function readInitialState() {
       pairedColors: saved.pairedColors ? buildMasterColors(saved.pairedColors) : null,
       // Pinned regions travel with the draft like the colours do; anything
       // unknown or malformed is dropped, which means "inherit". Each half of a pair
-      // keeps its own set — the two are independent themes (see `reseedPair`).
+      // keeps its own set, and a half that gets re-derived (see `handleColorChange`)
+      // starts again with none.
       overrides: buildOverrides(saved.overrides),
       pairedOverrides: buildOverrides(saved.pairedOverrides),
       outputMode: VSCODE_OUTPUT_MODE_IDS.includes(saved.outputMode)
@@ -220,12 +221,11 @@ export function VSCodeWorkbench({
   /**
    * The opposite-scheme palette of a pair, once it exists.
    *
-   * Stored rather than derived on every render, because the two halves are
-   * **independent**: once the user switches to the light tab and edits a colour
-   * there, that is their light theme — re-deriving it from the dark one on the
-   * next keystroke would silently undo the edit. New themes (preset, random,
-   * studio, import) do re-derive it, so the pair stays coherent when the whole
-   * palette is replaced.
+   * A stored palette rather than a derived-on-render one, but not an independent
+   * one: it is the *mirror* of the palette it was derived from, and every edit —
+   * a new theme, a preset, or a single hex in either half — regenerates it. Storing
+   * it keeps the scheme labels, the export and the region pins attached to a
+   * palette that only changes when its source does.
    */
   const [pairedColors, setPairedColors] = useState(INITIAL.state?.pairedColors ?? null)
   /*
@@ -458,14 +458,45 @@ export function VSCodeWorkbench({
     setNameError('')
   }, [autoClear])
 
-  /** Colour edits land in whichever half is on screen. */
+  /**
+   * Colour edits land in whichever half is on screen — and in the *other* half too,
+   * re-derived from the palette that was just edited.
+   *
+   * The pair is one palette and its mirror, so an edit that stopped at the half on
+   * screen would leave a flip solved for colours that no longer exist: change the
+   * light theme's selection and its dark twin would still be wearing the old one,
+   * which reads as two unrelated themes sharing a name.
+   *
+   * The other half's region pins go with its old palette (a pin is an absolute
+   * colour picked against it). The pins of the half being edited stay — those are
+   * the user's own choices, made against the colours they are looking at.
+   */
   const handleColorChange = useCallback(
     (fieldId, next) => {
       pushHistory(fieldId)
-      if (editingPaired) setPairedColors((current) => ({ ...(current ?? {}), [fieldId]: next }))
-      else setColors((current) => ({ ...current, [fieldId]: next }))
+      const edited = buildMasterColors({ ...activeColors, [fieldId]: next })
+      const mirror = () => {
+        const opposite = counterpartTypeFor(schemeOf(edited))
+        return pair && opposite ? deriveCounterpart(edited, opposite) : null
+      }
+
+      if (editingPaired) {
+        setPairedColors(edited)
+        const other = mirror()
+        if (other) {
+          setColors(other)
+          setOverrides({})
+        }
+      } else {
+        setColors(edited)
+        const other = mirror()
+        if (other) {
+          setPairedColors(other)
+          setPairedOverrides({})
+        }
+      }
     },
-    [editingPaired, pushHistory],
+    [activeColors, editingPaired, pair, pushHistory],
   )
 
   /**
@@ -492,13 +523,12 @@ export function VSCodeWorkbench({
   /**
    * Rebuild the other half of the pair from the palette that just arrived.
    *
-   * Only *new* themes go through here: a hand edit must never rewrite the other
-   * side, or the "two independent palettes" promise is broken. Everywhere a new
-   * theme actually lands (studio, random, import, preset, scheme switch) the flip
-   * is regenerated, always from the colours on screen — keeping a stored half
-   * merely because it *was* the opposite scheme is how a fresh palette ended up
-   * beside the previous theme's other side: a new purple dark theme paired with
-   * the grey light half of whatever came before it.
+   * Everywhere a new theme lands (studio, random, import, preset, scheme switch)
+   * the flip is regenerated, always from the colours on screen — keeping a stored
+   * half merely because it *was* the opposite scheme is how a fresh palette ended
+   * up beside the previous theme's other side: a new purple dark theme paired with
+   * the grey light half of whatever came before it. Hand edits travel through
+   * `handleColorChange` and regenerate it the same way.
    *
    * Its pinned regions go with the palette it replaced: a pin is an absolute
    * colour picked against the half that is gone, so the new flip starts with every
@@ -545,22 +575,30 @@ export function VSCodeWorkbench({
       pushHistory()
       setPair(next)
       if (next) {
-        // Seed the other half the first time it is switched on: an inverted copy
-        // of the palette on screen is the useful starting point, and from then on
-        // it is the user's own palette.
+        /*
+         * Seed the other half as the flip of the palette on screen — always, since
+         * the two halves are a palette and its mirror: a stored half is a flip of
+         * colours that may have changed while pairing was off, and edits made in
+         * that time never reached it.
+         *
+         * Its region pins survive only when the flip comes back identical (the
+         * switch being turned straight back on), because a pin is an absolute
+         * colour and the palette it was chosen against is what makes it right.
+         */
         const opposite = counterpartTypeFor(schemeOf(master))
-        if (opposite) {
-          setPairedColors((current) =>
-            current && schemeOf(current) === opposite ? current : deriveCounterpart(master, opposite),
-          )
-        }
+        if (!opposite) return
+        const derived = deriveCounterpart(master, opposite)
+        const unchanged =
+          pairedColors && JSON.stringify(buildMasterColors(pairedColors)) === JSON.stringify(derived)
+        setPairedColors(derived)
+        if (!unchanged) setPairedOverrides({})
       } else {
         // The switch only exists while a pair is configured, so turning it off has
         // to bring the panel back to the primary palette.
         setEditingSlot('primary')
       }
     },
-    [master, pushHistory],
+    [master, pairedColors, pushHistory],
   )
 
   const handleApplyPreset = useCallback(

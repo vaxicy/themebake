@@ -199,7 +199,7 @@ export default {
   'vscode.preview.problemWarning': "1 warning: 'palette' is declared but never used",
   'vscode.preview.variantLegend': 'Edited palette',
   'vscode.preview.pairNote':
-    'Editing the {shown} palette. The two halves are independent — each keeps its own colours, so tune them separately — and the export contains both.',
+    'Editing the {shown} palette — the other half is derived from it, so every change here re-solves it. The export contains both.',
   'vscode.export.title': 'Export VS Code Theme',
   'vscode.export.subtitle': 'Builds an installable extension package {filename} (package.json + themes/ JSON + README).',
   'vscode.export.subtitleFolder': 'Writes the extension folder {folder}/ directly — no unzipping needed.',

@@ -181,7 +181,7 @@ export default {
   'vscode.preview.problemWarning': "1 个警告：'palette' 已声明但未使用",
   'vscode.preview.variantLegend': '正在编辑的配色',
   'vscode.preview.pairNote':
-    '正在编辑{shown}配色。两套互相独立、各自保存自己的颜色，可以分别调整；导出时会同时包含两套。',
+    '正在编辑{shown}配色 —— 另一半由它推导，这里改什么，另一半跟着重算；导出时会同时包含两套。',
   'vscode.export.title': '导出 VS Code 主题',
   'vscode.export.subtitle': '生成可安装的扩展包 {filename}（package.json + themes/ 主题 JSON + README）。',
   'vscode.export.subtitleFolder': '直接写一个扩展包文件夹 {folder}/，无需解压即可安装。',
