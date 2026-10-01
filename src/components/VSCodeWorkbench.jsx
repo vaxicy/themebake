@@ -24,7 +24,6 @@ import { ImportPanel } from './ImportPanel.jsx'
 import { PaletteStudio } from './PaletteStudio.jsx'
 import { PresetsPanel } from './PresetsPanel.jsx'
 import { PreviewTipLayer } from './PreviewTip.jsx'
-import { AiRecolor } from './AiRecolor.jsx'
 import { ThemeSettings } from './ThemeSettings.jsx'
 import { ResetIcon } from './Icons.jsx'
 import { VSCodeMockup } from './VSCodeMockup.jsx'
@@ -39,7 +38,6 @@ import {
 } from '../utils/palette.js'
 import { useI18n } from '../i18n/index.jsx'
 import { describePalette, requestThemeNames } from '../utils/aiNaming.js'
-import { requestRecolor } from '../utils/aiRecolor.js'
 import { normalizeHex } from '../utils/color.js'
 import { canWriteFolder, writeThemeFolder } from '../utils/fsFolder.js'
 import { buildColors, generateRandomColors, paletteDistance } from '../data/presets.js'
@@ -279,12 +277,6 @@ export function VSCodeWorkbench({
 
   // ----------------------------------------------------------------- AI naming
   const [aiBusy, setAiBusy] = useState(false)
-  /**
-   * The recolouring request, tracked apart from the naming one: both are AI calls
-   * and the app runs one at a time, but each panel reports only its own progress
-   * and merely waits while the other works.
-   */
-  const [recolorBusy, setRecolorBusy] = useState(false)
   const [aiCandidates, setAiCandidates] = useState([])
   const [aiAppliedName, setAiAppliedName] = useState('')
   const aiSeenRef = useRef([])
@@ -630,120 +622,6 @@ export function VSCodeWorkbench({
     [clearIdentityForNewTheme, pushHistory, reseedPair, toast, t, type],
   )
 
-  /**
-   * A sentence in, a few colours out — for the half of the pair that is on screen.
-   *
-   * The palette handed to the model is what the user is looking at: the master
-   * fields plus, as separate entries, the regions this half has pinned. A request
-   * like "status bar deep green" therefore comes back as the *region* id and is
-   * written to the pins rather than to a master colour, which is exactly where that
-   * colour lives in the export.
-   *
-   * Applying it is the same edit as typing the hex: one undo step, and the other
-   * half is re-derived from the result (see `handleColorChange`).
-   *
-   * @returns {Promise<boolean>} whether the palette changed
-   */
-  const handleAiRecolor = useCallback(
-    async (instruction) => {
-      if (!String(aiConfig.apiKey).trim()) {
-        toast.error(t('ai.errorNoKey'))
-        return false
-      }
-      setRecolorBusy(true)
-      try {
-        const masterIds = VSCODE_FIELDS.map((field) => field.id)
-        const regionIds = VSCODE_OVERRIDE_FIELDS.map((field) => field.id)
-        /*
-         * Each colour goes to the model with the name the user sees and the role it
-         * plays (see `data/colorRoles.js`): a model asked for a dark theme has to
-         * know which of these are surfaces to push down and which are text to pull
-         * up, and `sidebarBg` alone does not say. Regions are listed whether or not
-         * they have been pinned — the model is describing the theme as it looks.
-         */
-        const palette = [
-          ...VSCODE_FIELDS.map((field) => ({
-            id: field.id,
-            value: activeColors[field.id],
-            label: t(field.labelKey),
-            aiRole: field.aiRole,
-          })),
-          ...VSCODE_OVERRIDE_FIELDS.map((field) => {
-            const pinned = typeof activeOverrides[field.id] === 'string'
-            return {
-              id: field.id,
-              value: pinned ? activeOverrides[field.id] : activeColors[field.inherits],
-              label: t(field.labelKey),
-              aiRole: field.aiRole,
-              pinned,
-            }
-          }),
-        ]
-
-        const result = await requestRecolor(aiConfig, {
-          palette,
-          instruction,
-          language: aiConfig.language,
-          allowed: [...masterIds, ...regionIds],
-        })
-        if (!result.changes.length) {
-          toast.info(t('recolor.nothingChanged'), 5000)
-          return false
-        }
-
-        pushHistory()
-        const nextColors = { ...activeColors }
-        const nextOverrides = { ...activeOverrides }
-        for (const change of result.changes) {
-          if (regionIds.includes(change.id)) nextOverrides[change.id] = change.value
-          else nextColors[change.id] = change.value
-        }
-
-        const edited = buildMasterColors(nextColors)
-        const opposite = counterpartTypeFor(schemeOf(edited))
-        if (editingPaired) {
-          setPairedColors(edited)
-          setPairedOverrides(nextOverrides)
-          if (pair && opposite) {
-            setColors(deriveCounterpart(edited, opposite))
-            setOverrides({})
-          }
-        } else {
-          setColors(edited)
-          setOverrides(nextOverrides)
-          if (pair && opposite) {
-            setPairedColors(deriveCounterpart(edited, opposite))
-            setPairedOverrides({})
-          }
-        }
-
-        toast.success(
-          t('recolor.applied', {
-            count: result.changes.length,
-            summary: result.summary || result.changes.map((change) => change.id).join(', '),
-          }),
-          6000,
-        )
-        return true
-      } catch (error) {
-        toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
-        return false
-      } finally {
-        setRecolorBusy(false)
-      }
-    },
-    [
-      activeColors,
-      activeOverrides,
-      aiConfig,
-      editingPaired,
-      pair,
-      pushHistory,
-      toast,
-      t,
-    ],
-  )
-
   /** Shared "solve a palette and adopt it" step for studio / random / import. */
   const applySolvedPalette = useCallback(
     (seeds) => {
@@ -1027,9 +905,6 @@ export function VSCodeWorkbench({
               onGenerateAll={handleAiGenerateNames}
               onApply={handleApplyAiCandidate}
               busy={aiBusy}
-              // One request at a time across the workbench: recolouring blocks the
-              // naming controls without pretending to be a naming request.
-              networkBusy={aiBusy || recolorBusy}
               candidates={aiCandidates}
               appliedName={aiAppliedName}
               description=""
@@ -1102,16 +977,6 @@ export function VSCodeWorkbench({
           onFolderChange={setFolderInput}
           onColorChange={handleColorChange}
           onInvalidColor={(label) => toast.error(t('colorField.invalidToast', { label }))}
-        />
-
-        {/* The conversational half of "make this look different", above the
-            solver: ask for one colour to be changed and it is changed, or reach
-            for the studio below to derive a whole family from one seed. */}
-        <AiRecolor
-          onRun={handleAiRecolor}
-          busy={recolorBusy}
-          blocked={aiBusy || recolorBusy}
-          hasKey={Boolean(aiConfig.apiKey)}
         />
 
         <PaletteStudio

@@ -27,7 +27,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AiNamingPanel } from './components/AiNamingPanel.jsx'
-import { AiRecolor } from './components/AiRecolor.jsx'
 import { ConfirmDialog } from './components/ConfirmDialog.jsx'
 import { ExportPanel } from './components/ExportPanel.jsx'
 import { Header } from './components/Header.jsx'
@@ -60,7 +59,6 @@ import {
   requestThemeDescription,
   requestThemeNames,
 } from './utils/aiNaming.js'
-import { requestRecolor } from './utils/aiRecolor.js'
 import { loadAutoClearNewTheme, saveAutoClearNewTheme, loadEditorMode, saveEditorMode } from './utils/appPrefs.js'
 import { normalizeHex } from './utils/color.js'
 import { auditContrast, repairContrast } from './utils/contrastAudit.js'
@@ -197,14 +195,6 @@ export default function App() {
   const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
   const [aiBusy, setAiBusy] = useState(false)
   /**
-   * The recolouring request, tracked apart from the naming one.
-   *
-   * Both are AI calls and the app runs one at a time, but a button that says
-   * "recolouring…" while it is actually generating names is a small lie — each
-   * panel shows its own progress and merely *waits* while the other works.
-   */
-  const [recolorBusy, setRecolorBusy] = useState(false)
-  /**
    * Which single field a request is re-generating: `'name'`, `'description'`, or
    * `null`. Only the button that was pressed spins; every AI control is blocked
    * while any request is in flight, so two replies can never race for the same
@@ -307,7 +297,7 @@ export default function App() {
   /** Is the AI usable at all? Every AI action needs a key on the shared path. */
   const aiConfigured = Boolean(String(aiConfig.apiKey ?? '').trim())
   /** One AI request at a time, whichever button started it. */
-  const aiRequestInFlight = aiBusy || recolorBusy || aiBusyField !== null
+  const aiRequestInFlight = aiBusy || aiBusyField !== null
 
   // ---------------------------------------------------------------------------
   // Persistence — debounced so typing in a hex field does not hammer storage
@@ -562,72 +552,6 @@ export default function App() {
     const result = applySolvedTheme([seed])
     if (result) toast.success(t('toast.smartApplied'))
   }, [applySolvedTheme, seed, toast, t])
-
-  /**
-   * A sentence in, a few colours out.
-   *
-   * The model only ever *proposes*: `parseRecolorResponse` keeps the changes whose
-   * ids this palette actually has and whose values parse as hex, so a hallucinated
-   * key or a malformed colour is dropped instead of reaching the manifest. One undo
-   * step covers the whole edit, and a request that changes nothing says so rather
-   * than pretending it worked.
-   *
-   * @returns {Promise<boolean>} whether the palette changed
-   */
-  const handleAiRecolor = useCallback(
-    async (instruction) => {
-      if (!String(aiConfig.apiKey).trim()) {
-        toast.error(t('ai.errorNoKey'))
-        return false
-      }
-      setRecolorBusy(true)
-      try {
-        /*
-         * The palette goes to the model with each colour's name and role, not just
-         * its id: `ntpLink` or `omniboxBackground` mean nothing on their own, and a
-         * model that cannot tell a surface from a text colour answers "换深色" with
-         * a pale palette. `buildColors` is the single source for the field list, so
-         * the same table the panel renders is the one the prompt describes.
-         */
-        const palette = THEME_FIELDS.map((field) => ({
-          id: field.id,
-          value: colors[field.id],
-          label: t(field.labelKey),
-          aiRole: field.aiRole,
-        }))
-        const result = await requestRecolor(aiConfig, {
-          palette,
-          instruction,
-          language: aiConfig.language,
-          allowed: palette.map((field) => field.id),
-        })
-        if (!result.changes.length) {
-          toast.info(t('recolor.nothingChanged'), 5000)
-          return false
-        }
-        pushHistory()
-        setColors((current) => {
-          const next = { ...current }
-          for (const change of result.changes) next[change.id] = change.value
-          return buildColors(next)
-        })
-        toast.success(
-          t('recolor.applied', {
-            count: result.changes.length,
-            summary: result.summary || result.changes.map((c) => c.id).join(', '),
-          }),
-          6000,
-        )
-        return true
-      } catch (error) {
-        toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
-        return false
-      } finally {
-        setRecolorBusy(false)
-      }
-    },
-    [aiConfig, colors, pushHistory, toast, t],
-  )
 
   const handleImportPalette = useCallback(
     (seeds) => {
@@ -1111,16 +1035,6 @@ export default function App() {
                   onColorChange={handleColorChange}
                   onInvalidColor={handleInvalidColor}
                 />
-
-            {/* The conversational half of "make this look different", above the
-                solver: ask for one colour to be changed and it is changed, or reach
-                for the studio below to derive a whole family from one seed. */}
-            <AiRecolor
-              onRun={handleAiRecolor}
-              busy={recolorBusy}
-              blocked={aiRequestInFlight}
-              hasKey={Boolean(aiConfig.apiKey)}
-            />
 
             <PaletteStudio
               seed={seed}
