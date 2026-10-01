@@ -398,41 +398,108 @@
 }
 
 /* ----------------------- Settings header actions -------------------------- */
-/* The one-click "clear" button and the auto-clear checkbox sit opposite the
-   panel title. Scoped to the settings panel so no other header is affected. */
+/* The title's row carries one preference and two actions — the auto-clear switch
+   and the clear / undo buttons. Three controls of equal weight, so they share one
+   line box, one height and one hover treatment: the toggle used to be bare text
+   beside a native checkbox, which read as a purple block next to two text buttons
+   and sat on a different baseline from them. */
 .settings-panel .panel__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  /* The actions are a fixed-width row; the title takes what is left and wraps
+     rather than pushing them out. When even that is too tight the row drops to
+     its own line, still flushed right. */
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.settings-panel .panel__header > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .settings-actions {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 10px;
+  margin-left: auto;
+  /* Tight inside a group, wider between them: the preference is one control, the
+     buttons are another. */
+  gap: 6px;
 }
 
+/* The preference is a chip in the same row: same height, same radius, same hover
+   as the buttons beside it. */
 .auto-clear-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--text-xs);
+  gap: 7px;
+  margin-right: 6px;
+  /* The same box as `.button--sm` (padding + 1px border + 12.5px at 1.2), so the
+     three controls line up to the pixel instead of by eye. */
+  padding: 6px 10px 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  white-space: nowrap;
-}
-
-.auto-clear-toggle input {
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .auto-clear-toggle:hover {
+  background-color: var(--surface-hover);
   color: var(--text-primary);
+}
+
+/* Our own box rather than the platform's: a native one is a filled accent square
+   at whatever size and corner radius the OS decides, which is a heavier mark than
+   the two labels it sits between. */
+.auto-clear-toggle input {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background-color: var(--surface-card);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.auto-clear-toggle input:hover {
+  border-color: var(--accent);
+}
+
+.auto-clear-toggle input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* The tick is two borders rotated — no icon font, and it scales with the box. */
+.auto-clear-toggle input::after {
+  content: '';
+  width: 7px;
+  height: 3.5px;
+  border-left: 1.6px solid var(--text-inverse);
+  border-bottom: 1.6px solid var(--text-inverse);
+  transform: rotate(-45deg) scale(0);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.auto-clear-toggle input:checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+.auto-clear-toggle input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 @media (max-width: 560px) {
