@@ -194,6 +194,9 @@ export default {
   'vscode.preview.subtitle': 'The workbench and syntax colours rendered from your palette.',
   'vscode.preview.aria': 'VS Code interface preview',
   'vscode.preview.derived': 'Derives {colors} workbench colour keys + {tokens} syntax rules.',
+  // Panel content, so the error and warning colours have something to paint.
+  'vscode.preview.problemError': "1 error: cannot find module './oven'",
+  'vscode.preview.problemWarning': "1 warning: 'palette' is declared but never used",
   'vscode.preview.variantLegend': 'Edited palette',
   'vscode.preview.pairNote':
     'Editing the {shown} palette. The two halves are independent — each keeps its own colours, so tune them separately — and the export contains both.',

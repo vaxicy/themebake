@@ -215,11 +215,34 @@
   opacity: 1;
 }
 
+/* Unread badge on the activity icon — the surface that carries the button colours
+   (`activityBarBadge.background` / `.foreground`). */
+.vsc__activity-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The padding is what keeps the badge's own colour clickable: the count sits in
+     the middle of it, and the ring around the digit is the background. */
+  padding: 0 4px;
+  min-width: 15px;
+  height: 15px;
+  border-radius: var(--radius-pill);
+  font-size: 9px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.vsc__activity-badge-count {
+  line-height: 1;
+}
+
 .vsc__sidebar {
   width: 148px;
   flex: 0 0 auto;
   padding: 8px 0;
-  border-right: 1px solid transparent;
   font-size: 11px;
 }
 
@@ -283,10 +306,27 @@
 }
 
 .vsc__line {
+  /* Containing block for the indentation guides, which are absolutely placed at
+     the column their indentation ends at. */
+  position: relative;
   display: flex;
   gap: 12px;
   padding: 1px 12px 1px 0;
   white-space: pre;
+}
+
+/*
+ * One indentation guide. Six pixels wide for a one-pixel line: the visible mark is
+ * the left border, and the rest is hit area — the same reasoning as `.vsc__divider`
+ * below, and the only way a hairline stays clickable.
+ */
+.vsc__guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-left: 1px solid transparent;
+  pointer-events: auto;
 }
 
 .vsc__line-number {
@@ -300,12 +340,55 @@
   font-family: inherit;
 }
 
-/* Panel strip — the bottom tab row (Problems / Output / Terminal). Its own
-   surface in VS Code, and separately pinnable in the settings panel. */
+/*
+ * The sidebar / editor divider: a wide element that paints a hairline on its
+ * trailing edge, so `sideBar.border` has something a pointer can actually land on.
+ */
+.vsc__divider {
+  flex: 0 0 auto;
+  width: 7px;
+  border-right: 1px solid transparent;
+}
+
+/* Suggestion widget, floating over the tail of the editor the way the real one
+   does. Absolutely positioned so it never pushes the layout around. */
+.vsc__suggest {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 170px;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.vsc__suggest-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.vsc__suggest-row em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+/* Panel strip — the bottom tab row (Problems / Output / Terminal) plus the
+   problem list below it. Its own surface in VS Code, and separately pinnable in
+   the settings panel. */
 .vsc__panel {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   border-top: 1px solid transparent;
+}
+
+.vsc__panel-tabs {
+  display: flex;
+  align-items: stretch;
 }
 
 .vsc__panel-tab {
@@ -322,6 +405,27 @@
   opacity: 1;
 }
 
+/* One reported problem. The row is a colour of its own (error or warning), so it
+   is a preview region like any other. */
+.vsc__problem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 12px 3px;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vsc__problem-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
 .vsc__status {
   display: flex;
   justify-content: space-between;
@@ -336,7 +440,10 @@
 }
 
 @media (max-width: 720px) {
-  .vsc__sidebar {
+  /* The sidebar folds away on narrow screens, and its divider with it — a 7px
+     strip of sidebar colour with nothing to divide would just be a seam. */
+  .vsc__sidebar,
+  .vsc__divider {
     display: none;
   }
 }

@@ -22,6 +22,33 @@ import { KeyBadge } from './ChromeMockup.jsx'
 /** Activity bar icons, drawn as neutral shapes. */
 const ACTIVITY_ICONS = ['files', 'search', 'git', 'debug', 'extensions']
 
+/** The line the caret is on: highlighted, its number accented, its guide brighter. */
+const CURRENT_LINE = 3
+
+/**
+ * Which master colour paints each token family, so a click on a word in the sample
+ * edits the colour behind it.
+ *
+ * The token palette shifts and mixes (`buildTokenColors`), so a keyword is not
+ * *equal* to the accent — but it is the accent that moves it, and that is the
+ * colour to edit when a keyword reads wrong. Naming the token rule in the tooltip
+ * says where the colour lands without pretending the two are the same value.
+ *
+ * @type {Record<string, [fieldId: string, key: string, labelKey: string]>}
+ */
+const TOKEN_REGIONS = {
+  keyword: ['accent', 'tokenColors.keyword', 'vscode.field.accent'],
+  tag: ['accent', 'tokenColors.tag', 'vscode.field.accent'],
+  type: ['accent', 'tokenColors.type', 'vscode.field.accent'],
+  func: ['accent', 'tokenColors.func', 'vscode.field.accent'],
+  string: ['warningFg', 'tokenColors.string', 'vscode.field.warningFg'],
+  number: ['warningFg', 'tokenColors.number', 'vscode.field.warningFg'],
+  attribute: ['warningFg', 'tokenColors.attribute', 'vscode.field.warningFg'],
+  comment: ['mutedFg', 'tokenColors.comment', 'vscode.field.mutedFg'],
+  invalid: ['errorFg', 'tokenColors.invalid', 'vscode.field.errorFg'],
+  variable: ['editorFg', 'editor.foreground', 'vscode.field.editorFg'],
+}
+
 /** Sidebar file tree — names chosen to look like a real project. */
 const TREE = [
   { name: 'src', folder: true, depth: 0 },
@@ -54,7 +81,9 @@ const CODE_LINES = [
   [
     { t: '  palette', k: 'variable' },
     { t: ': ', k: 'variable' },
-    { t: 'blushMatcha', k: 'type' },
+    // Selected text: the one place `editor.selectionBackground` is visible, and the
+    // element that makes it clickable.
+    { t: 'blushMatcha', k: 'type', sel: true },
     { t: ', ', k: 'variable' },
   ],
   [
@@ -141,7 +170,28 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
                 color: index === 0 ? derived['activityBar.foreground'] : derived['activityBar.inactiveForeground'],
                 borderColor: index === 0 ? derived['activityBar.activeBorder'] : 'transparent',
               }}
-            />
+            >
+              {/*
+                An unread badge on the first icon. It is how VS Code paints
+                `activityBarBadge.background` / `.foreground` — the button colours,
+                which no other surface in this preview shows.
+              */}
+              {index === 0 ? (
+                <span
+                  className="vsc__activity-badge"
+                  style={{ backgroundColor: derived['activityBarBadge.background'], ...cursorStyle }}
+                  {...region('buttonBg', 'activityBarBadge.background', 'vscode.field.buttonBg')}
+                >
+                  <span
+                    className="vsc__activity-badge-count"
+                    style={{ color: derived['activityBarBadge.foreground'], ...cursorStyle }}
+                    {...region('buttonFg', 'activityBarBadge.foreground', 'vscode.field.buttonFg')}
+                  >
+                    3
+                  </span>
+                </span>
+              ) : null}
+            </span>
           ))}
         </div>
 
@@ -163,7 +213,13 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
                 paddingLeft: `${10 + node.depth * 14}px`,
                 color: node.active ? derived['list.activeSelectionForeground'] : derived['sideBar.foreground'],
                 backgroundColor: node.active ? derived['list.activeSelectionBackground'] : 'transparent',
+                ...(node.active ? cursorStyle : null),
               }}
+              // The selected row is `list.activeSelectionBackground` — the same
+              // selection colour the editor uses, reached from the other side.
+              {...(node.active
+                ? region('selectionBg', 'list.activeSelectionBackground', 'vscode.field.selectionBg')
+                : null)}
             >
               <span className="vsc__tree-caret">{node.folder ? '▾' : ''}</span>
               {node.dot ? (
@@ -173,6 +229,21 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
             </div>
           ))}
         </div>
+
+        {/*
+          The sidebar / editor divider. VS Code draws it from the border colour, and
+          at one pixel it is far too thin to aim at — so the element is a few pixels
+          wide and paints its line on the trailing edge only.
+        */}
+        <span
+          className="vsc__divider"
+          style={{
+            backgroundColor: derived['sideBar.background'],
+            borderRightColor: derived['sideBar.border'],
+            ...cursorStyle,
+          }}
+          {...region('border', 'sideBar.border', 'vscode.field.border')}
+        />
 
         {/* -------------------------- tabs + editor ---------------------------- */}
         <div className="vsc__main">
@@ -210,29 +281,128 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
             {...region('editorBg', 'editor.background', 'vscode.field.editorBg')}
           >
             {showKeys ? <KeyBadge position="top-right">editor.background</KeyBadge> : null}
-            {CODE_LINES.map((line, index) => (
-              <div
-                key={index}
-                className={`vsc__line${index === 3 ? ' is-current' : ''}`}
-                style={{
-                  backgroundColor: index === 3 ? derived['editor.lineHighlightBackground'] : 'transparent',
-                }}
-              >
-                <span
-                  className="vsc__line-number"
-                  style={{ color: index === 3 ? derived['editorLineNumber.activeForeground'] : derived['editorLineNumber.foreground'] }}
+            {CODE_LINES.map((line, index) => {
+              const current = index === CURRENT_LINE
+              // Indentation guides sit at the column the indentation ends at, so
+              // they are measured in `ch` (the mono advance) rather than in px and
+              // stay aligned whatever font the machine resolves.
+              const indent = (/^ */u.exec(line[0]?.t ?? '')?.[0].length ?? 0) / 2
+              return (
+                <div
+                  key={index}
+                  className={`vsc__line${current ? ' is-current' : ''}`}
+                  style={{
+                    backgroundColor: current ? derived['editor.lineHighlightBackground'] : 'transparent',
+                    ...cursorStyle,
+                  }}
+                  {...(current
+                    ? region('lineHighlightBg', 'editor.lineHighlightBackground', 'vscode.field.lineHighlightBg')
+                    : null)}
                 >
-                  {index + 1}
-                </span>
-                <code className="vsc__line-code" style={{ color: derived['editor.foreground'] }}>
-                  {line.map((segment, subIndex) => (
-                    <span key={subIndex} style={{ color: tokens[segment.k] ?? derived['editor.foreground'] }}>
-                      {segment.t}
-                    </span>
-                  ))}
-                </code>
-              </div>
-            ))}
+                  {indent > 0 ? (
+                    <span
+                      className="vsc__guide"
+                      style={{
+                        left: `calc(38px + ${indent}ch)`,
+                        // The guide of the line the cursor is on is a step brighter
+                        // in VS Code, and follows the muted text rather than the
+                        // border (see `editorIndentGuide.activeBackground1`).
+                        borderLeftColor: current
+                          ? derived['editorIndentGuide.activeBackground1']
+                          : derived['editorIndentGuide.background1'],
+                        ...cursorStyle,
+                      }}
+                      {...(current
+                        ? region('mutedFg', 'editorIndentGuide.activeBackground1', 'vscode.field.mutedFg')
+                        : region('indentGuideFg', 'editorIndentGuide.background1', 'vscode.override.indentGuideFg'))}
+                    />
+                  ) : null}
+                  <span
+                    className="vsc__line-number"
+                    style={{
+                      color: current
+                        ? derived['editorLineNumber.activeForeground']
+                        : derived['editorLineNumber.foreground'],
+                      ...cursorStyle,
+                    }}
+                    {...(current
+                      ? region('accent', 'editorLineNumber.activeForeground', 'vscode.field.accent')
+                      : region('lineNumberFg', 'editorLineNumber.foreground', 'vscode.override.lineNumberFg'))}
+                  >
+                    {index + 1}
+                  </span>
+                  {/*
+                    The ink of the line as a whole, under the tokens that override
+                    it. Blank lines get no region of their own: there is no text to
+                    point at, and the editor's background is the honest answer for
+                    the empty space.
+                  */}
+                  <code
+                    className="vsc__line-code"
+                    style={{ color: derived['editor.foreground'], ...cursorStyle }}
+                    {...(line.some((segment) => segment.t)
+                      ? region('editorFg', 'editor.foreground', 'vscode.field.editorFg')
+                      : null)}
+                  >
+                    {line.map((segment, subIndex) => {
+                      const token = TOKEN_REGIONS[segment.k]
+                      return (
+                        <span
+                          key={subIndex}
+                          style={{
+                            color: tokens[segment.k] ?? derived['editor.foreground'],
+                            backgroundColor: segment.sel ? derived['editor.selectionBackground'] : undefined,
+                            ...cursorStyle,
+                          }}
+                          // Blank segments (the empty sample lines) carry no
+                          // text, so tagging them would add a region with no area
+                          // to aim at.
+                          {...(segment.sel
+                            ? region('selectionBg', 'editor.selectionBackground', 'vscode.field.selectionBg')
+                            : token && segment.t
+                              ? region(token[0], token[1], token[2])
+                              : null)}
+                        >
+                          {segment.t}
+                        </span>
+                      )
+                    })}
+                  </code>
+                </div>
+              )
+            })}
+
+            {/*
+              The autocomplete popup: the only surface in a workbench that shows
+              `editorSuggestWidget.background` (the pinnable widget colour) and one
+              of the two places `editorSuggestWidget.selectedBackground` appears.
+              Anchored to the bottom-right, clear of every line that carries its own
+              region.
+            */}
+            <div
+              className="vsc__suggest"
+              style={{
+                backgroundColor: derived['editorSuggestWidget.background'],
+                borderColor: derived['editorSuggestWidget.border'],
+                color: derived['editorSuggestWidget.foreground'],
+                ...cursorStyle,
+              }}
+              {...region('widgetBg', 'editorSuggestWidget.background', 'vscode.override.widgetBg')}
+            >
+              {showKeys ? (
+                <KeyBadge position="top-right">editorSuggestWidget.background</KeyBadge>
+              ) : null}
+              <span
+                className="vsc__suggest-row is-selected"
+                style={{ backgroundColor: derived['editorSuggestWidget.selectedBackground'], ...cursorStyle }}
+                {...region('selectionBg', 'editorSuggestWidget.selectedBackground', 'vscode.field.selectionBg')}
+              >
+                bakeTheme <em>fn</em>
+              </span>
+              <span className="vsc__suggest-row">
+                blushMatcha <em>type</em>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -252,21 +422,45 @@ export function VSCodeMockup({ colors, overrides = {}, showKeys = false, onPick 
         {...region('panelBg', 'panel.background', 'vscode.override.panelBg')}
       >
         {showKeys ? <KeyBadge position="top-right">panel.background</KeyBadge> : null}
+        <span className="vsc__panel-tabs">
+          <span
+            className="vsc__panel-tab is-active"
+            style={{
+              backgroundColor: derived['editor.background'],
+              color: derived['panel.foreground'],
+              borderBottomColor: derived['focusBorder'],
+            }}
+          >
+            PROBLEMS
+          </span>
+          <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
+            OUTPUT
+          </span>
+          <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
+            TERMINAL
+          </span>
+        </span>
+
+        {/*
+          A line of real panel content, so the two semantic colours have a home in
+          the preview: an error is `editorError.foreground`, a warning
+          `editorWarning.foreground`, and they are the only place either shows.
+        */}
         <span
-          className="vsc__panel-tab is-active"
-          style={{
-            backgroundColor: derived['editor.background'],
-            color: derived['panel.foreground'],
-            borderBottomColor: derived['focusBorder'],
-          }}
+          className="vsc__problem"
+          style={{ color: derived['editorError.foreground'], ...cursorStyle }}
+          {...region('errorFg', 'editorError.foreground', 'vscode.field.errorFg')}
         >
-          PROBLEMS
+          <i className="vsc__problem-dot" />
+          {t('vscode.preview.problemError')}
         </span>
-        <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
-          OUTPUT
-        </span>
-        <span className="vsc__panel-tab" style={{ color: derived['panel.foreground'] }}>
-          TERMINAL
+        <span
+          className="vsc__problem"
+          style={{ color: derived['editorWarning.foreground'], ...cursorStyle }}
+          {...region('warningFg', 'editorWarning.foreground', 'vscode.field.warningFg')}
+        >
+          <i className="vsc__problem-dot" />
+          {t('vscode.preview.problemWarning')}
         </span>
       </div>
 

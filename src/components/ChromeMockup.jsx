@@ -117,9 +117,19 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
                     opacity: tab.active ? 0.75 : 0.55,
                   }}
                 />
+                {/*
+                  The label carries the tab's *text* colour: `tab_text` on the
+                  selected tab, `tab_background_text` on the others. The two are
+                  separate fields, and this is the only surface that shows which is
+                  which.
+                */}
                 <span
                   className="mockup__tab-label"
-                  style={{ color: tab.active ? safe.tabText : safe.tabBackgroundText }}
+                  style={{
+                    color: tab.active ? safe.tabText : safe.tabBackgroundText,
+                    ...(onPick ? cursorStyle : null),
+                  }}
+                  {...region(tab.active ? 'tabText' : 'tabBackgroundText', tab.active ? 'tab_text' : 'tab_background_text')}
                 >
                   {tab.label}
                 </span>
@@ -153,7 +163,12 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
         >
           {showKeys ? <KeyBadge position="top-left">toolbar</KeyBadge> : null}
 
-          <div className="mockup__nav" style={{ color: safe.toolbarButtonIcon }}>
+          {/* Every glyph the toolbar draws takes `toolbar_button_icon`. */}
+          <div
+            className="mockup__nav"
+            style={{ color: safe.toolbarButtonIcon, ...cursorStyle }}
+            {...region('toolbarButtonIcon', 'toolbar_button_icon')}
+          >
             <ArrowLeftIcon size={17} />
             <ArrowRightIcon size={17} />
             <ReloadIcon size={15} />
@@ -170,15 +185,28 @@ export function ChromeMockup({ colors, showKeys, logoStyle, onPick = null }) {
             {...region('omniboxBackground', 'omnibox_background')}
           >
             <SearchIcon size={13} />
-            <span className="mockup__omnibox-text">{t('preview.omnibox')}</span>
+            {/* The address bar's own text colour, separate from its background. */}
+            <span
+              className="mockup__omnibox-text"
+              style={onPick ? cursorStyle : null}
+              {...region('omniboxText', 'omnibox_text')}
+            >
+              {t('preview.omnibox')}
+            </span>
             {showKeys ? <KeyBadge position="bottom-left">omnibox_background / omnibox_text</KeyBadge> : null}
           </div>
 
-          <div className="mockup__toolbar-right" style={{ color: safe.toolbarButtonIcon }}>
+          <div
+            className="mockup__toolbar-right"
+            style={{ color: safe.toolbarButtonIcon, ...cursorStyle }}
+            {...region('toolbarButtonIcon', 'toolbar_button_icon')}
+          >
             <StarIcon size={15} />
+            {/* Painted from `button_background`, like the window controls. */}
             <span
               className="mockup__avatar"
-              style={{ backgroundColor: safe.buttonBackground, color: safe.toolbarButtonIcon }}
+              style={{ backgroundColor: safe.buttonBackground, color: safe.toolbarButtonIcon, ...cursorStyle }}
+              {...region('buttonBackground', 'button_background')}
             >
               T
             </span>

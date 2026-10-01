@@ -179,6 +179,9 @@ export default {
   'vscode.preview.subtitle': '按当前配色实时渲染工作台与语法高亮。',
   'vscode.preview.aria': 'VS Code 界面预览',
   'vscode.preview.derived': '派生 {colors} 个工作台颜色键 + {tokens} 条语法高亮规则。',
+  // Panel content, so the error and warning colours have something to paint.
+  'vscode.preview.problemError': "1 个错误：找不到模块 './oven'",
+  'vscode.preview.problemWarning': "1 个警告：'palette' 已声明但未使用",
   'vscode.preview.variantLegend': '正在编辑的配色',
   'vscode.preview.pairNote':
     '正在编辑{shown}配色。两套互相独立、各自保存自己的颜色，可以分别调整；导出时会同时包含两套。',

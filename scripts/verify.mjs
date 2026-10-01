@@ -2656,6 +2656,54 @@ ok('the separate regions sit in the groups they belong to',
   [...new Set(VSCODE_OVERRIDE_FIELDS.map((field) => field.group))].join(','))
 
 // ---------------------------------------------------------------------------
+section('27. Every editable colour is reachable from the preview')
+// ---------------------------------------------------------------------------
+// The preview is the other half of the settings panel: a colour the user cannot
+// point at on screen is one they have to guess where to change. Both mockups tag
+// every region they paint with `region('<fieldId>', '<key>')`, so the ids can be
+// read back out of the source and compared with the fields the panel offers —
+// which is the only way to keep the two lists from drifting apart as either side
+// grows.
+const regionIdsIn = (file) => {
+  const source = readFileSync(join(here, '..', 'src', 'components', file), 'utf8')
+  // Every bare identifier literal inside a `region(...)` call: the field id comes
+  // first, and a ternary (`tab.active ? 'tabText' : 'tabBackgroundText'`) offers
+  // two, so take them all. Dotted keys and `snake_case` manifest keys are not
+  // identifiers and fall out here.
+  return new Set(
+    [...source.matchAll(/region\(([^)]*)\)/g)].flatMap((call) =>
+      [...call[1].matchAll(/'([A-Za-z][A-Za-z0-9]*)'/g)].map((literal) => literal[1]),
+    ),
+  )
+}
+const vscodeRegionIds = regionIdsIn('VSCodeMockup.jsx')
+const chromeRegionIds = regionIdsIn('ChromeMockup.jsx')
+
+const vscodeEditable = [...VSCODE_FIELD_IDS, ...VSCODE_OVERRIDE_IDS]
+const unclickableVscode = vscodeEditable.filter((id) => !vscodeRegionIds.has(id))
+ok(`all ${vscodeEditable.length} VS Code colours can be clicked in the preview`,
+  unclickableVscode.length === 0, unclickableVscode.join(', '))
+ok('the preview points at nothing the panel does not offer',
+  [...vscodeRegionIds].every((id) => vscodeEditable.includes(id)),
+  [...vscodeRegionIds].filter((id) => !vscodeEditable.includes(id)).join(', '))
+
+const chromeEditable = THEME_FIELDS.filter((field) => !field.hidden).map((field) => field.id)
+/**
+ * The one Chrome colour a still preview cannot show: `frame_inactive` is the
+ * window frame of an *unfocused* window, and the mockup draws a focused one — the
+ * two cannot be on screen at once.
+ */
+const CHROME_PREVIEW_EXEMPT = new Set(['frameInactive'])
+const unclickableChrome = chromeEditable.filter(
+  (id) => !CHROME_PREVIEW_EXEMPT.has(id) && !chromeRegionIds.has(id),
+)
+ok(`all ${chromeEditable.length - CHROME_PREVIEW_EXEMPT.size} Chrome colours can be clicked in the preview`,
+  unclickableChrome.length === 0, unclickableChrome.join(', '))
+ok('the exemption is a real, editable field, not a stale name',
+  [...CHROME_PREVIEW_EXEMPT].every((id) => chromeEditable.includes(id)),
+  [...CHROME_PREVIEW_EXEMPT].join(', '))
+
+// ---------------------------------------------------------------------------
 console.log(`\n${'-'.repeat(56)}`)
 if (failures === 0) {
   console.log(`ALL CHECKS PASSED  (${checks} assertions)`)
