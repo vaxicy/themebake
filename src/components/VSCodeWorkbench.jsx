@@ -279,6 +279,12 @@ export function VSCodeWorkbench({
 
   // ----------------------------------------------------------------- AI naming
   const [aiBusy, setAiBusy] = useState(false)
+  /**
+   * The recolouring request, tracked apart from the naming one: both are AI calls
+   * and the app runs one at a time, but each panel reports only its own progress
+   * and merely waits while the other works.
+   */
+  const [recolorBusy, setRecolorBusy] = useState(false)
   const [aiCandidates, setAiCandidates] = useState([])
   const [aiAppliedName, setAiAppliedName] = useState('')
   const aiSeenRef = useRef([])
@@ -644,7 +650,7 @@ export function VSCodeWorkbench({
         toast.error(t('ai.errorNoKey'))
         return false
       }
-      setAiBusy(true)
+      setRecolorBusy(true)
       try {
         const masterIds = VSCODE_FIELDS.map((field) => field.id)
         const regionIds = VSCODE_OVERRIDE_FIELDS.map((field) => field.id)
@@ -709,7 +715,7 @@ export function VSCodeWorkbench({
         toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
         return false
       } finally {
-        setAiBusy(false)
+        setRecolorBusy(false)
       }
     },
     [
@@ -1007,6 +1013,9 @@ export function VSCodeWorkbench({
               onGenerateAll={handleAiGenerateNames}
               onApply={handleApplyAiCandidate}
               busy={aiBusy}
+              // One request at a time across the workbench: recolouring blocks the
+              // naming controls without pretending to be a naming request.
+              networkBusy={aiBusy || recolorBusy}
               candidates={aiCandidates}
               appliedName={aiAppliedName}
               description=""
@@ -1081,6 +1090,16 @@ export function VSCodeWorkbench({
           onInvalidColor={(label) => toast.error(t('colorField.invalidToast', { label }))}
         />
 
+        {/* The conversational half of "make this look different", above the
+            solver: ask for one colour to be changed and it is changed, or reach
+            for the studio below to derive a whole family from one seed. */}
+        <AiRecolor
+          onRun={handleAiRecolor}
+          busy={recolorBusy}
+          blocked={aiBusy || recolorBusy}
+          hasKey={Boolean(aiConfig.apiKey)}
+        />
+
         <PaletteStudio
           seed={seed}
           mode={smartMode}
@@ -1097,14 +1116,6 @@ export function VSCodeWorkbench({
           seedHintKey="studio.vscodeSeedHint"
           stripMapper={masterFromPalette}
           stripItems={VSCODE_STRIP_ITEMS}
-        />
-
-        {/* The conversational half of "make this look different": the studio
-            derives a whole family from one seed, this edits what is on screen. */}
-        <AiRecolor
-          onRun={handleAiRecolor}
-          busy={aiBusy}
-          hasKey={Boolean(aiConfig.apiKey)}
         />
 
         <ImportPanel onApplyPalette={handleImportPalette} onApplyManifest={handleImportManifestUnsupported} />

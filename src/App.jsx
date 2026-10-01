@@ -197,6 +197,14 @@ export default function App() {
   const [aiConfig, setAiConfig] = useState(() => loadAiConfig())
   const [aiBusy, setAiBusy] = useState(false)
   /**
+   * The recolouring request, tracked apart from the naming one.
+   *
+   * Both are AI calls and the app runs one at a time, but a button that says
+   * "recolouring…" while it is actually generating names is a small lie — each
+   * panel shows its own progress and merely *waits* while the other works.
+   */
+  const [recolorBusy, setRecolorBusy] = useState(false)
+  /**
    * Which single field a request is re-generating: `'name'`, `'description'`, or
    * `null`. Only the button that was pressed spins; every AI control is blocked
    * while any request is in flight, so two replies can never race for the same
@@ -299,7 +307,7 @@ export default function App() {
   /** Is the AI usable at all? Every AI action needs a key on the shared path. */
   const aiConfigured = Boolean(String(aiConfig.apiKey ?? '').trim())
   /** One AI request at a time, whichever button started it. */
-  const aiRequestInFlight = aiBusy || aiBusyField !== null
+  const aiRequestInFlight = aiBusy || recolorBusy || aiBusyField !== null
 
   // ---------------------------------------------------------------------------
   // Persistence — debounced so typing in a hex field does not hammer storage
@@ -572,7 +580,7 @@ export default function App() {
         toast.error(t('ai.errorNoKey'))
         return false
       }
-      setAiBusy(true)
+      setRecolorBusy(true)
       try {
         const palette = Object.keys(colors).map((id) => ({ id, value: colors[id] }))
         const result = await requestRecolor(aiConfig, {
@@ -603,7 +611,7 @@ export default function App() {
         toast.error(t(error?.key || 'ai.errorUnknown'), 6000)
         return false
       } finally {
-        setAiBusy(false)
+        setRecolorBusy(false)
       }
     },
     [aiConfig, colors, pushHistory, toast, t],
@@ -1092,6 +1100,16 @@ export default function App() {
                   onInvalidColor={handleInvalidColor}
                 />
 
+            {/* The conversational half of "make this look different", above the
+                solver: ask for one colour to be changed and it is changed, or reach
+                for the studio below to derive a whole family from one seed. */}
+            <AiRecolor
+              onRun={handleAiRecolor}
+              busy={recolorBusy}
+              blocked={aiRequestInFlight}
+              hasKey={Boolean(aiConfig.apiKey)}
+            />
+
             <PaletteStudio
               seed={seed}
               mode={smartMode}
@@ -1103,14 +1121,6 @@ export default function App() {
               onAccentChange={(next) => setSmartAccent(pick(next, ACCENT_STRATEGIES, DEFAULT_ACCENT_STRATEGY))}
               onGenerate={handleStudioGenerate}
               onInvalidSeed={handleInvalidColor}
-            />
-
-            {/* The conversational half of "make this look different": the studio
-                derives a whole family from one seed, this edits what is on screen. */}
-            <AiRecolor
-              onRun={handleAiRecolor}
-              busy={aiRequestInFlight}
-              hasKey={Boolean(aiConfig.apiKey)}
             />
 
             <ImportPanel

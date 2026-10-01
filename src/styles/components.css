@@ -1348,7 +1348,7 @@
 }
 
 /* --------------------------- AI recolouring -------------------------------- */
-/* Sits under the palette studio: a sentence, applied to the colours on screen. */
+/* Sits above the palette studio: a sentence, applied to the colours on screen. */
 .recolor__form {
   display: grid;
   gap: 8px;

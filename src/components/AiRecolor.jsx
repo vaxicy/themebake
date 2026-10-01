@@ -9,12 +9,12 @@ const MAX_INSTRUCTION = 280
 /**
  * "Tell it what to change" — a sentence, applied to the palette.
  *
- * Not a second palette solver: the studio next to it derives a whole theme from one
+ * Not a second palette solver: the studio below it derives a whole theme from one
  * colour, deterministically and predictably. This is for the requests a solver
  * cannot take — "warm it up", "the status bar should be deep green, keep everything
  * else" — where the useful answer is a handful of specific colours rather than a
- * new family. The two sit together because they answer the same question ("make
- * this look different") in two registers.
+ * new family. It sits above the studio for that reason: the quick edit is the
+ * common case, and the solver is the bigger hammer underneath.
  *
  * The component owns nothing but the sentence being typed: the request, the
  * validation and the undo step all belong to the workbench, which is the only
@@ -23,13 +23,15 @@ const MAX_INSTRUCTION = 280
  * @param {object} props
  * @param {(instruction: string) => Promise<boolean>} props.onRun resolves true when
  *   the palette changed, which is when the box clears itself
- * @param {boolean} [props.busy] a request is in flight
+ * @param {boolean} [props.busy] this panel's own request is in flight
+ * @param {boolean} [props.blocked] another AI request is running — the app allows
+ *   one at a time, so the button waits without claiming to be recolouring
  * @param {boolean} [props.hasKey] an API key is configured
  */
-export function AiRecolor({ onRun, busy = false, hasKey = true }) {
+export function AiRecolor({ onRun, busy = false, blocked = false, hasKey = true }) {
   const { t } = useI18n()
   const [instruction, setInstruction] = useState('')
-  const canRun = Boolean(instruction.trim()) && !busy && hasKey
+  const canRun = Boolean(instruction.trim()) && !busy && !blocked && hasKey
 
   const submit = async (event) => {
     event.preventDefault()
