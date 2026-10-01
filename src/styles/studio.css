@@ -398,32 +398,53 @@
 }
 
 /* ----------------------- Settings header actions -------------------------- */
-/* The title's row carries one preference and two actions — the auto-clear switch
-   and the clear / undo buttons. Three controls of equal weight, so they share one
-   line box, one height and one hover treatment: the toggle used to be bare text
-   beside a native checkbox, which read as a purple block next to two text buttons
-   and sat on a different baseline from them. */
+/*
+ * Three things share this header: the title, a one-line description and the action
+ * row (the auto-clear preference plus the clear / undo buttons).
+ *
+ * Laid out as two grid rows so the arrangement is fixed rather than emergent —
+ * the actions always sit on the title's own line, and the description always runs
+ * the full width beneath them. As a wrapping flex row it used to be the longest
+ * description that decided where the buttons landed, which is how a two-line
+ * subtitle pushed them under the title.
+ *
+ * The wrapper the title and description arrive in is `display: contents`, so those
+ * two land in this grid directly instead of nesting in a box of their own.
+ */
 .settings-panel .panel__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  /* The actions are a fixed-width row; the title takes what is left and wraps
-     rather than pushing them out. When even that is too tight the row drops to
-     its own line, still flushed right. */
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 5px;
 }
 
 .settings-panel .panel__header > :first-child {
-  flex: 1 1 auto;
+  display: contents;
+}
+
+.settings-panel .panel__header h2 {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
 }
 
+.settings-panel .panel__header .panel__subtitle {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/*
+ * The preference and the two buttons, as one row of equal-weight controls: same
+ * box, same height, same hover — the toggle used to be bare text beside a native
+ * checkbox, which read as a purple block on a different baseline from the buttons.
+ */
 .settings-actions {
   display: inline-flex;
-  flex: 0 0 auto;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
   align-items: center;
-  margin-left: auto;
   /* Tight inside a group, wider between them: the preference is one control, the
      buttons are another. */
   gap: 6px;
@@ -502,13 +523,23 @@
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
+/* On a phone-width panel there is no room for the description's full width, so the
+   actions move down a row and the description keeps its line to itself. They stay
+   in the grid either way, which is why this only needs to reassign one cell. */
 @media (max-width: 560px) {
   .settings-panel .panel__header {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .settings-panel .panel__header h2,
+  .settings-actions {
+    grid-column: 1;
   }
 
   .settings-actions {
-    align-self: flex-end;
+    grid-row: 3;
+    justify-self: start;
   }
 }
 

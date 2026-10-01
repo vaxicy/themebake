@@ -68,7 +68,7 @@ export default {
   'mode.vscode': 'VS Code 主题',
   'mode.aria': '选择工作台',
   'settings.title': '主题设置',
-  'settings.subtitle': '下面每种颜色都对应一个 Chrome 真实使用的主题键名 —— 点「预览 manifest」即可查看。',
+  'settings.subtitle': '每种颜色都对应一个 Chrome 真实使用的主题键名。',
   'settings.name.label': '主题名称',
   'settings.name.placeholder': '我的主题',
   'settings.name.hint':
@@ -93,8 +93,7 @@ export default {
 
   // ------------------------------------------------------------------ vscode
   'vscode.title': 'VS Code 主题设置',
-  'vscode.subtitle':
-    '只调 14 个基准色，其余 90+ 个工作台键与语法高亮配色自动派生 —— 预览即时更新，导出即可安装。',
+  'vscode.subtitle': '只调 14 个基准色，其余 90+ 键与语法高亮自动派生。',
   'vscode.type.label': '主题类型',
   'vscode.type.dark': '深色',
   'vscode.type.light': '浅色',

@@ -76,7 +76,7 @@ export default {
   'mode.vscode': 'VS Code Theme',
   'mode.aria': 'Choose a workspace',
   'settings.title': 'Theme Settings',
-  'settings.subtitle': 'Every colour below maps to a real Chrome theme key — see Preview Manifest.',
+  'settings.subtitle': 'Every colour is a real Chrome theme key.',
   'settings.name.label': 'Theme Name',
   'settings.name.placeholder': 'My Theme',
   'settings.name.hint':
@@ -91,8 +91,11 @@ export default {
     'Optional. Up to {max} characters. Written into manifest.json as description — the Chrome Web Store shows it as the package summary, under the title on the detail page and in search results. Chrome does not display it for a locally loaded theme.',
   'settings.clear': 'Clear',
   'settings.clearTitle': 'Clear the theme name, folder name and summary in one click',
-  'settings.autoClear': 'Auto-clear on new theme',
-  'settings.autoClearTitle': 'Clear these three fields whenever a new theme is applied (preset, random, smart palette, import)',
+  // Short, like the Chinese label: the header row shares its line with the title,
+  // and the tooltip spells out the "on a new theme" part anyway.
+  'settings.autoClear': 'Auto-clear',
+  'settings.autoClearTitle':
+    'Clear these fields (name, folder, summary) whenever a new theme is applied — preset, random, smart palette or import',
   'settings.group.browserChrome': 'Browser chrome',
   'settings.group.addressBar': 'Address bar',
   'settings.group.bookmarks': 'Bookmarks',
@@ -101,8 +104,7 @@ export default {
 
   // ------------------------------------------------------------------ vscode
   'vscode.title': 'VS Code Theme Settings',
-  'vscode.subtitle':
-    'Tune 14 master colours — the other 90+ workbench keys and the syntax colours are derived automatically. Live preview, installable export.',
+  'vscode.subtitle': 'Tune 14 master colours — the other 90+ keys and the syntax colours are derived.',
   'vscode.type.label': 'Theme type',
   'vscode.type.dark': 'Dark',
   'vscode.type.light': 'Light',
