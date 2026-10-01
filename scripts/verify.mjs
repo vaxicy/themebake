@@ -69,11 +69,13 @@ import {
 import { suggestThemeName } from '../src/utils/nameFromColors.js'
 import {
   DEFAULT_AI_CONFIG,
+  AI_BRIEF_MAX,
   AI_LANGUAGES,
   AI_PROVIDERS,
   AI_PROVIDER_IDS,
   AI_STYLES,
   AI_TEMPERATURE,
+  normalizeBrief,
 } from '../src/data/aiProviders.js'
 import { sanitizeAiConfig } from '../src/utils/aiConfig.js'
 import {
@@ -1712,6 +1714,40 @@ ok('the naming prompt reuses the description writing rules',
 ok('the description prompt uses the very same rules',
   DESCRIPTION_RULES.en.every((rule) =>
     buildDescriptionMessages({ palette: described, name: '', language: 'en' }).user.includes(rule)))
+
+// The author's own brief. It has to reach the prompt verbatim, it has to reach
+// *both* prompts (a brief that only moved the names would be a trap), and it has to
+// come before the format rules, because those decide whether the answer is usable:
+// a brief asking for a 40-character name must not win over the limit.
+const BRIEF = 'Chinese names please, food and plants, no "theme" in the summary'
+const briefedNaming = buildNamingMessages({
+  palette: described, style: 'auto', language: 'zh', candidates: 3, brief: BRIEF,
+})
+const briefedDescription = buildDescriptionMessages({
+  palette: described, name: '柠檬汽水', language: 'zh', brief: BRIEF,
+})
+ok('the brief reaches the naming prompt', briefedNaming.user.includes(BRIEF))
+ok('the brief reaches the description prompt', briefedDescription.user.includes(BRIEF))
+ok('the brief is quoted as the author\u2019s own request',
+  briefedNaming.user.includes('The author\u2019s own request') ||
+    briefedNaming.user.includes("The author's own request"))
+ok('the naming rules still follow the brief',
+  briefedNaming.user.indexOf(BRIEF) < briefedNaming.user.indexOf('Naming rules'))
+ok('the description rules still follow the brief',
+  briefedDescription.user.indexOf(BRIEF) < briefedDescription.user.indexOf('Writing rules'))
+ok('the prompt says the format rules win over the brief',
+  /still win/i.test(briefedNaming.user))
+ok('no brief means no brief block',
+  !buildNamingMessages({ palette: described, style: 'auto', language: 'en', candidates: 3 }).user.includes(
+    'own request',
+  ))
+
+// Normalisation: one line, trimmed, capped — the three ways a pasted note breaks a prompt.
+ok('a brief is collapsed to a single line', normalizeBrief('  Chinese\n  names\tplease  ') === 'Chinese names please')
+ok('a brief is capped', normalizeBrief('x'.repeat(AI_BRIEF_MAX + 120)).length === AI_BRIEF_MAX)
+ok('a non-string brief is empty', normalizeBrief(null) === '' && normalizeBrief(42) === '')
+ok('the saved config keeps the brief, normalised', sanitizeAiConfig({ brief: ' a\nb ' }).brief === 'a b')
+ok('a config without a brief is empty', sanitizeAiConfig({}).brief === '')
 
 const fencedCandidates = parseNamingResponse(
   '{"candidates":[{"name":"Lemon Juice Theme","description":"\\"A bright lemon wash for daytime work.\\""},{"name":"Bare Name Theme"}]}',

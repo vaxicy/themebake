@@ -10,6 +10,11 @@
  * together, so they stay in step and picking another name picks its description
  * with it.
  *
+ * Above the button sits the author's own brief: a note that steers what gets
+ * written ("Chinese names, food and plants") without them having to compose a
+ * prompt. It is a saved setting rather than a one-off, because the answer to "what
+ * should this be called" rarely changes between clicks.
+ *
  * The provider defaults live in `data/aiProviders.js`. Choosing a provider is
  * convenience only: it just prefills the base URL and model, and everything
  * stays editable, so any OpenAI-compatible endpoint works through the "custom"
@@ -20,6 +25,7 @@
  */
 
 import {
+  AI_BRIEF_MAX,
   AI_CANDIDATE_COUNTS,
   AI_LANGUAGES,
   AI_PROVIDERS,
@@ -139,6 +145,28 @@ export function AiNamingPanel({
         <span className={`status-chip ${hasKey ? 'status-chip--ok' : 'status-chip--error'}`}>
           {hasKey ? t('ai.statusReady') : t('ai.statusNoKey')}
         </span>
+      </div>
+
+      {/*
+        The author's own note. It sits above the button rather than inside the
+        collapsed settings because it changes what comes back — the settings below
+        describe *how* the model is called, this describes *what* to write.
+      */}
+      <div className="field field--compact">
+        <label className="field__label" htmlFor="ai-brief">
+          {t('ai.brief.label')}
+        </label>
+        <textarea
+          id="ai-brief"
+          className="text-input ai__brief"
+          rows={2}
+          value={config.brief}
+          maxLength={AI_BRIEF_MAX}
+          placeholder={t('ai.brief.placeholder')}
+          spellCheck="false"
+          onChange={(event) => onChange({ brief: event.target.value })}
+        />
+        <p className="field__hint">{t('ai.brief.hint', { max: AI_BRIEF_MAX })}</p>
       </div>
 
       <div className="ai__actions">

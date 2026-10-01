@@ -1328,6 +1328,17 @@
   color: var(--text-primary);
 }
 
+/* The author's brief. A textarea, not an input: these notes run to a sentence or
+   two, and a one-line field hides most of what was typed. */
+.ai__brief {
+  min-height: 58px;
+  padding: 8px 11px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .ai__actions {
   display: grid;
   gap: 8px;

@@ -323,6 +323,10 @@ export default {
   'ai.subtitle': 'Generate the theme name, folder name, and store description from your colours in one click.',
   'ai.generate': 'Generate all',
   'ai.generating': 'Generating…',
+  // The author's own request: it steers both the names and the summary.
+  'ai.brief.label': 'Your brief (optional)',
+  'ai.brief.placeholder': 'e.g. Chinese names, food and plants, and keep the word "theme" out of the summary',
+  'ai.brief.hint': 'Steers the names and the summary. The format rules still win (under {max} characters, no quotes).',
   'ai.generateDesc': 'Generate description',
   'ai.generatingDesc': 'Writing description…',
   'ai.descGenerated': 'Description updated.',

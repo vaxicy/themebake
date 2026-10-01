@@ -90,6 +90,31 @@ export const AI_LANGUAGES = ['en', 'zh']
 
 export const AI_CANDIDATE_COUNTS = [3, 4, 5, 6]
 
+/**
+ * How long the author's own brief may get.
+ *
+ * A brief is a note — "Chinese names, food and plants" — not a prompt of its own.
+ * Without a cap it becomes the longest part of the request and starts to outweigh
+ * the palette facts it is supposed to steer; it is also the one field a user could
+ * paste a whole document into.
+ */
+export const AI_BRIEF_MAX = 200
+
+/**
+ * The brief as the model will see it: one line, at most `AI_BRIEF_MAX` characters.
+ *
+ * Collapsed to a single line on purpose — it is quoted into a prompt whose
+ * structure is line-based, and a newline in the middle would read as a new
+ * instruction block.
+ *
+ * @param {unknown} brief whatever the field holds
+ * @returns {string} '' when there is nothing usable
+ */
+export function normalizeBrief(brief) {
+  if (typeof brief !== 'string') return ''
+  return brief.replace(/\s+/g, ' ').trim().slice(0, AI_BRIEF_MAX)
+}
+
 export const AI_TEMPERATURE = { min: 0.6, max: 1.3, step: 0.1 }
 
 /**
@@ -107,4 +132,7 @@ export const DEFAULT_AI_CONFIG = {
   candidates: 5,
   style: 'auto',
   language: 'en',
+  // The author's own note, e.g. "Chinese names, food and plants". Empty by default:
+  // a palette on its own is what the app is for.
+  brief: '',
 }

@@ -292,6 +292,10 @@ export default {
   'ai.subtitle': '根据配色一键生成主题名、文件夹名和商店摘要。',
   'ai.generate': '一键生成',
   'ai.generating': '正在生成…',
+  // 作者自己的要求：名字与摘要都听它
+  'ai.brief.label': '我的建议（可选）',
+  'ai.brief.placeholder': '例：名字用中文、偏食物和植物，摘要里不要出现「主题」两个字',
+  'ai.brief.hint': '会同时影响名称与摘要。格式规则优先（{max} 字以内、不能有引号）。',
   'ai.generateDesc': '智能生成摘要',
   'ai.generatingDesc': '正在写摘要…',
   'ai.descGenerated': '摘要已更新。',

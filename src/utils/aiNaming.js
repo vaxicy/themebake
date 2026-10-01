@@ -17,6 +17,7 @@
  * module stays free of UI text.
  */
 
+import { normalizeBrief } from '../data/aiProviders.js'
 import { hexToHsl } from './color.js'
 import { MAX_DESCRIPTION_LENGTH } from './manifest.js'
 import { toThemeFolderName } from './package.js'
@@ -121,6 +122,32 @@ function descriptionRules(language) {
   return DESCRIPTION_RULES[language === 'zh' ? 'zh' : 'en']
 }
 
+/**
+ * The author's own instruction, quoted into the prompt.
+ *
+ * "My suggestions" is the point of the field: the palette says what the colours
+ * *are*, and this says what the person wants them *called* — Chinese instead of
+ * English, food instead of weather, no mention of the word "theme". It is quoted
+ * rather than merged into the rules so the two are distinguishable in the prompt,
+ * and it is placed *before* the format rules because those decide whether the
+ * answer is usable at all: a brief asking for a 40-character name, quotes around
+ * it, or a note that the folder should be "whatever you like" must not win over the
+ * rules that make the result installable.
+ *
+ * @param {unknown} brief the field's value
+ * @returns {string[]} prompt lines (empty when there is no brief)
+ */
+function briefLines(brief) {
+  const text = normalizeBrief(brief)
+  if (!text) return []
+  return [
+    "The author's own request (this is their note, not part of the palette):",
+    `    ${text}`,
+    'Follow it — it decides direction, wording and language. The format rules below still win:',
+    '',
+  ]
+}
+
 /** Human-readable style/phrase appended to the prompt. `auto` = no steer. */
 function styleInstruction(style) {
   switch (style) {
@@ -154,9 +181,10 @@ function styleInstruction(style) {
  * @param {'en'|'zh'} context.language resolved language for the *names*
  * @param {number} context.candidates how many to ask for
  * @param {string[]} [context.exclude] names to avoid (recently applied)
+ * @param {string} [context.brief] the author's own instructions (see `briefLines`)
  * @returns {{system: string, user: string}}
  */
-export function buildNamingMessages({ palette, style, language, candidates, exclude = [] }) {
+export function buildNamingMessages({ palette, style, language, candidates, exclude = [], brief = '' }) {
   const system = [
     'You are ThemeBake\'s naming assistant. You invent short, evocative names for Chrome',
     'browser themes from a colour palette. You always answer with a single JSON object and',
@@ -177,6 +205,7 @@ export function buildNamingMessages({ palette, style, language, candidates, excl
   lines.push(`How many candidates: ${candidates}`)
   if (exclude.length) lines.push(`Avoid repeating these already-used names: ${exclude.slice(0, 20).join(', ')}`)
   lines.push('')
+  for (const line of briefLines(brief)) lines.push(line)
 
   if (language === 'zh') {
     lines.push('Naming rules (Chinese):')
@@ -397,6 +426,9 @@ export async function requestThemeNames(config, context, options = {}) {
     language: context.language,
     candidates: context.candidates,
     exclude: context.exclude,
+    // The author's own note lives in the settings, so every request carries it —
+    // there is no call site that could forget to pass it.
+    brief: config.brief,
   })
 
   // Room for the summaries: each candidate now carries a full sentence, and a
@@ -417,9 +449,10 @@ export async function requestThemeNames(config, context, options = {}) {
  * @param {ReturnType<typeof describePalette>} context.palette
  * @param {string} context.name the current theme name
  * @param {'en'|'zh'} context.language language of the description text
+ * @param {string} [context.brief] the author's own instructions (see `briefLines`)
  * @returns {{system: string, user: string}}
  */
-export function buildDescriptionMessages({ palette, name, language }) {
+export function buildDescriptionMessages({ palette, name, language, brief = '' }) {
   const system = [
     'You are ThemeBake\'s description assistant. You write the one-line store description that goes',
     'into a Chrome theme manifest. You always answer with a single JSON object and nothing else —',
@@ -437,6 +470,7 @@ export function buildDescriptionMessages({ palette, name, language }) {
   for (const swatch of palette.swatches) lines.push(`    ${swatch}`)
   if (name) lines.push(`- theme name: ${name}`)
   lines.push('')
+  for (const line of briefLines(brief)) lines.push(line)
 
   lines.push(language === 'zh' ? 'Writing rules (Chinese):' : 'Writing rules (English):')
   for (const rule of descriptionRules(language)) lines.push(rule)
@@ -482,7 +516,7 @@ export function parseDescriptionResponse(text, { limit = MAX_DESCRIPTION_LENGTH 
  * @throws {AiNamingError} `.key` is an i18n key
  */
 export async function requestThemeDescription(config, context, options = {}) {
-  const { system, user } = buildDescriptionMessages(context)
+  const { system, user } = buildDescriptionMessages({ ...context, brief: config.brief })
   const content = await chatCompletion(config, { system, user, maxTokens: 200 }, options)
   const description = parseDescriptionResponse(content)
   if (!description) throw new AiNamingError('ai.errorParse')

@@ -22,6 +22,7 @@ import {
   AI_STYLES,
   AI_TEMPERATURE,
   DEFAULT_AI_CONFIG,
+  normalizeBrief,
 } from '../data/aiProviders.js'
 import { storageAvailable } from './storage.js'
 
@@ -86,6 +87,8 @@ export function sanitizeAiConfig(input = {}) {
       : DEFAULT_AI_CONFIG.candidates,
     style: AI_STYLES.includes(input.style) ? input.style : DEFAULT_AI_CONFIG.style,
     language: AI_LANGUAGES.includes(input.language) ? input.language : DEFAULT_AI_CONFIG.language,
+    // The author's own note, normalised the same way the prompt normalises it.
+    brief: normalizeBrief(input.brief),
   }
 }
 
